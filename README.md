@@ -40,7 +40,7 @@ Find other players by username, form a party of two, and either **duel 1v1** or 
 ### Playing
 
 1. Everyone needs the **same version of the game** (share this folder, or put it on any static host such as GitHub Pages). Both screens must run identical code for the battles to match.
-2. Open the **联 Online** panel, paste the Project URL and anon key, and press **Connect**. Then choose a username. The game remembers both.
+2. Open the **联 Online** panel and choose a username. This copy of the game connects to the project in `js/online-config.js` on its own; to run your own project instead, put your Project URL and anon key there (or clear them, and each player pastes them into the panel once).
 3. Type a name in **Find players** and press **Invite**. Your friend sees the invite in their Online panel and presses **Join**.
 4. In a full party, press **1v1 duel**, or pick foes (Ctrl-click for several) and press **Fight together**. The match opens on both screens. Press **Share my fighter** first if you have trained since connecting; it is also shared automatically whenever a match starts.
 

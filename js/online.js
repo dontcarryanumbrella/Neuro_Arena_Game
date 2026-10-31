@@ -7,13 +7,15 @@ const ONLINE_KEY = 'neuro-arena-online';
 const PARTY_MAX = 2;
 const Online = { client: null, user: null, me: null, party: null, members: [], invites: [], seen: new Set(), timer: null, channel: null, busy: false };
 
-const onlineCfg = () => { try { return JSON.parse(localStorage.getItem(ONLINE_KEY)) || {}; } catch (e) { return {}; } };
+// the project this browser connected to, or else the one built into this copy of the game (js/online-config.js)
+const onlineCfg = () => { let c = {}; try { c = JSON.parse(localStorage.getItem(ONLINE_KEY)) || {}; } catch (e) { /* none saved */ } return c.url && c.key ? c : (typeof ONLINE_DEFAULT !== 'undefined' && ONLINE_DEFAULT.url && ONLINE_DEFAULT.key ? ONLINE_DEFAULT : c); };
 const saveOnlineCfg = c => { try { localStorage.setItem(ONLINE_KEY, JSON.stringify(c)); } catch (e) { /* remembered only when storage works */ } };
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const nameOf = id => (Online.members.find(m => m.user_id === id) || {}).username || '?';
 
 // ---------- connecting ----------
 async function onlineConnect(url, key) {
+  try { url = new URL(url.trim()).origin; } catch (e) { onlineStatus('That project URL does not look right. It should be like https://xxxx.supabase.co'); return; } // a pasted .../rest/v1/ works too
   if (!window.supabase) { onlineStatus('The online library did not load. Check your internet connection and reload.'); return; }
   Online.client = window.supabase.createClient(url, key);
   let { data: { session } } = await Online.client.auth.getSession();

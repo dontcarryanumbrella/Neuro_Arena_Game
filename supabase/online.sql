@@ -49,6 +49,11 @@ create table if not exists public.matches (
   created_at timestamptz not null default now()
 );
 
+-- newer projects no longer hand tables to signed-in players automatically: grant them here
+-- (what each player may actually see and change is still decided by the row rules below)
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.profiles, public.fighters, public.parties, public.party_members, public.invites, public.matches to authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.fighters enable row level security;
 alter table public.parties enable row level security;
@@ -60,6 +65,7 @@ alter table public.matches enable row level security;
 create or replace function public.in_party(p uuid) returns boolean
   language sql stable security definer set search_path = public
   as $$ select exists (select 1 from party_members where party_id = p and user_id = auth.uid()) $$;
+grant execute on function public.in_party(uuid) to authenticated;
 
 -- profiles: anyone signed in can find anyone; you edit only your own
 create policy "profiles readable" on public.profiles for select to authenticated using (true);
