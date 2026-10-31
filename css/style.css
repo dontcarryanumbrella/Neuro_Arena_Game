@@ -97,6 +97,11 @@ details.note p, .right p { margin: 6px 0; color: #333; }
 .row { display: grid; grid-template-columns: 110px 1fr 46px; align-items: center; gap: 8px; margin: 6px 0; }
 .row output { text-align: right; font-variant-numeric: tabular-nums; }
 .row.inline { display: flex; }
+.row.stat-row { grid-template-columns: 110px 1fr 64px; }
+.level-head { font-size: 15px; margin: 4px 0 6px; }
+.level-head b { font-size: 22px; color: var(--accent); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.level-bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.level-bar i { display: block; height: 100%; background: var(--accent); }
 .row.inline input[type=text] { flex: 1; min-width: 0; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 
@@ -235,3 +240,39 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .skin-card .sk-name { font-weight: 700; font-size: 13px; }
 .skin-card .sk-desc { font-size: 11px; color: #555; min-height: 28px; }
 .skin-card button { font-size: 12px; }
+
+/* the jar: the Portal, the Codex, and the card a new foe gets */
+.lid-line { margin: 6px 0 10px; font-size: 13px; }
+.run-card, .world-card { border: 1px solid var(--line); border-left: 4px solid #ccc; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+.run-card { background: var(--soft); }
+.run-card .k { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.run-card .n { font-size: 16px; font-weight: 700; }
+.run-card .btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.rnodes { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.rnode { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #bdbdbd; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); background: #fff; }
+.rnode.boss { border-radius: 4px; color: #a8761c; }
+.rnode.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rnode.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
+.wc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wc-head b { font-size: 15px; }
+.danger { font-size: 11px; border: 1px solid; border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.wc-blurb { font-size: 13px; margin: 3px 0 5px; }
+.wc-seals { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.seal { font-size: 12px; padding: 1px 6px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line); }
+.seal.broken { background: #fff4d6; border-color: #e8c34a; }
+.wc-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.codex-row { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--soft); font-size: 13px; }
+.codex-row.unmet { color: #999; }
+.codex-row canvas { width: 24px; height: 24px; image-rendering: pixelated; }
+.cx-t { display: block; color: var(--muted); font-size: 12px; }
+.finales { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.finales button { font-size: 12px; padding: 3px 8px; }
+.finales button.on { background: #fff4d6; border-color: #e8c34a; font-weight: 600; }
+.encounter { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); line-height: 1.3; background: rgba(12, 10, 8, 0.88); color: #ece4d2;
+  border: 1px solid #e8c34a; border-radius: 6px; padding: 8px 14px; min-width: 200px; max-width: calc(100% - 32px); transition: opacity .4s; }
+.encounter.out { opacity: 0; }
+.enc-k { font-family: 'Press Start 2P', monospace; font-size: 9px; color: #e8c34a; letter-spacing: .08em; margin-bottom: 6px; }
+.enc-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.enc-ic canvas { width: 32px; height: 32px; image-rendering: pixelated; display: block; }
+.enc-n { display: block; font-size: 15px; }
+.enc-e { display: block; font-size: 12px; color: #b9b09a; }

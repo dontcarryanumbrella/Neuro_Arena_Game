@@ -43,6 +43,9 @@
       <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
     </div>
     <nav class="dock" id="dock" aria-label="Panels">
+      <button data-panel="portalPanel"><span class="ic">门</span>Portal</button>
+      <button data-panel="codexPanel"><span class="ic">典</span>Codex</button>
+      <span class="dock-sep"></span>
       <button data-panel="fighterPanel"><span class="ic">拳</span>Fighter</button>
       <button data-panel="foesPanel"><span class="ic">敌</span>Opponents</button>
       <button data-panel="abilitiesSection"><span class="ic">技</span>Abilities</button>
@@ -65,6 +68,7 @@
 
     <div class="screen">
       <canvas id="game" width="256" height="144"></canvas>
+      <div class="encounter" id="encounter" hidden aria-live="polite"></div>
       <div class="max-view" id="maxView" hidden>
         <div class="max-head">Max speed: arena hidden. <span id="maxRate"></span></div>
         <canvas id="bigChart"></canvas>
@@ -93,15 +97,41 @@
   </section>
 
   <aside class="right" id="drawer" aria-live="polite">
+    <section class="panel" id="portalPanel" hidden>
+      <div class="panel-head"><h2>Portal</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">Small worlds sealed in the jar. Any of them can be entered; some are far deadlier than others. Your fighter fights every room; between rooms you coach it.</p>
+      <div id="lidLine" class="lid-line"></div>
+      <div id="runCard"></div>
+      <div id="worldList"></div>
+      <details class="note">
+        <summary>How worlds work</summary>
+        <p>A world is a line of rooms, then its bosses. Each room starts at full health; lose one and retry it. Clearing a room for the first time pays part of the world's exploration jade; a boss's first defeat breaks one of the lid's seals, unlocks its Transcendence finale and pays a large amount of jade. Running a world again pays its foes' bounties and a quarter of the exploration jade.</p>
+        <p>Only kills in the worlds raise your level. Training pays a tenth of the bounty; battles, sparring and trials pay nothing.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="codexPanel" hidden>
+      <div class="panel-head"><h2>Codex</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini" id="codexNote"></p>
+      <div id="codexList"></div>
+    </section>
+
     <section class="panel" id="fighterPanel" hidden>
       <div class="panel-head"><h2>Fighter</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
-      <div class="row"><label for="fHp">Health</label><input type="range" id="fHp" min="40" max="300" step="10"><output id="fHpVal"></output></div>
-      <div class="row"><label for="fEnergy">Energy</label><input type="range" id="fEnergy" min="40" max="250" step="10"><output id="fEnergyVal"></output></div>
-      <div class="row"><label for="fRegen">Energy regen /s</label><input type="range" id="fRegen" min="4" max="50" step="1"><output id="fRegenVal"></output></div>
-      <div class="row"><label for="fPosture">Posture</label><input type="range" id="fPosture" min="40" max="250" step="10"><output id="fPostureVal"></output></div>
+      <div class="level-head">Level <b id="fLevel"></b></div>
+      <div class="level-bar"><i id="fLevelBar"></i></div>
+      <p class="mini" id="fLevelNote"></p>
+      <div class="row stat-row"><span>Health</span><span class="kill-bar"><i id="fHpBar"></i></span><output id="fHpVal"></output></div>
+      <div class="row stat-row"><span>Energy</span><span class="kill-bar"><i id="fEnergyBar"></i></span><output id="fEnergyVal"></output></div>
+      <div class="row stat-row"><span>Energy regen /s</span><span class="kill-bar"><i id="fRegenBar"></i></span><output id="fRegenVal"></output></div>
+      <div class="row stat-row"><span>Posture</span><span class="kill-bar"><i id="fPostureBar"></i></span><output id="fPostureVal"></output></div>
+      <details class="note">
+        <summary>Levels</summary>
+        <p>Every different foe or boss your fighter fells in the worlds (summoned creatures don't count) raises its level by one. Training, battles, sparring and trials don't: they are only memories. Each level adds health, energy, energy regen and posture, up to 300 health, 300 energy, 30 regen and 250 posture once every foe and boss has fallen. New stats apply from the next life.</p>
+      </details>
       <details class="note">
         <summary>Move costs</summary>
-        <p>Strike 10, heavy 22, kick 18, roll 20 energy. Guard is free but halves regen. A parry gives back 25. Changes apply from the next life.</p>
+        <p>Strike 10, heavy 22, kick 18, roll 20 energy. Guard is free but halves regen. A parry gives back 25.</p>
       </details>
     </section>
 
@@ -207,7 +237,7 @@
 
     <section class="panel" id="killsSection" hidden>
       <div class="panel-head"><h2>Kills</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
-      <p class="mini"><b id="killTotal"></b> Everything your fighter (or its summons and allies) has felled, in training and in the fights you watch, play or battle. The boss it has felled most since its identity began gives its special its finale.</p>
+      <p class="mini"><b id="killTotal"></b> Everything your fighter (or its summons and allies) has felled, in the worlds, in training and in the fights you watch, play or battle. The finale its special ends with is marked.</p>
       <div id="killList"></div>
     </section>
 
@@ -217,11 +247,12 @@
       <div id="traitBars"></div>
       <div class="id-card" id="awakenCard"></div>
       <div class="id-card" id="specialCard"></div>
+      <div class="id-card" id="finaleCard"></div>
       <details class="note">
         <summary>How identity works</summary>
         <p><b>Traits</b> drift slowly with every training life: aggression (how much it attacks), defense (guarding and parrying), mobility (moving and rolling), precision (parries, posture breaks and kills per attack), endurance (fighting on at low health, soaking damage) and versatility (using several abilities).</p>
         <p><b>Awakening</b> appears after 20 lives, shaped by the strongest trait, and only changes if another trait clearly overtakes it. Its gauge fills as the fighter deals and takes damage; when full it awakens for 8 seconds.</p>
-        <p><b>Ultimate Special</b> is forged once the fighter is awakened. It is built from the two abilities it has equipped (or its two most-used, if fewer are equipped): supercharged casts of both, then a finisher that depends on its awakening. Its gauge fills as it deals damage, faster while awakened. At its last stage it adds a finale borrowed from the boss it has felled most (see Kills).</p>
+        <p><b>Ultimate Special</b> is forged once the fighter is awakened. It is built from the two abilities it has equipped (or its two most-used, if fewer are equipped): supercharged casts of both, then a finisher that depends on its awakening. Its gauge fills as it deals damage, faster while awakened. At its last stage it adds a finale borrowed from a boss: each boss's first defeat in the worlds unlocks its finale, and you choose which one it ends with.</p>
       </details>
     </section>
 
@@ -255,6 +286,7 @@
 <script src="js/sfx.js"></script>
 <script src="js/agent.js"></script>
 <script src="js/sim.js"></script>
+<script src="js/campaign.js"></script>
 <script src="js/render.js"></script>
 <script src="js/swordfx.js"></script>
 <script src="js/main.js"></script>

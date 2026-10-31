@@ -1,0 +1,202 @@
+// The Jar: worlds sealed inside it, the rooms of a run through one, and the spawner that fills each room.
+// No DOM here (the tests load it with sim.js). Loaded after sim.js; main.js drives the runs.
+
+// How dangerous a foe is alone, roughly: a bandit is 1. A first guess from its body and kit until the balance
+// harness measures it (docs/campaign-plan.md, section 4).
+const THREAT = (() => {
+  const raw = t => {
+    const d = ENEMY_TYPES[t], m = d.moves || BASE_MOVES;
+    const body = Math.pow(d.hp / 50, 0.75), hit = (m.strike.dmg + m.heavy.dmg * 0.5) / 21;
+    const kit = 1 + 0.12 * (d.specials || []).length, role = { colossus: 0.85, caster: 1.1, trickster: 1.05 }[d.role] || 1; // colossi are big, slow targets
+    return body * hit * kit * role;
+  };
+  const base = raw('bandit'), out = {};
+  for (const t of Object.keys(ENEMY_TYPES)) if (!ENEMY_TYPES[t].summon) out[t] = Math.round(raw(t) / base * 100) / 100;
+  return out;
+})();
+
+// A group is worth more than its parts: each extra foe adds 15%.
+const GROUP_STEP = 0.15;
+const groupThreat = types => types.reduce((s, t) => s + THREAT[t], 0) * (1 + GROUP_STEP * (types.length - 1));
+const isColossus = t => ENEMY_TYPES[t].role === 'colossus';
+
+// Campaign tuning per boss: health and damage, so each lands at its tier whatever its base strength.
+// First guesses; the harness sets them. The Sword Immortal here stands in for his teacher form (phase 5).
+const BOSS_TUNE = {
+  warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
+  abbot: { hp: 0.9, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
+  swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 },
+  blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
+  timeadmin: { hp: 1.15, dmg: 1.1 },
+  gojo: { hp: 1.1, dmg: 1.1 }, mahoraga: { hp: 1.05, dmg: 1.05 }, scholar: { hp: 1.1, dmg: 1 }, yellowking: { hp: 1.1, dmg: 1.1 },
+};
+
+// The room plans of each tier: kind and threat budget, in order (bosses come after them).
+const TIER_ROOMS = {
+  2: [['skirmish', 2.6], ['pack', 5], ['warband', 4.2], ['skirmish', 3.8], ['elite', 4.4]],
+  3: [['skirmish', 3.2], ['pack', 6.4], ['warband', 5], ['skirmish', 4.6], ['warband', 5.6], ['elite', 5.8]],
+  4: [['skirmish', 3.8], ['pack', 7.6], ['warband', 5.8], ['skirmish', 5.4], ['warband', 6.4], ['elite', 6.8]],
+  5: [['skirmish', 4.4], ['pack', 8.4], ['warband', 6.4], ['skirmish', 6], ['warband', 7.2], ['pack', 9], ['elite', 7.8]],
+  6: [['skirmish', 4.8], ['pack', 9], ['warband', 7], ['skirmish', 6.6], ['warband', 7.8], ['pack', 9.6], ['elite', 8.4]],
+};
+const TIER_NAMES = { 1: 'Tier I', 2: 'Tier II', 3: 'Tier III', 4: 'Tier IV', 5: 'Tier V', 6: 'Hidden' };
+const EXPLORE_JADE = { 1: 150, 2: 300, 3: 500, 4: 750, 5: 1000, 6: 1200 };   // first clears of a world's rooms, shared between them
+const BOSS_JADE = { 1: 400, 2: 700, 3: 1000, 4: 1500, 5: 2000, 6: 2500 };     // a boss's first defeat
+const REPEAT_SHARE = 0.25;                                                    // a repeat run pays this much of the exploration jade
+const ROOM_TIME = 90, BOSS_TIME = 180, HIDDEN_BOSS_TIME = 240;
+
+// Pool entries: [type, weight, most of it in one room, flags]. 'elite' foes only appear in elite rooms;
+// a stretch name keeps a foe to one part of a world (the Last Frontier's badlands and town).
+const p = (type, w, pack, o = {}) => ({ type, w, pack, ...o });
+
+const WORLDS = [
+  {
+    id: 'frontier', name: 'The Last Frontier', tier: 1, color: '#c8873a',
+    blurb: 'Badlands where the law ran out, then a frontier town at the end of the road.',
+    pool: [
+      p('bandit', 4, 4, { stretch: 'badlands' }), p('berserker', 2, 2, { stretch: 'badlands' }), p('boxer', 2, 2, { stretch: 'badlands' }),
+      p('bandit', 1, 4, { stretch: 'town' }), p('fencer', 2, 2, { stretch: 'town' }), p('gunslinger', 2, 3, { stretch: 'town' }), p('sniper', 2, 2, { stretch: 'town' }),
+      p('archer', 2, 2, { stretch: 'town' }), p('alchemist', 2, 2, { stretch: 'town' }),
+      p('crab', 2, 1, { stretch: 'town', elite: true }), p('mutant', 2, 1, { stretch: 'town', elite: true }),
+    ],
+    // the first world teaches one thing at a time, so its rooms are laid out by hand
+    rooms: [['skirmish', 1.2, 'badlands'], ['pack', 2.8, 'badlands'], ['warband', 3, 'badlands'], ['boss', 'warlord'],
+      ['skirmish', 2.2, 'town'], ['pack', 5.4, 'town'], ['warband', 3.4, 'town'], ['elite', 3.6, 'town'], ['boss', 'deadeye']],
+  },
+  {
+    id: 'temple', name: 'Red Dust Temple', tier: 2, color: '#d9a441', bosses: ['abbot'],
+    blurb: 'A mountain temple above the red dust, where every courtyard is a lesson in patience.',
+    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('druid', 2, 1)],
+  },
+  {
+    id: 'night', name: 'Night Country', tier: 2, color: '#9a2a3a', bosses: ['vampirelord', 'lich'],
+    blurb: 'A country where the sun stopped rising. Its lords are still at court.',
+    pool: [p('zombie', 4, 4), p('werewolf', 2, 2), p('vampire', 2, 2), p('necromancer', 2, 1), p('spider', 2, 1)],
+  },
+  {
+    id: 'peaks', name: 'Myriad Sword Peaks', tier: 3, color: '#9fd8ff', bosses: ['swordsaint'],
+    blurb: 'Ten thousand peaks, a sword on every one. One old master still teaches here.',
+    pool: [p('cultivator', 4, 3), p('talisman', 3, 2), p('formation', 3, 2), p('spearmaster', 3, 2)],
+  },
+  {
+    id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen'],
+    blurb: 'The pit under every world, and the brood that eats its way up.',
+    pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2)],
+  },
+  {
+    id: 'isles', name: 'Eastern Isles', tier: 4, color: '#e86a8a', bosses: ['blind'],
+    blurb: 'Islands of falling petals and old blades. Something with eight heads sleeps in the bay.',
+    pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1)],
+  },
+  {
+    id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor', 'wukong'],
+    blurb: 'The celestial court, nine layers up. Someone already tore through it once.',
+    pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2)],
+  },
+  {
+    id: 'timestream', name: 'Timestream', tier: 5, color: '#5fe0e0', bosses: ['timeadmin'],
+    blurb: 'A river of broken moments. The keeper of the jar lives here.',
+    pool: [p('cyborg', 3, 3), p('gravmage', 3, 2)],
+  },
+  {
+    id: 'cursed', name: 'Cursed Domain', tier: 6, hidden: true, color: '#3a2a6a', bosses: ['gojo', 'mahoraga'],
+    blurb: 'Curses breed where fear pools. Two powers older than the jar wait at its heart.',
+    pool: [],
+  },
+  {
+    id: 'blacksea', name: 'Black Sea', tier: 6, hidden: true, color: '#1a1a1a', bosses: ['scholar'],
+    blurb: 'A dead sea of ink under a white sky, where the painting leaks.',
+    pool: [],
+  },
+  {
+    id: 'pallid', name: 'The Pallid Kingdom', tier: 6, hidden: true, color: '#e8d24a', bosses: ['yellowking'],
+    blurb: 'A court under twin suns by a lake of cloud. Bells ring. Everyone wears a mask.',
+    pool: [],
+  },
+];
+const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));
+const HIDDEN_KEY_BOSS = 'timeadmin'; // the keeper: the hidden worlds show themselves once it falls
+
+const worldBosses = w => w.bosses || w.rooms.filter(r => r[0] === 'boss').map(r => r[1]);
+const ALL_SEALS = WORLDS.flatMap(worldBosses);
+// every foe a world can put in a room (bosses aside)
+const worldFoes = w => [...new Set(w.pool.map(e => e.type))];
+// the room plan of a world: its hand-made list, or its tier's plan with the bosses at the end (an empty pool has only bosses)
+const roomPlan = w => w.rooms || [...(w.pool.length ? TIER_ROOMS[w.tier] : []), ...w.bosses.map(b => ['boss', b])];
+
+// The level a world expects: a hero that has felled everything in the earlier tiers arrives at it.
+function recommendedLevel(w) {
+  const before = new Set();
+  for (const o of WORLDS) if (o.tier < w.tier) { worldFoes(o).forEach(t => before.add(t)); worldBosses(o).forEach(t => before.add(t)); }
+  return 1 + before.size;
+}
+
+function freshCampaign() {
+  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], run: null, cycle: 0 };
+}
+
+const worldVisible = (c, w) => !w.hidden || !!c.seals[HIDDEN_KEY_BOSS];
+
+// ---------- the spawner ----------
+function pickWeighted(list, rand) {
+  const total = list.reduce((s, e) => s + e.w, 0);
+  let r = rand() * total;
+  for (const e of list) { r -= e.w; if (r < 0) return e; }
+  return list[list.length - 1];
+}
+
+// Slots a group takes: a colossus fills two; at most four slots, and never more than two colossi.
+const slotsOf = types => types.reduce((s, t) => s + (isColossus(t) ? 2 : 1), 0);
+const fits = (types, budget) => groupThreat(types) <= budget * 1.1 && slotsOf(types) <= 4 && types.filter(isColossus).length <= 2;
+
+// One room's foes, drawn at random within its threat budget and the grouping rules.
+function rollRoom(w, kind, budget, stretch, rand) {
+  const pool = w.pool.filter(e => (!stretch || e.stretch === stretch) && (kind === 'elite' || !e.elite));
+  if (!pool.length) return [];
+  const cheapest = pool.reduce((a, e) => (THREAT[e.type] < THREAT[a.type] ? e : a));
+  const affordable = (have, list) => list.filter(e => fits([...have, e.type], budget));
+  let group = [];
+  if (kind === 'pack') {
+    // up to four of one kind (as many as the budget allows, at least two)
+    const packers = pool.filter(e => e.pack >= 2 && fits([e.type, e.type], budget));
+    const e = packers.length ? pickWeighted(packers, rand) : cheapest;
+    group = [e.type];
+    while (group.length < Math.min(4, e.pack) && fits([...group, e.type], budget)) group.push(e.type);
+  } else if (kind === 'warband') {
+    // two or three different kinds, side by side
+    while (group.length < 3) {
+      const next = affordable(group, pool.filter(e => !group.includes(e.type)));
+      if (!next.length) break;
+      group.push(pickWeighted(next, rand).type);
+    }
+  } else if (kind === 'elite') {
+    // one foe made stronger: the elite-only ones first, else the toughest it can afford are likeliest
+    const strong = pool.filter(e => THREAT[e.type] * 1.6 <= budget * 1.1);
+    const own = strong.filter(e => e.elite);
+    const byThreat = list => list.map(e => ({ ...e, w: THREAT[e.type] ** 2 }));
+    const e = own.length ? pickWeighted(own, rand) : strong.length ? pickWeighted(byThreat(strong), rand) : cheapest;
+    return [{ type: e.type, hp: 1.5, dmg: 1.2, elite: true }];
+  } else {
+    // a skirmish: one foe, and a second if the budget has room
+    const first = affordable([], pool);
+    group = [(first.length ? pickWeighted(first, rand) : cheapest).type];
+    const second = affordable(group, pool);
+    if (second.length && rand() < 0.75) group.push(pickWeighted(second, rand).type);
+  }
+  return group.length ? group : [cheapest.type];
+}
+
+// A run through a world: every room decided up front (so a retried room is the same room).
+function buildRun(worldId, seed) {
+  const w = WORLD_BY_ID[worldId], rand = mulberry32(seed);
+  const rooms = roomPlan(w).map(([kind, x, stretch]) => {
+    if (kind === 'boss') {
+      const t = BOSS_TUNE[x] || {};
+      return { kind, boss: x, foes: [{ type: x, hp: t.hp || 1, dmg: t.dmg || 1 }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
+    }
+    return { kind, foes: rollRoom(w, kind, x, stretch, rand), time: ROOM_TIME };
+  });
+  return { world: worldId, seed, rooms, idx: 0, cleared: [] };
+}
+
+const foeType = f => typeof f === 'string' ? f : f.type;

@@ -1335,6 +1335,8 @@ const SCENARIOS = {
       return Array.from({ length: opts.atOnce || 1 }, () => roster[Math.floor(rand() * roster.length)]);
     },
   },
+  // a room of a world in the jar: its waves come with the sim (opts.waves), each foe a type or { type, hp, dmg } tuned for the campaign
+  room: { name: 'Room', pass: s => s.result === 'clear' },
 };
 for (const role of ROLE_ORDER) {
   const members = ROSTER.filter(t => ENEMY_TYPES[t].role === role);
@@ -2545,6 +2547,7 @@ class Sim {
     }
     if (t.state === 'stun') mult *= STUN_DMG;
     if (a && a.dmgMul) mult *= a.dmgMul;            // second-form bosses hit harder
+    if (a && a.tuneDmg) mult *= a.tuneDmg;          // tuned for its world in the campaign
     if (t.state === 'ult') mult *= t.ult && t.ult.dr != null ? 1 - t.ult.dr : 0.5; // and shrug off half during an ultimate
     if (((by && by.state === 'heroult') || atk.fromSpecial) && t.def && t.def.boss) mult *= 0.6; // bosses stand up to the fighter's special (and what it leaves behind)
     if (t.state === 'heroult') mult *= t.special && (t.special.stage || 1) >= 2 && ['tough', 'berserk'].some(k => (t.special.mods || []).includes(k)) ? 0.25 : 0.5; // the fighter's own special
@@ -2783,6 +2786,13 @@ class Sim {
     return e;
   }
 
+  // Campaign tuning: health and damage scaled for a foe's place in the jar (kept through a boss's second form).
+  tune(e, w) {
+    if (w.hp && w.hp !== 1) { e.maxHp = e.hp = Math.max(1, Math.round(e.maxHp * w.hp)); if (e.baseMaxHp) e.baseMaxHp = e.maxHp; }
+    if (w.dmg && w.dmg !== 1) e.tuneDmg = w.dmg;
+    if (w.elite) e.elite = true;
+  }
+
   // A summoned minion. Bosses' minions fight bare: no abilities, no passives.
   spawnMinion(type, x, y, summoner, force) {
     const sd = summoner.def || {};
@@ -2853,17 +2863,20 @@ class Sim {
     if (this.enemies.some(e => !this.friendlyToHero(e))) return;
     if (this.waveDelay > 0) { this.waveDelay -= DT; return; }
     const sc = this.sc;
-    const wave = sc.custom ? sc.wave(this.waveIdx, this.opts, this.rand) : sc.waves[this.waveIdx];
+    const wave = sc.custom ? sc.wave(this.waveIdx, this.opts, this.rand) : (sc.waves || this.opts.waves || [])[this.waveIdx];
     if (this.waveIdx > 0) this.stats.waves = this.waveIdx;
     if (!wave) {
       // credit the remaining time so finishing fast is never worse than stalling
       this.stats.timeBonus = this.timeLimit - this.t;
       return this.finish('clear');
     }
-    for (const type of wave) { const [x, y] = this.edgePoint(70); this.spawnEnemy(type, x, y, 1); }
+    for (const w of wave) {
+      const [x, y] = this.edgePoint(70), e = this.spawnEnemy(typeof w === 'string' ? w : w.type, x, y, 1);
+      if (typeof w === 'object') this.tune(e, w);
+    }
     this.waveIdx++;
     this.waveDelay = 0.8;
-    const b = wave.find(t => ENEMY_TYPES[t].boss);
+    const b = wave.map(w => typeof w === 'string' ? w : w.type).find(t => ENEMY_TYPES[t].boss);
     this.emit('wave', 0, 0, { n: this.waveIdx, boss: b ? ENEMY_TYPES[b].name : null });
   }
 
@@ -4385,6 +4398,7 @@ class Sim {
     let m = by ? this.comboMult(by) : 1;
     if (t.state === 'stun') m *= STUN_DMG;
     if (by && by.dmgMul) m *= by.dmgMul;
+    if (by && by.tuneDmg) m *= by.tuneDmg;
     if (by && by.focus) m *= 1 + 0.04 * by.focus;
     return m;
   }

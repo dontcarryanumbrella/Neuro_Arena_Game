@@ -14,7 +14,28 @@ then open http://localhost:8137. No build step and no dependencies: it is plain 
 
 **Host it for free:** the game is a static site, so it runs as-is on GitHub Pages. In the repository's **Settings → Pages**, set the source to the `main` branch and the root folder; it appears at `https://<your-name>.github.io/<repo>/`. That is also the easiest way to give friends the exact same version for online play.
 
-**Tests:** with Node.js installed, `node tests/newfoes.cjs` and `node tests/yellowking.cjs` run the combat regression checks (mechanics of every foe and boss, plus long random duels that must never break). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
+**Tests:** with Node.js installed, `node tests/newfoes.cjs`, `node tests/yellowking.cjs` and `node tests/campaign.cjs` run the regression checks (mechanics of every foe and boss, plus long random duels that must never break). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
+
+## The Jar
+
+The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it with him, and he can only leave once he has conquered every one. The full plan (lore, all worlds, balance, what comes next) is in `docs/campaign-plan.md`; this is what is built so far.
+
+- **Portal** (门): every world, by tier, with its recommended level and how dangerous it is for your level right now. Any world can be entered; some are far deadlier than others. The three hidden worlds (Cursed Domain, Black Sea, the Pallid Kingdom) only appear once the Timestream's keeper falls.
+- **A run** is a line of rooms, then the world's bosses. Each room is drawn at random from the world's foes within a threat budget: a skirmish, a pack (up to 4 of one kind), a warband (up to 3 different kinds) or an elite (one foe at 150% health and 120% damage). Bosses always fight alone. Your AI fighter fights every room; between rooms you coach it (abilities, talents, skins), or press **N** for the next room. Every room starts at full health, and a lost room is simply retried (**R**). Runs are kept when you reload.
+- **Rewards:** a room's first clear pays its share of the world's exploration jade (150 to 1200 by tier); a boss's first defeat breaks one of the lid's 15 seals, unlocks its **Transcendence finale** and pays 400 to 2500 jade; a repeat run pays its foes' bounties and a quarter of the exploration jade.
+- **First meetings:** a new foe gets a name card as its room begins, and goes into the **Codex** (典), with its abilities and how many you have felled in the worlds.
+- **Bosses are tuned for the campaign** (health and damage), so each fits its tier whatever its base strength.
+
+| Tier | Worlds | Bosses |
+| --- | --- | --- |
+| I | The Last Frontier | Bandit Warlord, Deadeye |
+| II | Red Dust Temple, Night Country | Grand Abbot · Vampire Lord, Lich |
+| III | Myriad Sword Peaks, Netherworld Abyss | Sword Immortal · Zerg Queen |
+| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor, Sun Wukong |
+| V (the gate) | Timestream | Time Administrator |
+| Hidden | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
+
+For now the worlds use the existing foes only (the hidden worlds hold just their bosses), and the lobby, the Memory Pavilion and the story fragments are still to come.
 
 ## How it learns
 
@@ -28,7 +49,7 @@ Up to 10 fighters on the stage at once. Each slot can be **your AI fighter** (se
 
 ## Playing online
 
-Find other players by username, form a party of two, and either **duel 1v1** or **fight together** against up to four foes or bosses. Your trained fighters do the fighting: each player brings their own brain, learned abilities, talents, Ultimate Special and skin. Nothing about the fight travels over the network while it plays: when a match starts, both fighters are shared once and **each screen runs the same battle from the same seed**, so lag never matters. (Online fights use the default fighter body, so local tweaks to health or energy don't carry over.)
+Find other players by username, form a party of two, and either **duel 1v1** or **fight together** against up to four foes or bosses. Your trained fighters do the fighting: each player brings their own brain, learned abilities, talents, Ultimate Special and skin. Nothing about the fight travels over the network while it plays: when a match starts, both fighters are shared once and **each screen runs the same battle from the same seed**, so lag never matters. (Online fights use the level 1 fighter body, so levels don't carry over.)
 
 ### One-time setup (the person hosting does this once)
 
@@ -50,7 +71,9 @@ The anon key is safe to share with friends: it only allows what `online.sql` per
 
 Every move except guard costs energy (strike 10, heavy 22, kick 18, roll 20). Energy regenerates over time, and a parry refunds 25. Guard blocks but fills posture; full posture means stunned. Guarding just as a hit lands is a parry. Heavy breaks blocks but can be parried, the kick goes through a guard, and the roll only repositions. Chained hits add 2% damage each, up to +30%.
 
-Fighter health, energy, energy regen and posture are adjustable.
+## Levels
+
+The fighter's health, energy, energy regen and posture come from its **level**, not from settings. It starts at level 1 (100 health, 100 energy, 18 regen, 100 posture) and gains a level for every different foe or boss it fells **in the worlds** (summoned creatures don't count). Training, battles, sparring and trials don't count: they are only memories. There are 59 to fell, so level 60 reaches the caps: 300 health, 300 energy, 30 regen and 250 posture. The Fighter panel shows the level and current stats; new stats apply from the next life. The level is saved with the fighter and survives Forget everything. (Saves from before the worlds start at level 1.)
 
 ## Opponents
 
@@ -297,16 +320,16 @@ Your fighter grows its own identity from how it actually fights; you can't pick 
   1. **Manifestation:** two favourite abilities played to its awakening's rhythm: a flurry (aggression), a stance that soaks blows then answers with them (defense), blinking round the target (mobility), a charge then one perfect cut (precision), slow casts and shockwaves (endurance), every form in turn (versatility).
   2. **Specialization** (special landed 10 times): its second-strongest trait and equipped talents add modifiers, e.g. blinking before every cast, 40% harder casts, lifesteal, fire breath, golden lightning, sword qi, untouchable while casting.
   3. **Synthesis** (150 lives, plus a third learned ability from a third enemy role): the three traditions fuse: it fires from every blink, seals open where it lands, fire drags into gravity wells, and the third tradition answers every cast. The name takes the third technique (e.g. "Crimson Fan-Tackle Rush").
-  4. **Transcendence** (400 lives, the same awakening for 150 of them, 25 landed synthesized specials): its own domain washes the arena in its colour, ten fused casts storm out, then a finale drawn from the boss it has felled most since its identity began (golden lightning, a ring of swords, Hollow Purple, a time freeze, two rings of the Warlord's spinning axes, the Scholar's great brush stroke...). Every boss has one; with no boss felled yet, it is one enormous blast. It earns a title, e.g. "the Crimson Warlord".
+  4. **Transcendence** (400 lives, the same awakening for 150 of them, 25 landed synthesized specials): its own domain washes the arena in its colour, ten fused casts storm out, then a finale borrowed from a boss: each boss's first defeat in the worlds unlocks its finale, and you pick which one in the Identity panel (golden lightning, a ring of swords, Hollow Purple, a time freeze, two rings of the Warlord's spinning axes, the Scholar's great brush stroke...). Every boss has one; with none unlocked yet, it is one enormous blast. It earns a title, e.g. "the Crimson Warlord".
   It climbs one stage at a time and only slips back after about 50 lives out of shape. Every cast, projectile, hazard and boss finale in the special wears its awakening's colour (crimson, pale blue, pale green, gold, steel or violet).
 - Both trigger automatically, so the neural network and saved brains are unchanged.
-- **Kills** (the 斩 button) lists everything the fighter, its summons and allies have felled, by kind, across training and the fights you watch, play or battle: bosses first (the one giving the special its finale is marked), then foes, then summoned creatures. The record is kept in saves and exported files, and Forget everything keeps it.
+- **Kills** (the 斩 button) lists everything the fighter, its summons and allies have felled, by kind, across training and the fights you watch, play or battle: bosses first (the one whose finale the special ends with is marked), then foes, then summoned creatures. The record is kept in saves and exported files, and Forget everything keeps it.
 - **Forget everything** wipes the identity too (traits, awakening and special), so a reset fighter earns them again from scratch. Talents, jade and skins are kept.
 - **Saving a fighter** (in the vault, or exported to a file) keeps the whole fighter: its brain, learned abilities and their stats, loadout and ability mode, identity and special, talents, jade, skins and life count. Loading or importing it brings all of that back. Files exported before this change hold only the brain, and still import as before.
 
 ## Jade and talents
 
-Defeating foes earns jade ◆ (bigger foes give more, a boss gives 120; summoned minions give none). Kills while training count for a fifth; watching, playing and battles count in full. Spend 100 jade on a spin (or 900 for ten) to draw a talent: Tick **skip animation** next to the spin buttons to see results at once (or click the spinning card to skip that one).
+Defeating foes earns jade ◆ (bigger foes give more, a boss gives 120; summoned minions give none). Kills in the worlds pay in full, on top of their first-clear and boss rewards; kills while training pay a tenth; battles, sparring, trials, watching and playing pay nothing. Spend 100 jade on a spin (or 900 for ten) to draw a talent: Tick **skip animation** next to the spin buttons to see results at once (or click the spinning card to skip that one).
 
 | Tier | Odds | Examples |
 | --- | --- | --- |
@@ -372,6 +395,7 @@ Ambient music (a drone, pad chords, wind and a guzheng-like melody in D pentaton
 - `js/sfx.js`: synthesized sound effects
 - `js/agent.js`: neural network with backprop and Adam, the PPO agent, and the trainer loop
 - `js/sim.js`: duel mechanics, foes and their AI, trials, senses, reward weights
+- `js/campaign.js`: the jar's worlds, their foes and bosses, room plans and the spawner
 - `js/render.js`: pixel sprites, stage, effects and HUD
 - `js/online.js`: usernames, parties and online matches through Supabase (set up by `supabase/online.sql`)
 - `js/swordfx.js`: how the Sword Immortal and the Thirteen Swords of Heaven's End look (loaded after render.js)
