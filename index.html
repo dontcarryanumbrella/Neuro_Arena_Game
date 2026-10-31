@@ -120,6 +120,8 @@
         <button data-panel="identitySection"><b>Identity</b><span>Traits, awakening, special and finale</span></button>
         <button data-panel="killsSection"><b>Kills</b><span>Everything it has felled</span></button>
       </div>
+      <h3 class="kill-head">Memories</h3>
+      <div id="memoryList"></div>
     </section>
 
     <section class="panel" id="codexPanel" hidden>
@@ -295,10 +297,21 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<div class="memory" id="memory" hidden role="dialog" aria-modal="true" aria-labelledby="memTitle">
+  <div class="mem-card">
+    <div class="mem-k">A memory returns</div>
+    <h2 id="memTitle"></h2>
+    <p class="mem-v" id="memVignette"></p>
+    <p class="mem-f" id="memFragment"></p>
+    <button class="primary" id="memClose">Continue</button>
+  </div>
+</div>
+
 <script src="js/sfx.js"></script>
 <script src="js/agent.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/campaign.js"></script>
+<script src="js/lore.js"></script>
 <script src="js/render.js"></script>
 <script src="js/swordfx.js"></script>
 <script src="js/lobby.js"></script>

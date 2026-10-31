@@ -206,6 +206,11 @@ Object.assign(Renderer.prototype, {
         this.flash('rgba(255,255,255,0.5)', 0.12); this.shake = Math.max(this.shake, 6); this.snd('gong');
         for (let i = 0; i < 24; i++) { const a = r() * 6.28, v = 40 + r() * 80; P.push({ kind: 'px', x: sx(ev.x), y: sy(ev.y) - 8, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, life: 0.6, max: 0.6, color: i % 2 ? SW.red : SW.white }); }
         break;
+      case 'teacheryield': // the teacher lowers his sword, and draws one stroke into the sky to show what he held back
+        this.banner = { kicker: 'THAT IS ALL YOU CAN CARRY, FOR NOW', text: 'ENOUGH.', color: SW.pale, life: 3.2 };
+        this.flash('rgba(255,255,255,0.7)', 0.25); this.shake = Math.max(this.shake, 5); this.snd('ultboom');
+        for (let i = 0; i < 40; i++) P.push({ kind: 'px', x: sx(ev.x) + (r() - .5) * 8, y: sy(ev.y) - 10 - r() * 20, vx: (r() - .5) * 30, vy: -30 - r() * 50, life: 1.4, max: 1.4, color: r() < 0.5 ? SW.white : SW.blue });
+        break;
       case 'manualend': // the Thirteenth Sword drawn at last: every sword he carried breaks into light, and he goes with them
         this.banner = { kicker: 'THE THIRTEEN SWORDS', text: 'COMPLETE', color: SW.pale, life: 2.4 };
         this.flash('rgba(255,255,255,0.8)', 0.3); this.snd('ultboom');

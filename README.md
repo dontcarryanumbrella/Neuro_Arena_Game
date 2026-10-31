@@ -14,7 +14,7 @@ then open http://localhost:8137. No build step and no dependencies: it is plain 
 
 **Host it for free:** the game is a static site, so it runs as-is on GitHub Pages. In the repository's **Settings → Pages**, set the source to the `main` branch and the root folder; it appears at `https://<your-name>.github.io/<repo>/`. That is also the easiest way to give friends the exact same version for online play.
 
-**Tests:** with Node.js installed, `node tests/newfoes.cjs`, `node tests/yellowking.cjs` and `node tests/campaign.cjs` run the regression checks (mechanics of every foe and boss, plus long random duels that must never break). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
+**Tests:** with Node.js installed, `node tests/newfoes.cjs`, `node tests/yellowking.cjs` and `node tests/campaign.cjs` run the regression checks (mechanics of every foe and boss, long random duels that must never break, the worlds' rooms, the story's coverage and the teacher). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
 
 ## The Jar
 
@@ -40,7 +40,12 @@ The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it 
 | V (the gate) | Timestream | Time Administrator |
 | Hidden | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
 
-For now the worlds use the existing foes only (the hidden worlds hold just their bosses), and the story fragments are still to come.
+- **Memories:** conquering a world for the first time gives a memory back: a card with what that world was and how it ended, and a fragment of who the fighter is. The fragments come in the order you conquer worlds, on three tracks (the seven outer worlds, the Timestream, and the three hidden worlds), so the story always unfolds in the right order. They can be re-read on the Tally Wall, and the lobby remembers too: after the fifth, the older tallies on the wall are crossed out and 蛊 is carved beside them; later, one group is not crossed out, and a name is carved under it.
+- **The Codex** gives every foe and boss a line of its own.
+- **Promoted foes:** twelve creatures that used to appear only in a boss's retinue now hold worlds of their own, at full strength (boosted) and with their abilities: the Heavenly General in the Nine Heavens; the zergling, spitter, bloater and brute in the Netherworld Abyss; the Scholar's five heads (Chessboard Scholar, Lamp Bearer, Headsman Butcher, Coffin Bearer, Flutist) and the ink dragon as an elite in the Black Sea; the Faceless Courtier in the Pallid Kingdom. They count like any foe: met, felled, level and Codex.
+- **The teacher:** in the Myriad Sword Peaks the Sword Immortal is teaching, not killing. His swords are demonstrations: slower to draw, never true damage, never past every defence. His second form is a lesson (the Ninth to the Twelfth Swords, drawn smaller, no Unfinished Manual), and at a tenth of his health he yields: "Enough. That is all you can carry, for now." As he goes he draws one stroke into the sky, and the heavens split, to show what he was holding back. Everywhere else (the Pavilion, battles) he is the Sword Immortal at full strength.
+
+The Cursed Domain and the Pallid Kingdom still need more foes of their own (planned).
 
 ## How it learns
 
@@ -78,7 +83,7 @@ Every move except guard costs energy (strike 10, heavy 22, kick 18, roll 20). En
 
 ## Levels
 
-The fighter's health, energy, energy regen and posture come from its **level**, not from settings. It starts at level 1 (100 health, 100 energy, 18 regen, 100 posture) and gains a level for every different foe or boss it fells **in the worlds** (summoned creatures don't count). Training, battles, sparring and trials don't count: they are only memories. There are 59 to fell, so level 60 reaches the caps: 300 health, 300 energy, 30 regen and 250 posture. The Fighter panel shows the level and current stats; new stats apply from the next life. The level is saved with the fighter and survives Forget everything. (Saves from before the worlds start at level 1.)
+The fighter's health, energy, energy regen and posture come from its **level**, not from settings. It starts at level 1 (100 health, 100 energy, 18 regen, 100 posture) and gains a level for every different foe or boss it fells **in the worlds** (summoned creatures don't count, apart from the twelve promoted to worlds of their own). Training, battles, sparring and trials don't count: they are only memories. There are 71 to fell, so level 72 reaches the caps: 300 health, 300 energy, 30 regen and 250 posture. The Fighter panel shows the level and current stats; new stats apply from the next life. The level is saved with the fighter and survives Forget everything. (Saves from before the worlds start at level 1.)
 
 ## Opponents
 
@@ -402,6 +407,7 @@ Ambient music (a drone, pad chords, wind and a guzheng-like melody in D pentaton
 - `js/sim.js`: duel mechanics, foes and their AI, trials, senses, reward weights
 - `js/campaign.js`: the jar's worlds, their foes and bosses, room plans and the spawner
 - `js/lobby.js`: the lobby, the inside of the jar, and its stations
+- `js/lore.js`: the story: memory fragments, world vignettes and the Codex's lines
 - `js/render.js`: pixel sprites, stage, effects and HUD
 - `js/online.js`: usernames, parties and online matches through Supabase (set up by `supabase/online.sql`)
 - `js/swordfx.js`: how the Sword Immortal and the Thirteen Swords of Heaven's End look (loaded after render.js)

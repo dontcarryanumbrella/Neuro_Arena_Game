@@ -159,6 +159,7 @@ class Lobby {
     const flick = 0.75 + 0.15 * Math.sin(t * 7.3) + 0.1 * Math.sin(t * 13.1 + 1.7); // the fire breathes
     g.drawImage(this.bg, 0, 0);
     this.drawSeals(g, info.seals);
+    this.drawOldMarks(g, info);
     this.drawTallies(g, info.lives);
     this.drawPortal(g, t);
     // the pavilion reconstructs what you have met: one memory at a time, flickering
@@ -300,6 +301,22 @@ class Lobby {
       if (inGrp < 4) g.fillRect(x + inGrp * 2, y, 1, 6);
       else for (let k = 0; k < 7; k++) g.fillRect(x - 1 + k, y + 5 - Math.floor(k * 0.8), 1, 1);
     }
+  }
+
+  // What the older tallies turn out to be, once he remembers: each group crossed out, 蛊 carved beside them; and later
+  // one group that was never crossed out, with her name under it.
+  drawOldMarks(g, info) {
+    if (!info.crossed) return;
+    const her = info.yunxi ? 13 : -1;
+    for (let grp = 0; grp < 14; grp++) {
+      const x = 7 + (grp % 4) * 9 + (grp % 3), y = 31 + Math.floor(grp / 4) * 8 + (grp % 2);
+      if (grp === her) { g.fillStyle = `rgba(232,196,120,${0.35 + 0.15 * Math.sin(this.t * 1.5)})`; for (let k = 0; k < 4; k++) g.fillRect(x + k * 2, y, 1, 6); continue; }
+      g.fillStyle = '#5a1e14';
+      for (let k = 0; k < 9; k++) g.fillRect(x - 1 + k, y + 2 + (k > 4 ? 1 : 0), 1, 1);
+    }
+    g.font = '10px serif'; g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillStyle = '#1a0f08'; g.fillText('蛊', 33, 61); g.fillStyle = '#a8825a'; g.fillText('蛊', 32, 60); // carved: a shadow, then the cut
+    if (info.yunxi) { g.fillStyle = 'rgba(232,196,120,0.75)'; g.font = '8px serif'; g.fillText('云汐', 22, 74); }
   }
 
   drawUrnGlow(g, t) {

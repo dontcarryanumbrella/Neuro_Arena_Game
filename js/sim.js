@@ -1219,6 +1219,11 @@ const UNFINISHED = {
 };
 // his second form draws the swords beyond the mortal realm in order, without end (13 is his ultimate)
 const SWORD_CYCLE = [10, 11, 12, 13, 9];
+// As a teacher (the campaign's Myriad Sword Peaks) his second form is a lesson: the Ninth to the Twelfth, smaller,
+// and never the Thirteenth at you. Every sword he draws is a demonstration, slower to leave the sheath.
+const LESSON_CYCLE = [9, 10, 11, 12];
+const LESSON = { 9: { count: 16, radius: 64 }, 10: { count: 14 }, 11: { lines: 3 }, 12: { cuts: 6 } };
+const TEACHER_WIND = 1.35;
 ENEMY_TYPES.swordsaint = boss('cultivator', {
   name: 'Sword Immortal', hp: 260, r: 6, mass: 2, speed: 92, postureMul: 0.45, trueDamage: true, floating: true, manual: true, swordRider: true, iaido: false, riposte: true,
   sprite: 'b_swordsaint', sprite2: 'b_swordsaint2', form2: 'Perfect Sword Intent', color: '#9fd8ff', lore: 'THE SWORD NEEDS NO HAND',
@@ -2433,7 +2438,7 @@ class Sim {
     const by = a || atk.src || null;
     const piercing = (by && by.def && by.def.pierceIframes) || atk.pierceAll; // Severing the Heavens cuts through everything
     if (t.inkShieldT > 0 && !t.dead) { this.emit('inkblock', t.x, t.y); if (a && !proj && a.state !== 'ult' && a.state !== 'heroult') { a.state = 'recoil'; a.st = 0.3; } return 'block'; }
-    if (atk.pierceAll && !t.dead && !t.lastStand) return this.trueHit(t, by, atk, ux, uy);
+    if (atk.pierceAll && !(by && by.teacher) && !t.dead && !t.lastStand) return this.trueHit(t, by, atk, ux, uy); // (a teacher's cuts can be read and answered)
     if (t.dead || t.invulnT > 0 || t.lastStand || (!piercing && (t.state === 'transform' || t.state === 'morph' || t.batForm || t.climbing))) return 'immune';
     if (t.def && t.def.camo) t.revealT = Math.max(t.revealT || 0, 0.3); // a hit makes him flicker into view
     // Still Water's stance: blows are caught and stored for the answer
@@ -2574,7 +2579,8 @@ class Sim {
     if (by && by.focus) mult *= 1 + 0.04 * by.focus;  // the Blind Gentleman's clear mind
     if (by && by.form && by.formDmg) mult *= by.formDmg; // the Shapeshifter's beasts hit harder
     if (by && by.cloneDmg) mult *= by.cloneDmg;        // a hair clone's blows (and everything it casts) are only 25% as strong
-    if ((by && by.def && by.def.trueDamage) || atk.trueDmg) mult = this.trueMult(t, by); // true damage: nothing on the target's side softens it
+    if (((by && by.def && by.def.trueDamage) || atk.trueDmg) && !(by && by.teacher)) // a teacher's swords are only demonstrations
+      mult = this.trueMult(t, by); // true damage: nothing on the target's side softens it
     if (by && by.def && by.def.phoenix) mult *= 1 + (by.heat || 0) / 200; // the Phoenix burns hotter
     if (a && a.tal) {
       const T = k => a.tal[k] || 0;
@@ -2628,7 +2634,12 @@ class Sim {
   dealDamage(t, dmg, a, ux, uy, kb) {
     if (dmg <= 0) return 0;
     if (t.def && t.def.conceptual) dmg = 1; // untouchable on a conceptual level: whatever it was, it was one
-    if (t.def && t.def.manual && t.phase === 2 && !t.manualDone && t.hp - dmg < 1) { // the manual is not finished: he will not fall until the Thirteenth Sword is drawn
+    if (t.teacher && !t.yielded && t.hp - dmg <= t.maxHp * 0.1) { // the teacher yields: the lesson is over, and one stroke into the sky shows what he held back
+      t.yielded = true; dmg = t.hp;
+      this.skySplit = { t: 3.6, a: -1.15, x: t.x, y: t.y - 30 };
+      this.emit('teacheryield', t.x, t.y);
+    }
+    if (t.def && t.def.manual && t.phase === 2 && !t.manualDone && !t.teacher && t.hp - dmg < 1) { // the manual is not finished: he will not fall until the Thirteenth Sword is drawn
       dmg = Math.max(0, t.hp - 1);
       if (!t.deathBound) { t.deathBound = true; this.emit('deathbound', t.x, t.y); }
     }
@@ -2791,6 +2802,14 @@ class Sim {
     if (w.hp && w.hp !== 1) { e.maxHp = e.hp = Math.max(1, Math.round(e.maxHp * w.hp)); if (e.baseMaxHp) e.baseMaxHp = e.maxHp; }
     if (w.dmg && w.dmg !== 1) e.tuneDmg = w.dmg;
     if (w.elite) e.elite = true;
+    if (w.teacher && e.def.manual) this.makeTeacher(e);
+  }
+
+  // The Sword Immortal teaching instead of killing: no true damage, slower draws, a lesson for a second form, and he
+  // yields at a tenth of his health instead of falling.
+  makeTeacher(e) {
+    e.teacher = true;
+    e.specials = e.specials.map(s => ({ ...s, wind: (s.wind || 0.3) * TEACHER_WIND }));
   }
 
   // A summoned minion. Bosses' minions fight bare: no abilities, no passives.
@@ -2958,7 +2977,7 @@ class Sim {
     }
     if (def.manual && e.phase === 2) { // Perfect Sword Intent: X, XI, XII, XIII, IX, and round again
       if (e.cycleWait <= 0) {
-        const n = SWORD_CYCLE[e.cycle % SWORD_CYCLE.length], s = e.specials.find(x => x.sword === n);
+        const cyc = e.teacher ? LESSON_CYCLE : SWORD_CYCLE, n = cyc[e.cycle % cyc.length], s = e.specials.find(x => x.sword === n);
         e.cycle++; e.cycleWait = e.deathBound ? 0.25 : 1.6; // bound to the manual, he hurries to its end
         if (n === 13) { this.startUlt(e); return it; }
         if (s) { this.startAttack(e, this.swordCast(e, s)); return it; }
@@ -3241,6 +3260,7 @@ class Sim {
     e.posture = 0;
     // second-form versions of its skills, and whatever it gains
     e.specials = ph.only ? ph.only.slice() : e.specials.map(sp => (ph.replace && ph.replace[sp.id]) || sp); // some forms leave their old arts behind entirely
+    if (e.teacher) e.specials = e.specials.map(sp => ({ ...sp, ...(LESSON[sp.sword] || {}), wind: (sp.wind || 0.3) * TEACHER_WIND })); // the lesson
     if (ph.only) for (const sp of e.specials) e.cds[sp.id] = 1;
     for (const s of ph.add || []) { e.specials.push(s); e.cds[s.id] = 1; }
     Object.assign(e, ph.flags || {});

@@ -1,8 +1,8 @@
 // The Jar: worlds sealed inside it, the rooms of a run through one, and the spawner that fills each room.
 // No DOM here (the tests load it with sim.js). Loaded after sim.js; main.js drives the runs.
 
-// How dangerous a foe is alone, roughly: a bandit is 1. A first guess from its body and kit until the balance
-// harness measures it (docs/campaign-plan.md, section 4).
+// How dangerous a foe is alone, roughly: a bandit is 1. A guess from its body and kit (promoted foes are repriced
+// with their boost below).
 const THREAT = (() => {
   const raw = t => {
     const d = ENEMY_TYPES[t], m = d.moves || BASE_MOVES;
@@ -11,7 +11,7 @@ const THREAT = (() => {
     return body * hit * kit * role;
   };
   const base = raw('bandit'), out = {};
-  for (const t of Object.keys(ENEMY_TYPES)) if (!ENEMY_TYPES[t].summon) out[t] = Math.round(raw(t) / base * 100) / 100;
+  for (const t of Object.keys(ENEMY_TYPES)) out[t] = Math.round(raw(t) / base * 100) / 100;
   return out;
 })();
 
@@ -21,7 +21,7 @@ const groupThreat = types => types.reduce((s, t) => s + THREAT[t], 0) * (1 + GRO
 const isColossus = t => ENEMY_TYPES[t].role === 'colossus';
 
 // Campaign tuning per boss: health and damage, so each lands at its tier whatever its base strength.
-// First guesses; the harness sets them. The Sword Immortal here stands in for his teacher form (phase 5).
+// The Sword Immortal of the Myriad Sword Peaks is a teacher: he holds back (see Sim.makeTeacher).
 const BOSS_TUNE = {
   warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
   abbot: { hp: 0.9, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
@@ -45,7 +45,8 @@ const REPEAT_SHARE = 0.25;                                                    //
 const ROOM_TIME = 90, BOSS_TIME = 180, HIDDEN_BOSS_TIME = 240;
 
 // Pool entries: [type, weight, most of it in one room, flags]. 'elite' foes only appear in elite rooms;
-// a stretch name keeps a foe to one part of a world (the Last Frontier's badlands and town).
+// a stretch name keeps a foe to one part of a world (the Last Frontier's badlands and town); hp and dmg boost a foe
+// promoted from a boss's retinue to a world's own (a zergling alone is a mouthful, not a fight).
 const p = (type, w, pack, o = {}) => ({ type, w, pack, ...o });
 
 const WORLDS = [
@@ -74,13 +75,14 @@ const WORLDS = [
   },
   {
     id: 'peaks', name: 'Myriad Sword Peaks', tier: 3, color: '#9fd8ff', bosses: ['swordsaint'],
-    blurb: 'Ten thousand peaks, a sword on every one. One old master still teaches here.',
+    blurb: 'Ten thousand peaks, a sword on every one. One old master still teaches here.', teacher: 'swordsaint',
     pool: [p('cultivator', 4, 3), p('talisman', 3, 2), p('formation', 3, 2), p('spearmaster', 3, 2)],
   },
   {
     id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen'],
     blurb: 'The pit under every world, and the brood that eats its way up.',
-    pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2)],
+    pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2),
+      p('zergling', 4, 4, { hp: 2.5, dmg: 1.3 }), p('spitter', 2, 3, { hp: 2.5, dmg: 1.2 }), p('bloater', 2, 3, { hp: 2.5, dmg: 1.2 }), p('brute', 2, 2, { hp: 1.5, dmg: 1.1 })],
   },
   {
     id: 'isles', name: 'Eastern Isles', tier: 4, color: '#e86a8a', bosses: ['blind'],
@@ -90,7 +92,7 @@ const WORLDS = [
   {
     id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor', 'wukong'],
     blurb: 'The celestial court, nine layers up. Someone already tore through it once.',
-    pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2)],
+    pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2), p('general', 3, 3, { hp: 1.6, dmg: 1.2 })],
   },
   {
     id: 'timestream', name: 'Timestream', tier: 5, color: '#5fe0e0', bosses: ['timeadmin'],
@@ -105,12 +107,13 @@ const WORLDS = [
   {
     id: 'blacksea', name: 'Black Sea', tier: 6, hidden: true, color: '#1a1a1a', bosses: ['scholar'],
     blurb: 'A dead sea of ink under a white sky, where the painting leaks.',
-    pool: [],
+    pool: [p('chessist', 3, 2, { hp: 3, dmg: 1.4 }), p('lampbearer', 2, 2, { hp: 3, dmg: 1.4 }), p('butcher', 3, 2, { hp: 3, dmg: 1.4 }),
+      p('coffinbearer', 2, 2, { hp: 2.4, dmg: 1.4 }), p('flutist', 2, 2, { hp: 3, dmg: 1.4 }), p('inkdragon', 2, 1, { hp: 3, dmg: 1.3, elite: true })],
   },
   {
     id: 'pallid', name: 'The Pallid Kingdom', tier: 6, hidden: true, color: '#e8d24a', bosses: ['yellowking'],
     blurb: 'A court under twin suns by a lake of cloud. Bells ring. Everyone wears a mask.',
-    pool: [],
+    pool: [p('courtier', 4, 4, { hp: 3, dmg: 1.5 })],
   },
 ];
 const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));
@@ -120,6 +123,29 @@ const worldBosses = w => w.bosses || w.rooms.filter(r => r[0] === 'boss').map(r 
 const ALL_SEALS = WORLDS.flatMap(worldBosses);
 // every foe a world can put in a room (bosses aside)
 const worldFoes = w => [...new Set(w.pool.map(e => e.type))];
+
+// Foes promoted from the bosses' retinues to worlds of their own: the Heavenly General, the abyss brood, the
+// Scholar's heads and the yellow court's puppet. Everywhere a foe counts (met, felled, level, the Codex), they count.
+const PROMOTED = [...new Set(WORLDS.flatMap(worldFoes))].filter(t => ENEMY_TYPES[t].summon);
+const isFoeType = t => !!ENEMY_TYPES[t] && (!ENEMY_TYPES[t].summon || PROMOTED.includes(t));
+const boostOf = (w, t) => w.pool.find(e => e.type === t && (e.hp || e.dmg));
+for (const w of WORLDS) for (const e of w.pool) if (e.hp || e.dmg) THREAT[e.type] = Math.round(THREAT[e.type] * Math.pow(e.hp || 1, 0.75) * (e.dmg || 1) * 100) / 100;
+// what the Codex and the Pavilion say about them (as a boss's minions they never needed words)
+const PROMOTED_TEXT = {
+  general: [['Gatekeeper', 'Holds its ground with a heavenly halberd; drilled to fight beside its own.'], ['Sweep and Thrust', 'Plain, disciplined spear work.']],
+  zergling: [['Swarm', 'Small and fast; never alone.'], ['Bite', 'Quick bites that add up.']],
+  spitter: [['Back Rank', 'Hangs back behind the swarm.'], ['Spine Spit', 'Spits acid spines from range.']],
+  bloater: [['Volatile', 'Swells as it closes in.'], ['Detonate', 'Bursts into acid beside you.']],
+  brute: [['Horned Wall', 'Armoured, heavy, hard to stop.'], ['Gore', 'A charging horn that throws you.']],
+  chessist: [['Opening Theory', 'Plays the board around you.'], ['Chess Pieces', 'Sets pieces down that strike where they stand.']],
+  lampbearer: [['Light in the Ink', 'Keeps its distance, lamp held high.'], ['Lamp Fire', 'Throws fire from the lamp.']],
+  butcher: [['Headsman', 'Wades in with a great axe.'], ['Cleave', 'A heavy, sweeping chop.']],
+  coffinbearer: [['Pallbearer', 'Hides behind its coffin.'], ['Coffin Slam', 'Brings the coffin down on you.']],
+  flutist: [['The Song', 'Plays from afar; the painting listens.'], ['Melody', 'Notes that cut.']],
+  courtier: [['Marionette', 'Latches onto a nearby enemy and drains health.'], ['Yellow Strings', 'Drains 2 health every 0.5s while attached; fades after 10s.']],
+  inkdragon: [['One Stroke', 'A dragon painted in one stroke of ink.'], ['Ink Breath', 'Breathes a cone of black ink.']],
+};
+for (const t of PROMOTED) { const tx = PROMOTED_TEXT[t]; if (tx && !ENEMY_TYPES[t].passive) { ENEMY_TYPES[t].passive = tx[0]; ENEMY_TYPES[t].active = tx[1]; } }
 // the room plan of a world: its hand-made list, or its tier's plan with the bosses at the end (an empty pool has only bosses)
 const roomPlan = w => w.rooms || [...(w.pool.length ? TIER_ROOMS[w.tier] : []), ...w.bosses.map(b => ['boss', b])];
 
@@ -131,7 +157,7 @@ function recommendedLevel(w) {
 }
 
 function freshCampaign() {
-  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], run: null, cycle: 0 };
+  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], fragments: [], run: null, cycle: 0 };
 }
 
 const worldVisible = (c, w) => !w.hidden || !!c.seals[HIDDEN_KEY_BOSS];
@@ -174,7 +200,8 @@ function rollRoom(w, kind, budget, stretch, rand) {
     const own = strong.filter(e => e.elite);
     const byThreat = list => list.map(e => ({ ...e, w: THREAT[e.type] ** 2 }));
     const e = own.length ? pickWeighted(own, rand) : strong.length ? pickWeighted(byThreat(strong), rand) : cheapest;
-    return [{ type: e.type, hp: 1.5, dmg: 1.2, elite: true }];
+    const b = boostOf(w, e.type) || {};
+    return [{ type: e.type, hp: 1.5 * (b.hp || 1), dmg: 1.2 * (b.dmg || 1), elite: true }];
   } else {
     // a skirmish: one foe, and a second if the budget has room
     const first = affordable([], pool);
@@ -182,8 +209,11 @@ function rollRoom(w, kind, budget, stretch, rand) {
     const second = affordable(group, pool);
     if (second.length && rand() < 0.75) group.push(pickWeighted(second, rand).type);
   }
-  return group.length ? group : [cheapest.type];
+  return boost(w, group.length ? group : [cheapest.type]);
 }
+
+// a promoted foe arrives with its boost
+const boost = (w, types) => types.map(t => { const e = boostOf(w, t); return e ? { type: t, hp: e.hp || 1, dmg: e.dmg || 1 } : t; });
 
 // A run through a world: every room decided up front (so a retried room is the same room).
 function buildRun(worldId, seed) {
@@ -191,7 +221,7 @@ function buildRun(worldId, seed) {
   const rooms = roomPlan(w).map(([kind, x, stretch]) => {
     if (kind === 'boss') {
       const t = BOSS_TUNE[x] || {};
-      return { kind, boss: x, foes: [{ type: x, hp: t.hp || 1, dmg: t.dmg || 1 }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
+      return { kind, boss: x, foes: [{ type: x, hp: t.hp || 1, dmg: t.dmg || 1, teacher: w.teacher === x || undefined }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
     }
     return { kind, foes: rollRoom(w, kind, x, stretch, rand), time: ROOM_TIME };
   });

@@ -71,7 +71,7 @@ function countKills(sim, campaign) {
 }
 
 // ---------- level: each different foe or boss felled in the worlds makes the fighter stronger, reaching the caps when all have fallen ----------
-const LEVEL_TYPES = [...ROSTER, ...BOSSES];
+const LEVEL_TYPES = [...ROSTER, ...BOSSES, ...PROMOTED];
 const MAX_LEVEL = LEVEL_TYPES.length + 1;
 const FIGHTER_CAP = { hp: 300, energy: 300, energyRegen: 30, posture: 250 };
 
@@ -110,7 +110,7 @@ function renderKills() {
   state.killsDirty = false;
   const kc = state.killCounts, total = Object.values(kc).reduce((a, b) => a + b, 0);
   const finale = chosenFinale();
-  const groups = [['Bosses', t => ENEMY_TYPES[t].boss], ['Foes', t => !ENEMY_TYPES[t].boss && !ENEMY_TYPES[t].summon], ['Summoned creatures', t => !ENEMY_TYPES[t].boss && ENEMY_TYPES[t].summon]];
+  const groups = [['Bosses', t => ENEMY_TYPES[t].boss], ['Foes', t => !ENEMY_TYPES[t].boss && isFoeType(t)], ['Summoned creatures', t => !ENEMY_TYPES[t].boss && !isFoeType(t)]];
   const wrap = $('killList'); wrap.innerHTML = '';
   $('killTotal').textContent = total ? `${total.toLocaleString()} felled in all` : 'Nothing felled yet.';
   for (const [title, inGroup] of groups) {
@@ -207,7 +207,7 @@ const showingTraining = () => state.view.mode === 'train' && state.speed !== 'ma
 
 // The Pavilion reconstructs only what has been met in the worlds.
 const isMet = t => !!state.campaign.met[t];
-const metFoes = () => Object.keys(state.campaign.met).filter(t => ENEMY_TYPES[t] && !ENEMY_TYPES[t].summon);
+const metFoes = () => Object.keys(state.campaign.met).filter(isFoeType);
 // who it trains against: the opponents you picked that it has met, else every regular foe it has met
 function trainingRoster() {
   const picked = state.cfg.roster.filter(isMet);
@@ -531,7 +531,8 @@ const lobby = new Lobby(renderer);
 
 function lobbyInfo() {
   const c = state.campaign, seals = ALL_SEALS.map(b => !!c.seals[b]);
-  return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, level: state.level || 1, hint: 'CLICK A STATION' };
+  return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, level: state.level || 1, hint: 'CLICK A STATION',
+    crossed: hasFragment('o5'), yunxi: hasFragment('h1') };
 }
 
 // walk to a station in the jar (or, away from the lobby, just open it)
@@ -610,6 +611,7 @@ function fighterOptions() {
     if (members.length) html += `<optgroup label="${ROLES[role].name}">${opts(members)}</optgroup>`;
   }
   if (BOSSES.some(isMet)) html += `<optgroup label="Bosses">${opts(BOSSES.filter(isMet))}</optgroup>`;
+  if (PROMOTED.some(isMet)) html += `<optgroup label="World foes">${opts(PROMOTED.filter(isMet))}</optgroup>`;
   if (isMet('druid')) html += `<optgroup label="Beasts">${opts(BEASTS)}</optgroup>`;
   return html;
 }
@@ -692,7 +694,7 @@ function loadCampaign(saved, killCounts) {
   const c = freshCampaign();
   const known = o => Object.fromEntries(Object.entries(o || {}).filter(([t, n]) => ENEMY_TYPES[t] && n > 0));
   if (!saved || typeof saved !== 'object') {
-    for (const t of Object.keys(killCounts)) if (!ENEMY_TYPES[t].summon) c.met[t] = 1;
+    for (const t of Object.keys(killCounts)) if (isFoeType(t)) c.met[t] = 1;
     return c;
   }
   c.met = known(saved.met); c.kills = known(saved.kills);
@@ -701,6 +703,8 @@ function loadCampaign(saved, killCounts) {
   c.finales = (saved.finales || []).filter(b => ENEMY_TYPES[b]);
   c.finaleChoice = c.finales.includes(saved.finaleChoice) ? saved.finaleChoice : null;
   c.order = (saved.order || []).filter(id => WORLD_BY_ID[id]);
+  c.fragments = (saved.fragments || []).filter(f => f && FRAGMENTS[f.key] && WORLD_BY_ID[f.world]);
+  if (!saved.fragments) for (const id of c.order) c.fragments.push({ key: nextFragment(c, WORLD_BY_ID[id]), world: id }); // conquered before memories returned
   c.cycle = saved.cycle || 0;
   const r = saved.run;
   if (r && WORLD_BY_ID[r.world] && Array.isArray(r.rooms) && r.rooms[r.idx] && r.rooms.every(rm => rm.foes.every(f => ENEMY_TYPES[foeType(f)]))) c.run = r;
@@ -708,6 +712,26 @@ function loadCampaign(saved, killCounts) {
 }
 
 const curRoom = () => { const r = state.campaign.run; return r && r.rooms[r.idx]; };
+
+// which memory a conquered world gives back: the Timestream always the same one; the others the next on their track
+function nextFragment(c, w) {
+  if (w.id === 'timestream') return 't';
+  const have = new Set(c.fragments.map(f => f.key));
+  return (w.hidden ? FRAGMENT_TRACKS.hidden : FRAGMENT_TRACKS.outer).find(k => !have.has(k)) || null;
+}
+const hasFragment = k => state.campaign.fragments.some(f => f.key === k);
+
+// a memory returns: what the world was, and what it tells him about himself
+function showMemory(worldId, key) {
+  const w = WORLD_BY_ID[worldId], box = $('memory');
+  $('memTitle').textContent = w.name;
+  $('memVignette').textContent = WORLD_VIGNETTES[worldId] || '';
+  $('memFragment').textContent = key ? FRAGMENTS[key] : '';
+  box.hidden = false;
+  state.view.paused = true; refreshPauseBtn();
+  $('memClose').focus();
+  sfx.play('gong');
+}
 const worldRec = id => state.campaign.worlds[id] || (state.campaign.worlds[id] = { rooms: {}, runs: 0 });
 const nonBossRooms = w => roomPlan(w).filter(r => r[0] !== 'boss').length;
 const ROLE_ONE = { bruiser: 'Bruiser', duelist: 'Duelist', guardian: 'Guardian', trickster: 'Trickster', marksman: 'Marksman', caster: 'Caster', colossus: 'Colossus', beast: 'Beast' };
@@ -768,7 +792,7 @@ function finishRoom(sim) {
   const c = state.campaign, r = c.run, room = curRoom(), v = state.view;
   if (!room) return;
   const w = WORLD_BY_ID[r.world], rec = worldRec(w.id), cleared = sim.stats.result === 'clear';
-  for (const t of Object.keys(sim.stats.killsByType || {})) if (!ENEMY_TYPES[t].summon) c.met[t] = 1; // the Lich's pieces too
+  for (const t of Object.keys(sim.stats.killsByType || {})) if (isFoeType(t)) c.met[t] = 1; // the Lich's pieces too
   let jade = sim.stats.bounty;
   v.roomResult = { cleared, boss: room.boss || null, sealed: false, worldDone: false, world: w.name, last: r.idx === r.rooms.length - 1 };
   if (cleared) {
@@ -786,7 +810,12 @@ function finishRoom(sim) {
     }
     if (v.roomResult.last) {
       rec.runs = (rec.runs || 0) + 1;
-      if (rec.runs === 1) { c.order.push(w.id); toast(`World conquered: ${w.name}`); }
+      if (rec.runs === 1) {
+        c.order.push(w.id); toast(`World conquered: ${w.name}`);
+        const key = nextFragment(c, w);
+        c.fragments.push({ key, world: w.id });
+        showMemory(w.id, key);
+      }
       else jade += Math.round(EXPLORE_JADE[w.tier] * REPEAT_SHARE);
       v.roomResult.worldDone = true;
       c.run = null;
@@ -867,6 +896,7 @@ function renderCodex() {
       met++;
       row.className = 'codex-row';
       row.innerHTML = `<span class="cx-ic"></span><span><b>${d.name}</b> <span class="mini">${d.boss ? 'Boss' : ROLE_ONE[d.role] || ''} · felled ${(c.kills[t] || 0).toLocaleString()} in the worlds</span>` +
+        (CODEX_LORE[t] ? `<span class="cx-lore">${CODEX_LORE[t]}</span>` : '') +
         `<span class="cx-t"><i>${d.passive[0]}:</i> ${d.passive[1]}</span><span class="cx-t"><i>${d.active[0]}:</i> ${d.active[1]}</span></span>`;
       try { row.querySelector('.cx-ic').appendChild(spriteIcon(t)); } catch (e) { /* no icon */ }
       const spar = document.createElement('button');
@@ -1205,7 +1235,8 @@ function buildFoes() {
   wrap.innerHTML = '';
   const groups = ROLE_ORDER.map(role => ({ title: ROLES[role].name, types: ROSTER.filter(t => ENEMY_TYPES[t].role === role && isMet(t)) }));
   groups.push({ title: 'Bosses', types: BOSSES.filter(isMet) });
-  const unmet = [...ROSTER, ...BOSSES].filter(t => !isMet(t)).length;
+  groups.push({ title: 'World foes', types: PROMOTED.filter(isMet) });
+  const unmet = [...ROSTER, ...BOSSES, ...PROMOTED].filter(t => !isMet(t)).length;
   const note = document.createElement('p');
   note.className = 'mini';
   note.textContent = (metFoes().length ? 'The Pavilion reconstructs the foes you have met. ' : 'Nothing to reconstruct yet: meet foes in the worlds first. ') + (unmet ? `${unmet} more to meet in the worlds.` : '');
@@ -1597,12 +1628,27 @@ function renderPavilion() {
   $('pavMet').textContent = n ? `It can reconstruct ${n} foe${n > 1 ? 's' : ''} you have met.` : 'Nothing to reconstruct yet: meet foes in the worlds first.';
 }
 
+function renderMemories() {
+  const c = state.campaign;
+  $('memoryList').innerHTML = c.fragments.length ? c.fragments.map(f => `<details class="memory-item"><summary>${WORLD_BY_ID[f.world].name}</summary>` +
+    `<p>${WORLD_VIGNETTES[f.world] || ''}</p>${f.key ? `<p class="mem-f">${FRAGMENTS[f.key]}</p>` : ''}</details>`).join('')
+    : '<p class="mini">Nothing yet. Each world you conquer gives a memory back.</p>';
+}
+
 function renderTally() {
+  renderMemories();
   const lives = state.livesTotal || 0;
   $('tallyNote').textContent = lives ? `${lives.toLocaleString()} lives scratched into the clay, one mark for every twenty. Level ${state.level || 1}.` : 'The clay is still smooth. Every life your fighter lives in the Pavilion leaves a mark here.';
 }
 
+function bindMemory() {
+  const close = () => { $('memory').hidden = true; state.view.paused = false; refreshPauseBtn(); };
+  $('memClose').addEventListener('click', close);
+  $('memory').addEventListener('keydown', e => { if (e.code === 'Escape') { e.stopPropagation(); close(); } });
+}
+
 function bindPanels() {
+  bindMemory();
   document.querySelectorAll('#dock button').forEach(b => b.addEventListener('click', () => (b.dataset.station ? visitStation(b.dataset.station) : openPanel(b.dataset.panel))));
   document.querySelectorAll('.hub button[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, true)));
   document.querySelectorAll('.hub button[data-go]').forEach(b => b.addEventListener('click', () => {
