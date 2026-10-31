@@ -276,3 +276,21 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .enc-ic canvas { width: 32px; height: 32px; image-rendering: pixelated; display: block; }
 .enc-n { display: block; font-size: 15px; }
 .enc-e { display: block; font-size: 12px; color: #b9b09a; }
+
+/* the lobby's bar, the Pavilion and Tally Wall hubs, and the way back from their pages */
+.where { font-weight: 600; min-width: 0; }
+#lobbyBtn { font-weight: 600; }
+.panel-head h2 { flex: 1; }
+.panel-head .back { border: none; padding: 2px 8px 2px 0; margin-right: 6px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.panel-head .back:hover { color: var(--ink); }
+.hub { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0 4px; }
+.hub button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 10px; }
+.hub button b { font-size: 14px; }
+.hub button span { font-size: 12px; color: var(--muted); }
+.hub.small button { padding: 6px 10px; }
+.hub.small button b { font-size: 13px; }
+.trial.locked .tname { color: #999; }
+.codex-row { grid-template-columns: 24px 1fr auto; align-items: start; }
+.cx-spar { font-size: 12px; padding: 2px 8px; }
+@media (max-width: 420px) { .hub { grid-template-columns: 1fr; } }
+.toolbar [hidden] { display: none; }

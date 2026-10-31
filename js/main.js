@@ -205,9 +205,18 @@ function toast(text) {
 let simSeed = Math.floor(Math.random() * 1e9);
 const showingTraining = () => state.view.mode === 'train' && state.speed !== 'max';
 
+// The Pavilion reconstructs only what has been met in the worlds.
+const isMet = t => !!state.campaign.met[t];
+const metFoes = () => Object.keys(state.campaign.met).filter(t => ENEMY_TYPES[t] && !ENEMY_TYPES[t].summon);
+// who it trains against: the opponents you picked that it has met, else every regular foe it has met
+function trainingRoster() {
+  const picked = state.cfg.roster.filter(isMet);
+  return picked.length ? picked : metFoes().filter(t => !ENEMY_TYPES[t].boss);
+}
+
 function makeTrainingSim() {
   const c = state.cfg;
-  return new Sim('custom', simSeed++, { visual: showingTraining(), timeLimit: c.episode, roster: c.roster, atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped });
+  return new Sim('custom', simSeed++, { visual: showingTraining(), timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped });
 }
 
 // ---------- learning foes' abilities ----------
@@ -227,11 +236,14 @@ const learned = () => Object.keys(HERO_ABILITIES).filter(isLearned);
 const abFoe = t => ENEMY_TYPES[(HERO_ABILITIES[t] && HERO_ABILITIES[t].foe) || t];
 
 // Fighting a foe long enough teaches the hero its ability.
-function addExposure(sim) {
+// the Memory Pavilion teaches techniques half again faster than the worlds
+const PAVILION_LEARN = 1.5;
+
+function addExposure(sim, mult = 1) {
   const before = new Set(learned());
   for (const [type, secs] of Object.entries(sim.exposure)) {
     if (!HERO_ABILITIES[type] && !(ENEMY_TYPES[type] && ENEMY_TYPES[type].manual)) continue;
-    state.mastery[type] = (state.mastery[type] || 0) + secs;
+    state.mastery[type] = (state.mastery[type] || 0) + secs * mult;
   }
   for (const t of learned()) if (!before.has(t)) { toast(`Learned ${HERO_ABILITIES[t].name} from the ${abFoe(t).name}`); sfx.play('learn'); }
   state.abilitiesDirty = true;
@@ -280,7 +292,7 @@ function pickLoadout() {
 
 function onLife(sim, ret) {
   const s = sim.stats;
-  addExposure(sim);
+  addExposure(sim, PAVILION_LEARN);
   scoreLoadout(sim, ret);
   state.lives.push({ ret, kills: s.kills, parries: s.parries, breaks: s.postureBreaks, dmgTaken: s.dmgTaken, t: sim.t, died: s.died });
   if (state.lives.length > 5000) state.lives.splice(0, state.lives.length - 5000);
@@ -477,6 +489,7 @@ function setAgent(agent) {
 }
 
 function setTraining(on) {
+  if (on && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first: open the Portal.'); return; }
   state.training = on;
   const b = $('trainBtn');
   b.classList.toggle('running', on);
@@ -514,6 +527,19 @@ function decisionsPerSec() {
 
 // ---------- other views ----------
 const renderer = new Renderer($('game'));
+const lobby = new Lobby(renderer);
+
+function lobbyInfo() {
+  const c = state.campaign, seals = ALL_SEALS.map(b => !!c.seals[b]);
+  return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, level: state.level || 1, hint: 'CLICK A STATION' };
+}
+
+// walk to a station in the jar (or, away from the lobby, just open it)
+function visitStation(id) {
+  const st = STATION_BY_ID[id];
+  if (state.view.mode === 'lobby') lobby.go(st, () => openPanel(st.panel, true));
+  else openPanel(st.panel, true);
+}
 const keys = new Set();
 
 function newViewSim() {
@@ -528,7 +554,7 @@ function newViewSim() {
     v.sim = new Sim('room', seed, { visual: true, waves: [room.foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   }
   else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
-  else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: c.roster, atOnce: c.atOnce, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
+  else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   v.acc = 0; v.ticks = 0; v.action = null; v.endT = 0; v.overlay = null; v.recorded = false; v.paid = false; v.roomResult = null;
   v.introT = v.mode === 'campaign' && curRoom() ? meetFoes(curRoom()) : 0;
   renderer.reset();
@@ -578,13 +604,18 @@ function stepBattle() {
 
 function fighterOptions() {
   let html = '<option value="empty">(empty)</option><option value="ai">Your AI fighter</option><option value="you">You (keyboard)</option>';
+  const opts = list => list.map(t => `<option value="${t}">${ENEMY_TYPES[t].name}</option>`).join('');
   for (const role of ROLE_ORDER) {
-    html += `<optgroup label="${ROLES[role].name}">` + ROSTER.filter(t => ENEMY_TYPES[t].role === role).map(t => `<option value="${t}">${ENEMY_TYPES[t].name}</option>`).join('') + '</optgroup>';
+    const members = ROSTER.filter(t => ENEMY_TYPES[t].role === role && isMet(t));
+    if (members.length) html += `<optgroup label="${ROLES[role].name}">${opts(members)}</optgroup>`;
   }
-  html += '<optgroup label="Bosses">' + BOSSES.map(t => `<option value="${t}">${ENEMY_TYPES[t].name}</option>`).join('') + '</optgroup>';
-  html += '<optgroup label="Beasts">' + ['tiger', 'bear', 'bunny'].map(t => `<option value="${t}">${ENEMY_TYPES[t].name}</option>`).join('') + '</optgroup>';
+  if (BOSSES.some(isMet)) html += `<optgroup label="Bosses">${opts(BOSSES.filter(isMet))}</optgroup>`;
+  if (isMet('druid')) html += `<optgroup label="Beasts">${opts(BEASTS)}</optgroup>`;
   return html;
 }
+const BEASTS = ['tiger', 'bear', 'bunny'];
+// a battle slot the Pavilion can fill: you, your fighter, or something it has met (the Druid's beasts come with the Druid)
+const slotOk = k => k === 'empty' || k === 'ai' || k === 'you' || isMet(k) || (BEASTS.includes(k) && isMet('druid'));
 
 const BATTLE_PRESETS = {
   '1v1': ['ai', 'samurai'],
@@ -595,6 +626,7 @@ const BATTLE_PRESETS = {
 
 function buildBattle() {
   const b = state.cfg.battle;
+  for (const sl of b.slots) if (!slotOk(sl.kind)) sl.kind = 'empty'; // the Pavilion can't reconstruct what hasn't been met
   document.querySelectorAll('#battleMode button').forEach(btn => {
     btn.classList.toggle('on', btn.dataset.mode === b.mode);
     btn.onclick = () => { b.mode = btn.dataset.mode; buildBattle(); saveStore(); };
@@ -606,7 +638,7 @@ function buildBattle() {
     btn.textContent = name;
     btn.onclick = () => {
       // fill slots in order; in team mode split them into two halves
-      b.slots = Array.from({ length: 10 }, (_, i) => ({ kind: kinds[i] || 'empty', team: i < Math.ceil(kinds.length / 2) ? 0 : 1 }));
+      b.slots = Array.from({ length: 10 }, (_, i) => ({ kind: kinds[i] && slotOk(kinds[i]) ? kinds[i] : 'empty', team: i < Math.ceil(kinds.length / 2) ? 0 : 1 }));
       if (name === 'Bosses') { b.mode = 'ffa'; }
       buildBattle(); saveStore();
     };
@@ -709,7 +741,7 @@ function nextRoom() {
 function leaveRun() {
   state.campaign.run = null;
   saveStore();
-  if (state.view.mode === 'campaign') setMode('train');
+  if (state.view.mode === 'campaign') setMode('lobby');
   renderPortal();
 }
 
@@ -762,7 +794,7 @@ function finishRoom(sim) {
   }
   if (jade > 0) { state.jade += jade; toast(`+${Math.round(jade)} jade`); refreshJade(); }
   state.codexDirty = true;
-  saveStore(); renderPortal();
+  saveStore(); renderPortal(); refreshWhere();
 }
 
 function campaignOverlay(sim) {
@@ -792,7 +824,8 @@ function renderPortal() {
     rc.innerHTML = `<div class="run-card" style="border-left-color:${w.color}"><div class="k">Run in progress</div><div class="n">${w.name}</div><div class="rnodes">${nodes}</div>` +
       `<div class="mini">Room ${r.idx + 1} of ${r.rooms.length}. ${what}</div><div class="btns">` +
       (r.cleared[r.idx] ? '<button class="primary" data-act="next">Next room</button>' : `<button class="primary" data-act="fight">${here ? 'Restart room' : 'Fight room ' + (r.idx + 1)}</button>`) +
-      '<button data-act="leave">Leave run</button></div></div>';
+      '<button data-act="leave">Leave run</button><button data-p="abilitiesSection">Abilities</button><button data-p="talentSection">Talents</button></div></div>';
+    rc.querySelectorAll('[data-p]').forEach(b => { b.onclick = () => openPanel(b.dataset.p, true); });
     rc.querySelector('[data-act="leave"]').onclick = () => { if (confirm('Leave this run? Rooms you cleared for the first time stay cleared.')) leaveRun(); };
     const go = rc.querySelector('[data-act="next"], [data-act="fight"]');
     go.onclick = () => (go.dataset.act === 'next' ? nextRoom() : startRoom());
@@ -846,6 +879,10 @@ function renderCodex() {
       row.innerHTML = `<span class="cx-ic"></span><span><b>${d.name}</b> <span class="mini">${d.boss ? 'Boss' : ROLE_ONE[d.role] || ''} · felled ${(c.kills[t] || 0).toLocaleString()} in the worlds</span>` +
         `<span class="cx-t"><i>${d.passive[0]}:</i> ${d.passive[1]}</span><span class="cx-t"><i>${d.active[0]}:</i> ${d.active[1]}</span></span>`;
       try { row.querySelector('.cx-ic').appendChild(spriteIcon(t)); } catch (e) { /* no icon */ }
+      const spar = document.createElement('button');
+      spar.className = 'cx-spar'; spar.textContent = 'spar'; spar.title = `Watch your fighter against ${d.name} (a memory: no rewards)`;
+      spar.onclick = () => setMode('spar', t);
+      row.appendChild(spar);
       wrap.appendChild(row);
     }
   }
@@ -884,7 +921,7 @@ function updateView(dt) {
   if (v.sim.done) {
     if (!v.overlay) {
       if (v.mode === 'trial' && !v.recorded) { v.recorded = true; recordTrial(v.sim); }
-      if (v.mode !== 'play' && v.mode !== 'battle') addExposure(v.sim); // the hero learns from every fight it takes
+      if (v.mode !== 'play' && v.mode !== 'battle') addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN); // the hero learns from every fight it takes
       if (!v.paid) {
         v.paid = true;
         // only the worlds pay: battles, sparring, trials and play are memories
@@ -922,7 +959,8 @@ function updateView(dt) {
 
 function refreshHint() {
   const v = state.view, h = $('viewHint');
-  if (v.mode === 'train') h.innerHTML = state.training ? '' : 'Press <b>Start training</b> (or <kbd>T</kbd>) and the fighter starts learning.';
+  if (v.mode === 'lobby') h.innerHTML = state.training ? 'Your fighter keeps training in the Memory Pavilion while you walk the jar.' : 'The inside of the jar. Click a station, or use the buttons above.';
+  else if (v.mode === 'train') h.innerHTML = state.training ? '' : 'Press <b>Start training</b> (or <kbd>T</kbd>) and the fighter starts learning.';
   else if (v.mode === 'watch') h.textContent = 'The fighter plays without learning.';
   else if (v.mode === 'play') h.innerHTML = '<kbd>WASD</kbd> move <kbd>J</kbd> strike <kbd>K</kbd> heavy <kbd>Space</kbd> guard <kbd>L</kbd> kick <kbd>Shift</kbd> roll <kbd>Q</kbd> <kbd>E</kbd> abilities <kbd>R</kbd> restart';
   else if (v.mode === 'trial') h.innerHTML = `Trial: <b>${SCENARIOS[v.trialId].name}</b>. ${SCENARIOS[v.trialId].desc}`;
@@ -942,11 +980,20 @@ function setMode(mode, arg) {
   if (arg !== 'online') v.online = null;
   v.paused = false;
   refreshPauseBtn();
-  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
-  if (mode !== 'train') newViewSim();
+  if (mode !== 'train' && mode !== 'lobby') newViewSim();
   else renderer.reset();
   refreshScreen();
   refreshHint();
+  refreshWhere();
+}
+
+// where you are, in the bar above the arena
+function refreshWhere() {
+  const v = state.view, r = state.campaign.run;
+  const pav = { train: 'Training Hall', watch: 'Watching', play: 'You fight', spar: 'Spar', trial: 'Trial', battle: 'Simulation' };
+  $('whereLbl').textContent = v.mode === 'lobby' ? 'The Jar'
+    : v.mode === 'campaign' ? (r ? `${WORLD_BY_ID[r.world].name} · room ${r.idx + 1} of ${r.rooms.length}` : 'World conquered')
+    : v.mode === 'battle' && v.online ? 'Online match' : 'Memory Pavilion · ' + (pav[v.mode] || '');
 }
 
 function setSpeed(sp) {
@@ -958,9 +1005,15 @@ function setSpeed(sp) {
 
 // Max speed on the training view swaps the arena for a big live chart.
 function refreshScreen() {
-  const max = state.view.mode === 'train' && state.speed === 'max';
+  const mode = state.view.mode, max = mode === 'train' && state.speed === 'max';
   $('game').hidden = max;
   $('maxView').hidden = !max;
+  // the lobby is a place, not a fight: no speeds, no pause, no chart
+  $('lobbyBtn').hidden = mode === 'lobby';
+  $('speedGroup').hidden = mode === 'lobby';
+  $('pauseBtn').hidden = mode === 'lobby';
+  $('chartBox').hidden = mode !== 'train' && mode !== 'watch';
+  if (mode !== 'lobby') { lobby.hover = null; $('game').style.cursor = ''; }
   // effects are only collected while someone is watching the training fighter
   const sim = state.trainer.sim;
   if (!showingTraining()) sim.fx = null;
@@ -1160,9 +1213,15 @@ const foeTip = t => { const d = ENEMY_TYPES[t]; return `${d.passive[0]}: ${d.pas
 function buildFoes() {
   const wrap = $('foeList');
   wrap.innerHTML = '';
-  const groups = ROLE_ORDER.map(role => ({ title: ROLES[role].name, types: ROSTER.filter(t => ENEMY_TYPES[t].role === role) }));
-  groups.push({ title: 'Bosses', types: BOSSES });
+  const groups = ROLE_ORDER.map(role => ({ title: ROLES[role].name, types: ROSTER.filter(t => ENEMY_TYPES[t].role === role && isMet(t)) }));
+  groups.push({ title: 'Bosses', types: BOSSES.filter(isMet) });
+  const unmet = [...ROSTER, ...BOSSES].filter(t => !isMet(t)).length;
+  const note = document.createElement('p');
+  note.className = 'mini';
+  note.textContent = (metFoes().length ? 'The Pavilion reconstructs the foes you have met. ' : 'Nothing to reconstruct yet: meet foes in the worlds first. ') + (unmet ? `${unmet} more to meet in the worlds.` : '');
+  wrap.appendChild(note);
   for (const grp of groups) {
+    if (!grp.types.length) continue;
     const box = document.createElement('div');
     box.className = 'foe-group';
     const head = document.createElement('label');
@@ -1204,7 +1263,8 @@ function buildFoes() {
     wrap.appendChild(box);
   }
   $('foeNotes').innerHTML = ROLE_ORDER.map(role => {
-    const members = ROSTER.filter(t => ENEMY_TYPES[t].role === role).concat(BOSS_OF[role]);
+    const members = ROSTER.filter(t => ENEMY_TYPES[t].role === role).concat(BOSS_OF[role]).filter(isMet);
+    if (!members.length) return '';
     return `<p class="role-note"><b>${ROLES[role].name}:</b> ${ROLES[role].habit}</p>` + members.map(t => {
       const d = ENEMY_TYPES[t];
       return `<p class="foe-note"><b>${d.name}</b>${d.boss ? ' (boss)' : ''}: <i>${d.passive[0]}</i>, ${d.passive[1]} <i>${d.active[0]}</i>, ${d.active[1]}</p>`;
@@ -1239,14 +1299,15 @@ function renderTrials() {
   const wrap = $('trialList');
   wrap.innerHTML = '';
   for (const [id, sc] of Object.entries(SCENARIOS)) {
-    if (sc.custom) continue;
-    const t = state.trials[id];
+    if (sc.custom || !sc.waves) continue;
+    const t = state.trials[id], unmet = [...new Set(sc.waves.flat())].filter(k => !isMet(k));
     const el = document.createElement('div');
-    el.className = 'trial';
-    el.innerHTML = `<div class="tname">${sc.name} ${t && t.passes ? '<span class="ok">passed</span>' : ''}</div><div class="tdesc">${sc.desc}</div>` +
+    el.className = 'trial' + (unmet.length ? ' locked' : '');
+    el.innerHTML = `<div class="tname">${sc.name} ${t && t.passes ? '<span class="ok">passed</span>' : ''}</div><div class="tdesc">${unmet.length ? `Meet ${unmet.length === 1 ? 'one more foe' : unmet.length + ' more foes'} in the worlds to open this trial.` : sc.desc}</div>` +
       (t ? `<div class="tstat">${t.passes}/${t.runs} passed</div>` : '');
     const b = document.createElement('button');
     b.textContent = 'Run';
+    b.disabled = unmet.length > 0;
     b.addEventListener('click', () => setMode('trial', id));
     el.appendChild(b);
     wrap.appendChild(el);
@@ -1512,23 +1573,58 @@ function buildTalents() {
 // ---------- panels: the dock opens one at a time beside the arena ----------
 const PANEL_KEY = 'neuroArena.panel';
 
-function openPanel(id) {
+// the pages each hub leads to (each gets a way back)
+const PANEL_PARENT = {
+  foesPanel: 'pavilionPanel', rewardsPanel: 'pavilionPanel', learningPanel: 'pavilionPanel', brainSection: 'pavilionPanel',
+  battleSection: 'pavilionPanel', trialsPanel: 'pavilionPanel', codexPanel: 'pavilionPanel',
+  fighterPanel: 'tallyPanel', abilitiesSection: 'tallyPanel', identitySection: 'tallyPanel', killsSection: 'tallyPanel',
+};
+const HUB_NAME = { pavilionPanel: 'Memory Pavilion', tallyPanel: 'Tally Wall' };
+
+function openPanel(id, force) {
   const cur = document.querySelector('#drawer .panel:not([hidden])');
-  const next = cur && cur.id === id ? null : id; // clicking the open one closes it
+  const next = cur && cur.id === id && !force ? null : id; // clicking the open one closes it
   document.querySelectorAll('#drawer .panel').forEach(el => { el.hidden = el.id !== next; });
-  document.querySelectorAll('#dock button').forEach(b => b.classList.toggle('on', b.dataset.panel === next));
+  const root = PANEL_PARENT[next] || next;
+  document.querySelectorAll('#dock button').forEach(b => b.classList.toggle('on', b.dataset.panel === root));
   document.querySelector('.layout').classList.toggle('panel-open', !!next);
   if (next === 'abilitiesSection') buildAbilities();
   if (next === 'skinSection') buildSkins();
   if (next === 'portalPanel') renderPortal();
   if (next === 'codexPanel') renderCodex();
+  if (next === 'pavilionPanel') renderPavilion();
+  if (next === 'tallyPanel') renderTally();
+  if (next === 'foesPanel') buildFoes();
+  if (next === 'battleSection') buildBattle();
+  if (next === 'trialsPanel') renderTrials();
   if (next) $('drawer').scrollTop = 0;
   state.chartDirty = true;
   try { localStorage.setItem(PANEL_KEY, next || ''); } catch (e) { /* remembered only when storage works */ }
 }
 
+function renderPavilion() {
+  const n = metFoes().length;
+  $('pavMet').textContent = n ? `It can reconstruct ${n} foe${n > 1 ? 's' : ''} you have met.` : 'Nothing to reconstruct yet: meet foes in the worlds first.';
+}
+
+function renderTally() {
+  const lives = state.livesTotal || 0;
+  $('tallyNote').textContent = lives ? `${lives.toLocaleString()} lives scratched into the clay, one mark for every twenty. Level ${state.level || 1}.` : 'The clay is still smooth. Every life your fighter lives in the Pavilion leaves a mark here.';
+}
+
 function bindPanels() {
-  document.querySelectorAll('#dock button').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel)));
+  document.querySelectorAll('#dock button').forEach(b => b.addEventListener('click', () => (b.dataset.station ? visitStation(b.dataset.station) : openPanel(b.dataset.panel))));
+  document.querySelectorAll('.hub button[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, true)));
+  document.querySelectorAll('.hub button[data-go]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.go !== 'train' && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first.'); return; }
+    setMode(b.dataset.go);
+  }));
+  for (const [child, parent] of Object.entries(PANEL_PARENT)) {
+    const head = document.querySelector(`#${child} .panel-head`), back = document.createElement('button');
+    back.className = 'back'; back.textContent = '‹ ' + HUB_NAME[parent]; back.title = 'Back to the ' + HUB_NAME[parent];
+    back.addEventListener('click', () => openPanel(parent, true));
+    head.insertBefore(back, head.firstChild);
+  }
   document.querySelectorAll('#drawer [data-close]').forEach(b => b.addEventListener('click', () => openPanel(b.closest('.panel').id)));
   $('jadeBal').addEventListener('click', () => { if ($('talentSection').hidden) openPanel('talentSection'); });
   window.addEventListener('keydown', e => {
@@ -1602,11 +1698,24 @@ function boot() {
   bindPanels();
   $('trainBtn').addEventListener('click', () => setTraining(!state.training));
   $('pauseBtn').addEventListener('click', () => { state.view.paused = !state.view.paused; refreshPauseBtn(); });
-  document.querySelectorAll('#modeSeg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $('lobbyBtn').addEventListener('click', () => setMode('lobby'));
+  const cv = $('game');
+  const at = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) / b.width * W, (e.clientY - b.top) / b.height * H]; };
+  cv.addEventListener('mousemove', e => {
+    if (state.view.mode !== 'lobby') return;
+    lobby.hover = lobby.hit(...at(e));
+    cv.style.cursor = lobby.hover ? 'pointer' : '';
+  });
+  cv.addEventListener('mouseleave', () => { lobby.hover = null; });
+  cv.addEventListener('click', e => {
+    if (state.view.mode !== 'lobby') return;
+    const st = lobby.hit(...at(e));
+    if (st) visitStation(st.id);
+  });
   document.querySelectorAll('#speedSeg button').forEach(b => b.addEventListener('click', () => setSpeed(b.dataset.speed === 'max' ? 'max' : +b.dataset.speed)));
   $('metric').addEventListener('change', () => { state.chartDirty = true; });
   window.addEventListener('resize', () => { state.chartDirty = true; });
-  setMode('train');
+  setMode('lobby');
 
   let last = performance.now(), lastDom = 0, lastBrain = 0, lastBig = 0;
   function step(now) {
@@ -1614,7 +1723,8 @@ function boot() {
     const v = state.view;
     if (state.training) runTraining(dt, now);
 
-    if (v.mode === 'train') {
+    if (v.mode === 'lobby') lobby.draw(dt, lobbyInfo());
+    else if (v.mode === 'train') {
       if (state.speed !== 'max') {
         const sim = state.trainer.sim;
         if (sim !== state.lastTrainSim) {

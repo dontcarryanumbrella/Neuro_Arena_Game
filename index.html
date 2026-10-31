@@ -18,8 +18,10 @@
 <main class="layout">
   <section class="left">
     <div class="toolbar">
+      <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
+      <span class="where" id="whereLbl">The Jar</span>
       <button class="primary" id="trainBtn">Start training</button>
-      <div class="group" role="group" aria-label="Training speed">
+      <div class="group" role="group" aria-label="Speed" id="speedGroup">
         <span class="lbl">Speed</span>
         <div class="seg" id="speedSeg">
           <button data-speed="1" class="on">1x</button>
@@ -28,41 +30,19 @@
           <button data-speed="max" title="No arena, just the chart">Max</button>
         </div>
       </div>
-      <div class="group" role="group" aria-label="View">
-        <span class="lbl">View</span>
-        <div class="seg" id="modeSeg">
-          <button data-mode="train" class="on" title="The fighter that is learning">Training</button>
-          <button data-mode="watch" title="The fighter plays, without learning">Watch</button>
-          <button data-mode="play" title="You fight">Play</button>
-          <button data-mode="battle" title="Team fights and free-for-alls">Battle</button>
-        </div>
-      </div>
       <button id="pauseBtn" title="Pause the view (P)">Pause</button>
       <button id="soundBtn" title="Sound effects">Sound on</button>
       <button id="musicBtn" title="Ambient music">Music on</button>
       <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
     </div>
-    <nav class="dock" id="dock" aria-label="Panels">
-      <button data-panel="portalPanel"><span class="ic">门</span>Portal</button>
-      <button data-panel="codexPanel"><span class="ic">典</span>Codex</button>
-      <span class="dock-sep"></span>
-      <button data-panel="fighterPanel"><span class="ic">拳</span>Fighter</button>
-      <button data-panel="foesPanel"><span class="ic">敌</span>Opponents</button>
-      <button data-panel="abilitiesSection"><span class="ic">技</span>Abilities</button>
-      <button data-panel="talentSection"><span class="ic">玉</span>Talents</button>
-      <button data-panel="skinSection"><span class="ic">衣</span>Skins</button>
-      <span class="dock-sep"></span>
-      <button data-panel="battleSection"><span class="ic">战</span>Battle</button>
-      <button data-panel="trialsPanel"><span class="ic">试</span>Trials</button>
-      <span class="dock-sep"></span>
-      <button data-panel="rewardsPanel"><span class="ic">赏</span>Rewards</button>
-      <button data-panel="learningPanel"><span class="ic">学</span>Learning</button>
-      <button data-panel="brainSection"><span class="ic">心</span>Thinking</button>
-      <button data-panel="identitySection"><span class="ic">魂</span>Identity</button>
-      <button data-panel="killsSection"><span class="ic">斩</span>Kills</button>
-      <button data-panel="onlineSection"><span class="ic">联</span>Online</button>
-      <span class="dock-sep"></span>
-      <button data-panel="savePanel"><span class="ic">存</span>Save</button>
+    <nav class="dock" id="dock" aria-label="Stations of the jar">
+      <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
+      <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+      <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
+      <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
+      <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
+      <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
+      <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
       <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
     </nav>
 
@@ -78,7 +58,7 @@
     <div class="board" id="battleBoard" hidden></div>
     <div class="statline" id="statLine"></div>
 
-    <div class="chart-box">
+    <div class="chart-box" id="chartBox">
       <div class="chart-head">
         <label for="metric">Chart</label>
         <select id="metric">
@@ -108,6 +88,38 @@
         <p>A world is a line of rooms, then its bosses. Each room starts at full health; lose one and retry it. Clearing a room for the first time pays part of the world's exploration jade; a boss's first defeat breaks one of the lid's seals, unlocks its Transcendence finale and pays a large amount of jade. Running a world again pays its foes' bounties and a quarter of the exploration jade.</p>
         <p>Only kills in the worlds raise your level. Training pays a tenth of the bounty; battles, sparring and trials pay nothing.</p>
       </details>
+    </section>
+
+    <section class="panel" id="pavilionPanel" hidden>
+      <div class="panel-head"><h2>Memory Pavilion</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">A room that reconstructs what you have met. Fights here are memories: they train the brain and teach techniques half again faster than the worlds, but they feed nothing and pay almost nothing.</p>
+      <p class="mini" id="pavMet"></p>
+      <div class="hub">
+        <button data-go="train"><b>Training Hall</b><span>Watch it learn: speeds, chart, and life after life</span></button>
+        <button data-go="watch"><b>Watch it fight</b><span>Your fighter plays, without learning</span></button>
+        <button data-go="play"><b>Fight it yourself</b><span>You on the keyboard</span></button>
+        <button data-panel="battleSection"><b>Simulation</b><span>Battles of up to ten, in teams or free-for-all</span></button>
+        <button data-panel="trialsPanel"><b>Trials</b><span>Set challenges</span></button>
+        <button data-panel="codexPanel"><b>Codex</b><span>Everything you have met</span></button>
+      </div>
+      <h3 class="kill-head">How it trains</h3>
+      <div class="hub small">
+        <button data-panel="foesPanel"><b>Opponents</b><span>Who it trains against</span></button>
+        <button data-panel="rewardsPanel"><b>Rewards</b><span>What it is paid for</span></button>
+        <button data-panel="learningPanel"><b>Learning</b><span>How it learns</span></button>
+        <button data-panel="brainSection"><b>Thinking</b><span>Its choices, live</span></button>
+      </div>
+    </section>
+
+    <section class="panel" id="tallyPanel" hidden>
+      <div class="panel-head"><h2>Tally Wall</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini" id="tallyNote"></p>
+      <div class="hub">
+        <button data-panel="fighterPanel"><b>Level</b><span>What the worlds have made of it</span></button>
+        <button data-panel="abilitiesSection"><b>Abilities</b><span>Learned techniques and the two it carries</span></button>
+        <button data-panel="identitySection"><b>Identity</b><span>Traits, awakening, special and finale</span></button>
+        <button data-panel="killsSection"><b>Kills</b><span>Everything it has felled</span></button>
+      </div>
     </section>
 
     <section class="panel" id="codexPanel" hidden>
@@ -289,6 +301,7 @@
 <script src="js/campaign.js"></script>
 <script src="js/render.js"></script>
 <script src="js/swordfx.js"></script>
+<script src="js/lobby.js"></script>
 <script src="js/main.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/online-config.js"></script>

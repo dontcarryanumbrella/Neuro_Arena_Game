@@ -20,6 +20,11 @@ then open http://localhost:8137. No build step and no dependencies: it is plain 
 
 The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it with him, and he can only leave once he has conquered every one. The full plan (lore, all worlds, balance, what comes next) is in `docs/campaign-plan.md`; this is what is built so far.
 
+- **The lobby** is the inside of the jar, drawn like the arena. Click a station and your fighter walks to it (the buttons above the arena do the same):
+  - **Portal** (门): the worlds (below).
+  - **Memory Pavilion** (忆): a room that reconstructs what you have met. The Training Hall (speeds, chart), watching your fighter, fighting it yourself, Simulation (battle mode), Trials and the Codex, plus the training settings (opponents, rewards, learning, thinking). It can only reconstruct foes you have met in the worlds, so a new fighter meets its first foe there before it can train. Techniques are learned half again faster here than in the worlds, but nothing here feeds the level or pays more than a tenth of a bounty. A ghost of a foe you have met flickers inside it.
+  - **Talent Altar** (玉) talents and spins, **Mirror** (镜) skins, **Tally Wall** (刻) level, abilities, identity and kills, **Memory Urns** (瓮) saving and loading fighters, **Resonance Stone** (联) online play.
+  - **The lid** overhead wears the fifteen seals as paper talismans; each broken seal is a charred stub. The tally marks on the wall grow with your lives, one for every twenty.
 - **Portal** (门): every world, by tier, with its recommended level and how dangerous it is for your level right now. Any world can be entered; some are far deadlier than others. The three hidden worlds (Cursed Domain, Black Sea, the Pallid Kingdom) only appear once the Timestream's keeper falls.
 - **A run** is a line of rooms, then the world's bosses. Each room is drawn at random from the world's foes within a threat budget: a skirmish, a pack (up to 4 of one kind), a warband (up to 3 different kinds) or an elite (one foe at 150% health and 120% damage). Bosses always fight alone. Your AI fighter fights every room; between rooms you coach it (abilities, talents, skins), or press **N** for the next room. Every room starts at full health, and a lost room is simply retried (**R**). Runs are kept when you reload.
 - **Rewards:** a room's first clear pays its share of the world's exploration jade (150 to 1200 by tier); a boss's first defeat breaks one of the lid's 15 seals, unlocks its **Transcendence finale** and pays 400 to 2500 jade; a repeat run pays its foes' bounties and a quarter of the exploration jade.
@@ -35,17 +40,17 @@ The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it 
 | V (the gate) | Timestream | Time Administrator |
 | Hidden | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
 
-For now the worlds use the existing foes only (the hidden worlds hold just their bosses), and the lobby, the Memory Pavilion and the story fragments are still to come.
+For now the worlds use the existing foes only (the hidden worlds hold just their bosses), and the story fragments are still to come.
 
 ## How it learns
 
 The fighter is a single neural network trained with PPO (reinforcement learning). Every 1/15 s it reads 52 senses and picks a direction and an action. The reward weights score each moment. After every batch of decisions (1024 by default) it updates its network toward the choices that went better than expected.
 
-Speeds: 1x, 4x and 16x show the arena while it learns. **Max** hides the arena and shows the learning chart, roughly 2,000 decisions a second.
+Training happens in the Memory Pavilion's Training Hall (it keeps going while you walk the lobby). Speeds: 1x, 4x and 16x show the arena while it learns. **Max** hides the arena and shows the learning chart, roughly 2,000 decisions a second.
 
 ## Battle mode
 
-Up to 10 fighters on the stage at once. Each slot can be **your AI fighter** (several copies share the trained brain), **you** on the keyboard, or any foe, boss or beast. Put them on teams (up to 5) or switch to **free-for-all**. Presets: 1v1, 2v2, 5v5, and all seven bosses. Everyone targets the nearest fighter not on their team; summons fight for their summoner's side. The battle ends when one team is left (or, at the time limit, the team with the most health left wins), followed by a scoreboard with kills, damage and an MVP. Press R for a rematch.
+In the Memory Pavilion (Simulation). Up to 10 fighters on the stage at once. Each slot can be **your AI fighter** (several copies share the trained brain), **you** on the keyboard, or any foe, boss or beast you have met. Put them on teams (up to 5) or switch to **free-for-all**. Presets: 1v1, 2v2, 5v5, and all seven bosses. Everyone targets the nearest fighter not on their team; summons fight for their summoner's side. The battle ends when one team is left (or, at the time limit, the team with the most health left wins), followed by a scoreboard with kills, damage and an MVP. Press R for a rematch.
 
 ## Playing online
 
@@ -61,7 +66,7 @@ Find other players by username, form a party of two, and either **duel 1v1** or 
 ### Playing
 
 1. Everyone needs the **same version of the game** (share this folder, or put it on any static host such as GitHub Pages). Both screens must run identical code for the battles to match.
-2. Open the **联 Online** panel and choose a username. This copy of the game connects to the project in `js/online-config.js` on its own; to run your own project instead, put your Project URL and anon key there (or clear them, and each player pastes them into the panel once).
+2. Open the **Resonance Stone** (联) in the lobby and choose a username. This copy of the game connects to the project in `js/online-config.js` on its own; to run your own project instead, put your Project URL and anon key there (or clear them, and each player pastes them into the panel once).
 3. Type a name in **Find players** and press **Invite**. Your friend sees the invite in their Online panel and presses **Join**.
 4. In a full party, press **1v1 duel**, or pick foes (Ctrl-click for several) and press **Fight together**. The match opens on both screens. Press **Share my fighter** first if you have trained since connecting; it is also shared automatically whenever a match starts.
 
@@ -146,7 +151,7 @@ A figure in a dark suit with a glitching clock for a face; its body tears and sk
 
 ### Super boss: the King in Yellow
 
-Select **King in Yellow** under **Opponents → Bosses** (use **spar** to watch a duel), or choose him in a Battle slot. He has 440 base health (374 after the normal first-form boss scaling) and awards 300 jade.
+Once met, select **King in Yellow** under the Pavilion's **Opponents → Bosses** (use **spar** to watch a duel), or choose him in a Battle slot. He has 440 base health (374 after the normal first-form boss scaling) and awards 300 jade.
 
 - **Sovereign of Carcosa:** all summoned creatures, including enemy summons and illusions, immediately join his team. Existing summons convert before their next action. With multiple Kings, the first living King owns newly claimed summons; ownership stays stable. Normal battle participants are not converted.
 - **Beyond time:** immune to roots, fear, flinching, parry recoil, posture breaks, knockback and time stop. His own attacks bypass phase/ward talents, roll invulnerability and transformation immunity; ordinary guard and parry still work against his basic melee attacks.
@@ -396,6 +401,7 @@ Ambient music (a drone, pad chords, wind and a guzheng-like melody in D pentaton
 - `js/agent.js`: neural network with backprop and Adam, the PPO agent, and the trainer loop
 - `js/sim.js`: duel mechanics, foes and their AI, trials, senses, reward weights
 - `js/campaign.js`: the jar's worlds, their foes and bosses, room plans and the spawner
+- `js/lobby.js`: the lobby, the inside of the jar, and its stations
 - `js/render.js`: pixel sprites, stage, effects and HUD
 - `js/online.js`: usernames, parties and online matches through Supabase (set up by `supabase/online.sql`)
 - `js/swordfx.js`: how the Sword Immortal and the Thirteen Swords of Heaven's End look (loaded after render.js)

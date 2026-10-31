@@ -1,6 +1,6 @@
 # Neuro Arena: The Jar (campaign plan)
 
-Status: phase 1 (campaign core) is built; the rest is planned.
+Status: phases 1 (campaign core) and 2 (lobby and Pavilion) are built; the rest is planned.
 
 Decisions so far:
 - The AI brain fights every room. You coach between rooms.
