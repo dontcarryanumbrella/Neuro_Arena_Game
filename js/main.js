@@ -806,12 +806,7 @@ function campaignOverlay(sim) {
   return { title: 'ROOM CLEARED', color: '#7fc98a', sub: line, sub3: 'N: NEXT ROOM' };
 }
 
-const dangerOf = w => {
-  const gap = recommendedLevel(w) - (state.level || 1);
-  return gap <= -10 ? ['Easy', '#5f5f5f'] : gap <= 2 ? ['Fitting', '#2f6f3a'] : gap <= 12 ? ['Dangerous', '#b8651c'] : ['Deadly', '#c0392b'];
-};
-
-// the Portal: the run in progress, then every world you can see, tier by tier
+// the Portal: the run in progress, then every world you can see (no difficulty labels: finding out is part of it)
 function renderPortal() {
   if (!$('portalPanel')) return;
   const c = state.campaign, broken = ALL_SEALS.filter(b => c.seals[b]).length;
@@ -833,26 +828,21 @@ function renderPortal() {
 
   const list = $('worldList');
   list.innerHTML = '';
-  for (const tier of [1, 2, 3, 4, 5, 6]) {
-    const worlds = WORLDS.filter(w => w.tier === tier && worldVisible(c, w));
-    if (!worlds.length) continue;
-    const h = document.createElement('h3'); h.className = 'kill-head'; h.textContent = TIER_NAMES[tier] + (tier === 5 ? ' · the gate' : ''); list.appendChild(h);
-    for (const w of worlds) {
-      const rec = c.worlds[w.id] || { rooms: {}, runs: 0 }, plan = roomPlan(w);
-      const left = plan.filter((rm, i) => rm[0] !== 'boss' && !rec.rooms[i]).length, nb = nonBossRooms(w);
-      const bosses = worldBosses(w), sealsLeft = bosses.filter(b => !c.seals[b]).length;
-      const jadeLeft = (nb ? Math.round(EXPLORE_JADE[w.tier] * left / nb) : 0) + sealsLeft * BOSS_JADE[w.tier];
-      const [dl, dc] = dangerOf(w), mine = r && r.world === w.id;
-      const el = document.createElement('div');
-      el.className = 'world-card'; el.style.borderLeftColor = w.color;
-      el.innerHTML = `<div class="wc-head"><b>${w.name}</b><span class="danger" style="color:${dc};border-color:${dc}">${dl}</span></div>` +
-        `<div class="mini">Level ${recommendedLevel(w)} · ${plan.length} rooms${rec.runs ? ` · conquered${rec.runs > 1 ? ' ×' + rec.runs : ''}` : ''}</div>` +
-        `<div class="wc-blurb">${w.blurb}</div>` +
-        `<div class="wc-seals">${bosses.map(b => `<span class="seal${c.seals[b] ? ' broken' : ''}" title="${c.seals[b] ? 'Seal broken' : 'Seal intact'}">${c.seals[b] ? '✓ ' : ''}${c.met[b] ? ENEMY_TYPES[b].name : '???'}</span>`).join('')}</div>` +
-        `<div class="wc-foot"><span class="mini">${jadeLeft ? `◆ ${jadeLeft.toLocaleString()} in first-time rewards left` : `Repeat runs: bounties + ◆ ${Math.round(EXPLORE_JADE[w.tier] * REPEAT_SHARE)}`}</span><button>${mine ? 'Continue' : 'Enter'}</button></div>`;
-      el.querySelector('button').onclick = () => enterWorld(w.id);
-      list.appendChild(el);
-    }
+  for (const w of WORLDS.filter(o => worldVisible(c, o))) {
+    const rec = c.worlds[w.id] || { rooms: {}, runs: 0 }, plan = roomPlan(w);
+    const left = plan.filter((rm, i) => rm[0] !== 'boss' && !rec.rooms[i]).length, nb = nonBossRooms(w);
+    const bosses = worldBosses(w), sealsLeft = bosses.filter(b => !c.seals[b]).length;
+    const jadeLeft = (nb ? Math.round(EXPLORE_JADE[w.tier] * left / nb) : 0) + sealsLeft * BOSS_JADE[w.tier];
+    const mine = r && r.world === w.id;
+    const el = document.createElement('div');
+    el.className = 'world-card'; el.style.borderLeftColor = w.color;
+    el.innerHTML = `<div class="wc-head"><b>${w.name}</b></div>` +
+      `<div class="mini">${plan.length} rooms${rec.runs ? ` · conquered${rec.runs > 1 ? ' ×' + rec.runs : ''}` : ''}</div>` +
+      `<div class="wc-blurb">${w.blurb}</div>` +
+      `<div class="wc-seals">${bosses.map(b => `<span class="seal${c.seals[b] ? ' broken' : ''}" title="${c.seals[b] ? 'Seal broken' : 'Seal intact'}">${c.seals[b] ? '✓ ' : ''}${c.met[b] ? ENEMY_TYPES[b].name : '???'}</span>`).join('')}</div>` +
+      `<div class="wc-foot"><span class="mini">${jadeLeft ? `◆ ${jadeLeft.toLocaleString()} in first-time rewards left` : `Repeat runs: bounties + ◆ ${Math.round(EXPLORE_JADE[w.tier] * REPEAT_SHARE)}`}</span><button>${mine ? 'Continue' : 'Enter'}</button></div>`;
+    el.querySelector('button').onclick = () => enterWorld(w.id);
+    list.appendChild(el);
   }
 }
 

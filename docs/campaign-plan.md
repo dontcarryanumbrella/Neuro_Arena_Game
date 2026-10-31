@@ -1,6 +1,6 @@
 # Neuro Arena: The Jar (campaign plan)
 
-Status: phases 1 (campaign core) and 2 (lobby and Pavilion) are built; the rest is planned.
+Status: phases 1 (campaign core) and 2 (lobby and Pavilion) are built; phase 3 (balance) was dropped; the rest is planned.
 
 Decisions so far:
 - The AI brain fights every room. You coach between rooms.
@@ -334,7 +334,7 @@ When the last seal breaks, a new peak rises behind the Myriad Sword Peaks, above
 
 ## 4. Balance: making the difficulty jumps real
 
-The danger has to be measured, not guessed, because the fighter is an AI whose strength varies.
+**Dropped (phase 3).** Kept for reference only: the game shows no difficulty labels, and finding a way through a hard world is part of playing it.
 
 1. **A reference hero.** A scripted fighter in a test harness (approach, strike, guard on enemy wind-up, roll out of zones, use abilities on cooldown) at a given level. It's deterministic, so numbers are comparable between changes.
 2. **A threat score per foe.** Run the reference hero against each foe alone a few hundred times. Threat = health it costs the hero per kill, normalized so Bandit = 1. Group threat is measured too, not assumed.
@@ -367,7 +367,7 @@ Each phase leaves the game playable.
    - Save migration: existing kills mark those enemies as met, and the campaign level starts at 1.
    - The Last Frontier works with existing foes only.
 2. **Lobby and Pavilion.** The pixel jar scene and its stations. Today's panels move behind them (Training Hall, Simulation, Trials, Codex), and the top toolbar is retired.
-3. **Balance harness.** The threat table, then tuning the Last Frontier.
+3. **Balance harness: dropped.** Difficulty stays as the first-guess budgets and boss tuning, and the Portal shows no difficulty labels or recommended levels. When the fighter is stuck, it is up to the player to improve it and its build.
 4. **Lore.** The three fragment tracks, world vignettes, codex text, and a lobby that changes as seals break.
 5. **Promoted foes and the teacher.** The Heavenly General, the abyss brood, the Scholar's heads and the courtier. This completes the Nine Heavens and the Black Sea, and most of the Abyss. Then the teacher Sword Immortal variant, with the yield and the glimpse of the Thirteenth.
 6. **New foes, world by world, in tier order.** Temple, Night, Peaks, Abyss, Isles, then the Timestream, Cursed Domain and Pallid Kingdom. Each world gets a balance pass when it's done.

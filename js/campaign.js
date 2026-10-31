@@ -39,7 +39,6 @@ const TIER_ROOMS = {
   5: [['skirmish', 4.4], ['pack', 8.4], ['warband', 6.4], ['skirmish', 6], ['warband', 7.2], ['pack', 9], ['elite', 7.8]],
   6: [['skirmish', 4.8], ['pack', 9], ['warband', 7], ['skirmish', 6.6], ['warband', 7.8], ['pack', 9.6], ['elite', 8.4]],
 };
-const TIER_NAMES = { 1: 'Tier I', 2: 'Tier II', 3: 'Tier III', 4: 'Tier IV', 5: 'Tier V', 6: 'Hidden' };
 const EXPLORE_JADE = { 1: 150, 2: 300, 3: 500, 4: 750, 5: 1000, 6: 1200 };   // first clears of a world's rooms, shared between them
 const BOSS_JADE = { 1: 400, 2: 700, 3: 1000, 4: 1500, 5: 2000, 6: 2500 };     // a boss's first defeat
 const REPEAT_SHARE = 0.25;                                                    // a repeat run pays this much of the exploration jade

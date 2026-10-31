@@ -255,7 +255,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .rnode.cur { outline: 2px solid var(--ink); outline-offset: 1px; }
 .wc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .wc-head b { font-size: 15px; }
-.danger { font-size: 11px; border: 1px solid; border-radius: 10px; padding: 0 7px; white-space: nowrap; }
 .wc-blurb { font-size: 13px; margin: 3px 0 5px; }
 .wc-seals { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .seal { font-size: 12px; padding: 1px 6px; border-radius: 4px; background: var(--soft); border: 1px solid var(--line); }
