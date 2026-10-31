@@ -1,0 +1,86 @@
+<!doctype html><meta charset="utf-8"><title>King in Yellow — visual checks</title>
+<style>body{background:#111522;color:#eee0a0;font:14px monospace;margin:24px}main{display:grid;grid-template-columns:repeat(2,512px);gap:20px}canvas{width:512px;height:288px;image-rendering:pixelated;border:1px solid #555}h2{font-size:14px}</style>
+<h1>King in Yellow · native pixel-art previews</h1>
+<p><button id="motion">Pause animation</button> <button id="impactReplay">Replay impacts</button> <button id="visualCheck">Validate visuals</button> <span id="visualResult"></span> <button id="audioCheck">Validate audio renders</button> <span id="audioResult"></span></p>
+<p id="sounds">Audition sounds: </p><main id="previews"></main>
+<script src="../js/sfx.js"></script><script src="../js/agent.js"></script><script src="../js/sim.js"></script><script src="../js/render.js"></script><script src="../js/swordfx.js"></script>
+<script>
+const scenes=[]; let animated=true;
+for(const [label,phase,kind,age] of [['The Pallid King / Silken Exodus',1,'clone',0.3],['Twin Black Stars / Yellow Court',1,'stars',2],['True Form / Cosmic Eye',2,'eye',0.5],['A Galaxy Falls on Carcosa',2,'galaxy',2.2]]) {
+ const box=document.createElement('section'); box.innerHTML='<h2>'+label+'</h2><canvas width="256" height="144"></canvas>'; document.querySelector('main').append(box);
+ const sim=new Sim('custom',12,{visual:true}); sim.t=0;
+ const king=sim.spawnEnemy('yellowking',35,10); king.state='idle'; king.phase=phase;
+ const puppet=sim.spawnMinion('courtier',-25,10,king); puppet.state='idle';
+ sim.cosmicFields.push({kind,owner:king,age,life:2,x:-35,y:15,tx:35,ty:10,stars:[{x:-40,y:-25},{x:40,y:25}]});
+ const renderer=new Renderer(box.querySelector('canvas')); scenes.push({sim,renderer,age});
+ renderer.draw(sim,0,{});
+}
+document.querySelector('#motion').onclick=()=>{animated=!animated; document.querySelector('#motion').textContent=animated?'Pause animation':'Resume animation';};
+document.querySelector('#impactReplay').onclick=()=>{
+ animated=true;document.querySelector('#motion').textContent='Pause animation';
+ for(const {sim} of scenes) {const h=sim.cosmicFields[0];if(h.kind==='stars'||h.kind==='galaxy') {sim.t=h.kind==='stars'?4.25:2.15;h.hit=false;}}
+};
+let last=0;
+function frame(now) {
+ const dt=Math.min(0.05,(now-last)/1000); last=now;
+ if(animated) for(const {sim,renderer,age} of scenes) {
+   sim.t+=dt;
+   const h=sim.cosmicFields[0];
+   const wasHit=!!h.hit;
+   h.age=h.kind==='galaxy'?(sim.t%3.2):age;
+   if(h.kind==='galaxy') {h.hit=h.age>=2.5;h.life=3.2-h.age;}
+   if(h.kind==='clone') {
+     h.age=sim.t%3-.65;
+     const e=h.owner;
+     if(h.age<0) { e.x=h.x;e.y=h.y;e.state='wind';e.atk=e.specials.find(a=>a.id==='silkflight');e.windT=h.age+.65;e.silkUntil=0; }
+     else { e.x=h.tx;e.y=h.ty;e.state='idle';e.silkUntil=h.age<.45?sim.t+.45-h.age:0; }
+   }
+   if(h.kind==='stars') {h.age=sim.t%6; h.stars=blackStarPositions(h.age); h.hit=h.age>=BLACK_STAR_MERGE;}
+   if((h.kind==='stars'||h.kind==='galaxy')&&h.hit&&!wasHit) sim.emit('ultburst',0,0,{color:'#d9c8ff',cosmic:true});
+   renderer.draw(sim,dt,{});
+ }
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.querySelector('#visualCheck').onclick=()=>{
+ const result=document.querySelector('#visualResult');
+ try {
+   const c=document.createElement('canvas');c.width=256;c.height=144;
+   const renderer=new Renderer(c),sim=new Sim('custom',1,{visual:true});
+   const king=sim.spawnEnemy('yellowking',0,0);king.phase=2;king.state='idle';sim.fx=[];
+   const g=c.getContext('2d');g.drawImage(renderer.bg,0,0);
+   const before=g.getImageData(0,0,256,144).data;renderer.drawYellowCosmos(sim);
+   const after=g.getImageData(0,0,256,144).data;
+   for(let y=45;y<110;y++) for(let x=70;x<185;x++) {
+     if(((x-CX)/R)**2+((y-CY)/(R*SQ))**2>.9)continue;
+     const n=(y*256+x)*4;for(let ch=0;ch<3;ch++)if(before[n+ch]!==after[n+ch])throw Error('Arena color changed');
+   }
+   for(const [x,y] of [[0,20],[255,20],[10,80],[245,80]]) {
+     const n=(y*256+x)*4;if(after[n]||after[n+1]||after[n+2])throw Error('Exterior not pitch black');
+   }
+   sim.emit('ultburst',0,0,{color:'#d9c8ff',cosmic:true});renderer.ingest(sim);
+   if(renderer.shake<16||!(renderer.cosmicImpactT>0))throw Error('Missing impact frame or shake');
+   result.textContent='PASS: arena pixels preserved, exterior black, impact frame + shake triggered.';
+ } catch(e) {result.textContent='FAIL: '+e.message;}
+};
+for(const name of Object.keys(SOUNDS).filter(n=>n.startsWith('king'))) {
+ const button=document.createElement('button'); button.textContent=name.slice(4); button.onclick=async()=>{sfx.unlock();if(sfx.ctx) await sfx.ctx.resume();sfx.play(name);}; document.querySelector('#sounds').append(button);
+}
+document.querySelector('#audioCheck').onclick=async()=>{
+ const result=document.querySelector('#audioResult');result.textContent='Rendering…';
+ try {
+   const names=Object.keys(SOUNDS).filter(n=>n.startsWith('king')); let maxPeak=0;
+   for(const name of names) {
+     const sound=new Sfx(); sound.ctx=new OfflineAudioContext(1,44100*4,44100);
+     sound.master=sound.ctx.createGain(); sound.master.gain.value=.22; sound.master.connect(sound.ctx.destination);
+     sound.noiseBuf=sound.ctx.createBuffer(1,44100,44100);
+     const noise=sound.noiseBuf.getChannelData(0); for(let i=0;i<noise.length;i++) noise[i]=Math.sin(i*124.713)*.7;
+     SOUNDS[name](sound); const rendered=await sound.ctx.startRendering(); let peak=0;
+     for(const sample of rendered.getChannelData(0)) {if(!Number.isFinite(sample)) throw Error(name+': invalid sample');peak=Math.max(peak,Math.abs(sample));}
+     if(peak===0||peak>=1) throw Error(name+': silent or clipping'); maxPeak=Math.max(maxPeak,peak);
+   }
+   result.textContent=names.length+' sounds rendered: finite, non-silent, no clipping. Peak '+maxPeak.toFixed(3);
+ } catch(error) { result.textContent='FAIL: '+error.message; }
+};
+</script>
+

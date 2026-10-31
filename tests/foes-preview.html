@@ -1,0 +1,66 @@
+<!doctype html><meta charset="utf-8"><title>Foe previews</title>
+<style>body{background:#111522;color:#ece4d2;font:14px monospace;margin:16px}#view{width:1024px;height:576px;image-rendering:pixelated;border:1px solid #555;display:block}
+#sheet{image-rendering:pixelated;border:1px solid #555;margin-top:12px}button,select{font:13px monospace;margin:2px}</style>
+<h1>Foe previews</h1>
+<p>Foes: <select id="pick" multiple size="6"></select> <button id="go">Fight</button> <button id="pause">Pause</button> <label><input type="checkbox" id="idle"> fighter stands still</label> <span id="info"></span></p>
+<canvas id="view" width="256" height="144"></canvas>
+<canvas id="sheet"></canvas>
+<script src="../js/sfx.js"></script><script src="../js/agent.js"></script><script src="../js/sim.js"></script><script src="../js/render.js"></script><script src="../js/swordfx.js"></script>
+<script>
+// A live arena for any mix of foes, drawn by the game's own renderer; plus a sheet of every sprite and pose.
+const pick = document.getElementById('pick'), view = document.getElementById('view'), r = new Renderer(view);
+for (const t of [...ROSTER, ...BOSSES]) pick.add(new Option(ENEMY_TYPES[t].name, t));
+let sim = null, paused = false, last = 0;
+function fight(types, seed = 3) {
+  sim = new Sim('custom', seed, { visual: true, timeLimit: 999, roster: [types[0]], atOnce: 1 });
+  types.forEach((t, i) => { const e = sim.spawnEnemy(t, -40 + i * 30, -25 + (i % 2) * 40); e.state = 'idle'; e.st = 0; });
+  sim.waveIdx = 1; r.reset && r.reset();
+  window.__sim = sim;
+}
+// the fighter walks at the nearest foe and swings now and then, so the foes have something to do
+function heroAction(s, i) {
+  const e = s.nearestEnemy(s.p);
+  if (!e || document.getElementById('idle').checked) return [0, 0, -1, -1, -1, -1, -1, -1, -1];
+  const dx = e.x - s.p.x, dy = e.y - s.p.y, d = Math.hypot(dx, dy) || 1;
+  return [dx / d * 0.6, dy / d * 0.6, d < 22 && i % 9 === 0 ? 1 : -1, d < 22 && i % 60 === 0 ? 1 : -1, i % 30 < 4 ? 1 : -1, -1, -1, -1, -1];
+}
+let tick = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (sim && !paused) {
+    for (let k = 0; k < Math.round(dt * 60); k++) { if (sim.done) { sim.done = false; sim.timeLimit = 9999; } sim.step(heroAction(sim, tick++)); }
+    r.draw(sim, dt, {});
+    document.getElementById('info').textContent = sim.enemies.map(e => `${e.def.name} ${Math.round(e.hp)}/${e.maxHp} ${e.state}`).join(' · ');
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.getElementById('go').onclick = () => fight([...pick.selectedOptions].map(o => o.value));
+document.getElementById('pause').onclick = () => { paused = !paused; };
+// headless helper for automated checks: run n ticks and draw once
+window.__run = (types, ticks, seed) => { fight(types, seed); for (let i = 0; i < ticks; i++) { sim.step(heroAction(sim, i)); if (i % 3 === 0) r.draw(sim, 1 / 20, {}); } r.draw(sim, 1 / 60, {}); paused = true; return sim.enemies.map(e => e.type + ':' + e.state); };
+// the arena blown up to fill the window (for screenshots)
+window.__show = (cx = 128, cy = 72, z = 3) => { let o = document.getElementById('ov'); if (!o) { o = document.createElement('canvas'); o.id = 'ov'; o.width = 768; o.height = 432; o.style.cssText = 'position:fixed;left:0;top:0;width:100vw;z-index:99;image-rendering:pixelated;background:#000'; document.body.appendChild(o); } const x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.fillStyle = '#000'; x.fillRect(0, 0, 768, 432); x.drawImage(view, cx - 384 / z, cy - 216 / z, 768 / z, 432 / z, 0, 0, 768, 432); }; // z = 3 is the whole arena
+// the Sword Immortal casts sword n (1-12, 'ult' or 'ult2') at a fighter standing still; the frame after `frames` ticks is left on screen
+window.__sword = (n, frames, o = {}) => {
+  fight(['swordsaint'], o.seed || 3); const b = sim.enemies[0], p = sim.p, idle = [0, 0, -1, -1, -1, -1, -1, -1, -1];
+  b.x = o.bx ?? -50; b.y = o.by ?? 0; p.x = o.px ?? 30; p.y = o.py ?? 10; p.maxHp = p.hp = 1e6; b.state = 'idle'; b.cds = {}; b.intent = o.intent || 0; b.fx = 1; b.fy = 0;
+  if (o.p2) { b.phase = 2; b.unity = true; }
+  if (n === 'ult' || n === 'ult2') sim.startUlt(b); else sim.startAttack(b, sim.swordCast(b, swordOf(n)));
+  for (let i = 0; i < frames; i++) { sim.step(idle); p.hp = p.maxHp; b.cds.ai = 9; b.cds.ult = 99; for (const sp of b.specials) b.cds[sp.id] = 9; r.draw(sim, 1 / 60, {}); }
+  paused = true; return b.state + ' t=' + sim.t.toFixed(2);
+};
+
+// the sprite sheet: every sprite at 3x with its name
+const names = Object.keys(SPRITES).filter(n => SPRITE_CACHE[n] && !n.includes('@'));
+const sheet = document.getElementById('sheet'), S = 3, colW = 70, rowH = 90, cols = 14;
+sheet.width = cols * colW; sheet.height = Math.ceil(names.length / cols) * rowH;
+const g = sheet.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#7a705f'; g.fillRect(0, 0, sheet.width, sheet.height);
+names.forEach((n, i) => {
+  const c = SPRITE_CACHE[n], x = (i % cols) * colW, y = Math.floor(i / cols) * rowH;
+  g.drawImage(c.n, x + (colW - c.w * S) / 2, y + 70 - c.h * S, c.w * S, c.h * S);
+  g.fillStyle = '#141414'; g.font = '9px monospace'; g.fillText(n.slice(0, 13), x + 2, y + 84); g.fillStyle = '#7a705f';
+});
+const q = new URLSearchParams(location.search).get('foes');
+fight(q ? q.split(',') : ['hydra', 'oni', 'golem']);
+</script>

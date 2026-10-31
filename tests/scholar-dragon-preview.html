@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>Scholar dragon — approach and swallow</title>
+<style>body{background:#18191d;color:#ddd6c9;font:14px monospace;margin:24px}canvas{image-rendering:pixelated;border:1px solid #444}#live{width:768px;height:432px}#stages{display:grid;grid-template-columns:repeat(3,384px);gap:16px}#stages canvas{width:384px;height:216px}button{margin:8px;padding:6px}</style>
+<h1>The Dragon Devours the Sun</h1><p>Existing coil → ink dragon facing the camera → swallowed world</p>
+<button id="replay">Replay</button><button id="pause">Pause</button><button id="verify">Verify pure-black frames</button><span id="result"></span><p id="status" role="status">Loading dragon preview…</p>
+<canvas id="live" width="256" height="144"></canvas><div id="stages"></div>
+<script>window.addEventListener('error',e=>{document.querySelector('#status').textContent='Preview error: '+(e.message||'Could not load '+(e.target.src||'a script'));},true);</script>
+<script src="../js/sfx.js"></script><script src="../js/agent.js"></script><script src="../js/sim.js"></script><script src="../js/render.js"></script><script src="../js/swordfx.js"></script>
+<script>
+function fixture(canvas) {const sim=new Sim('custom',12,{visual:true});sim.t=2;sim.bigDragon={t:3,eye:true};return {sim,r:new Renderer(canvas)};}
+function setStage(sim,k) {sim.hazards=k<0?[]:[{kind:'bite',t:(1-k)*2,delay:2,team:1,x:0,y:0}];}
+const live=fixture(document.querySelector('#live'));let time=0,paused=false,last=0;
+setStage(live.sim,-1);live.r.draw(live.sim,0,{});
+document.querySelector('#status').textContent='Coiling dragon — animation repeats automatically.';
+function frame(now){const dt=Math.min(.04,(now-last)/1000);last=now;if(!paused){time=(time+dt)%3.6;live.sim.t=2+time;live.sim.bigDragon.t=2+time;
+ const k=time<1?-1:Math.min(.99,(time-1)/2);setStage(live.sim,k);live.r.draw(live.sim,dt,{});
+ document.querySelector('#status').textContent=k>=.82?'Swallowed — intentionally pitch black; replaying shortly.':k<0?'Coiling dragon':k<.4?'Turning toward the camera':'Approaching and opening its jaws';
+ }requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+document.querySelector('#pause').onclick=()=>{paused=!paused;document.querySelector('#pause').textContent=paused?'Resume':'Pause';};
+document.querySelector('#replay').onclick=()=>{time=0;paused=false;live.r.reset();setStage(live.sim,-1);live.r.draw(live.sim,0,{});document.querySelector('#pause').textContent='Pause';};
+for(const [name,k] of [['Existing coil',-1],['Turning toward camera',.08],['Approach',.28],['Mouth expanding',.5],['Swallowed',.9],['After bite',1]]){
+ const box=document.createElement('section');box.innerHTML='<p>'+name+'</p><canvas width="256" height="144"></canvas>';document.querySelector('#stages').append(box);
+ const {sim,r}=fixture(box.querySelector('canvas'));setStage(sim,k);if(k===1){sim.bigDragon=null;sim.hazards=[];r.biteFx={t:.8};}r.draw(sim,0,{});
+}
+document.querySelector('#verify').onclick=()=>{
+ try{const canvas=document.createElement('canvas');canvas.width=256;canvas.height=144;const {sim,r}=fixture(canvas);
+ for(const k of [.82,.9,.99,1]){
+  setStage(sim,k);if(k===1){sim.bigDragon=null;sim.hazards=[];r.biteFx={t:.8};}
+  r.flash('white',1);r.banner={text:'SHOULD BE OCCLUDED',life:1};r.draw(sim,0,{});
+  const data=canvas.getContext('2d').getImageData(0,0,256,144).data;
+  for(let i=0;i<data.length;i+=4)if(data[i]||data[i+1]||data[i+2]||data[i+3]!==255)throw Error('Nonblack pixel at '+k);
+ }
+ document.querySelector('#result').textContent='PASS: all pixels opaque black during swallowing and bite hold, including over HUD and flashes.';
+ }catch(e){document.querySelector('#result').textContent='FAIL: '+e.message;}
+};
+</script>

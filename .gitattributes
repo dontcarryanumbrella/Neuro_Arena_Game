@@ -1,0 +1,2 @@
+# keep every text file with plain LF line endings in the repository, whatever the machine
+* text=auto eol=lf

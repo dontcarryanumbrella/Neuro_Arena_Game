@@ -1,0 +1,19 @@
+# editor and assistant state
+.claude/
+.vscode/
+.idea/
+*.swp
+
+# operating system clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs and scratch output from running the game and its previews
+*.log
+tests/.events.json
+tests/tmp/
+
+# tooling, if any is ever added
+node_modules/
+__pycache__/
