@@ -4,17 +4,17 @@
 // Fragments come in the order worlds are conquered, on three tracks: the seven outer worlds (any order), the
 // Timestream (always the same revelation), and the three hidden worlds (always after the Timestream).
 const FRAGMENTS = {
-  o1: 'The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory.',
+  o1: 'The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. On the way there, the gate opened onto dark water for a moment before the road appeared.',
   o2: 'The champions you fell leave something behind, and it settles in you. You are stronger. You did not train for it.',
   o3: 'The tally marks on the wall reach as high as your hand. You count them. The number is your Lives.',
   o4: 'Under your tallies there are older ones, in a different hand. And under those, others. All of them crossed out.',
   o5: 'A word is carved beside the oldest marks: 蛊. A jar. Poisons sealed in together until one remains.',
-  o6: 'The worlds did not fall into this place. They were put here, as food. And something keeps the jar fed.',
+  o6: 'The worlds were taken from somewhere else. In an old drawing scratched beside the gate, a line runs across dark water from one circle to another. Someone has marked the circles with names.',
   o7: 'You have seen the woman in the black coat before. She stood at the door, with her hand on it, and she did not open it.',
-  t: 'In the keeper\'s hand, a broken watch. Engraved on its back: your Lives, and a number you have not reached yet. It fought with your openings, and it learned them first. With the keeper gone, the floor of the jar cracks, and three worlds you were never meant to see come into view.',
+  t: 'In the keeper\'s hand, a broken watch. Engraved on its back: your Lives, and a number you have not reached yet. It fought with your openings, and it learned them first. When the gate opens again, there is no road. Across black water, lights burn at distances he cannot judge. Then the familiar paths return, along with three he has never seen.',
   h1: 'Under her tallies is a name, the only one in the jar that is not crossed out: 云汐. Yun Xi.',
   h2: 'The dice. You remember her teaching you to read them, in a life you do not remember living.',
-  h3: 'The seals are not keeping you in. They are keeping the door from opening before you are done.',
+  h3: 'He has crossed the water and come back. The mark over his heart still aches when he reaches for the lid. The seals will not let it open yet.',
 };
 const FRAGMENT_TRACKS = { outer: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o7'], hidden: ['h1', 'h2', 'h3'] };
 
@@ -24,12 +24,12 @@ const WORLD_VIGNETTES = {
   temple: 'A temple above the red dust, where monks spent lifetimes learning to be still. They were the only ones who noticed the sky growing round and close. They kept sweeping the courtyards anyway. The Abbot said a broom does not argue with the weather.',
   night: 'A country where the sun stopped rising, and the lords of the dark were glad of it for a while. They held court for a century of midnights. Then the stars went out one by one, and even they understood that something larger was eating the night.',
   peaks: 'Ten thousand peaks, a sword on every one, and on the highest an old master who had written a manual that ended with Heaven itself. When the world was taken, he alone looked up at the lid and recognised it. He went on teaching. He is still teaching.',
-  abyss: 'The pit under every world, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen.',
+  abyss: 'A world of pits beneath pits, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen.',
   isles: 'Islands of falling petals and old blades. A blind swordsman lived there who could hear a leaf decide to fall. On the last day he drew once at the sky, and the sky did not bleed. It was clay.',
   heavens: 'The celestial court, nine layers up, where gods kept ledgers of mortal lives. A monkey once tore through it and laughed. When the jar came, the generals stood at the gates of the ninth heaven for a thousand years, waiting for an enemy who never had to come in.',
   timestream: 'Not a world at all: the river where the jar keeps its time. Moments from every world drift in it, torn loose. Its keeper walked these banks with a clock for a face, pulling champions through the rifts so the jar would never go hungry.',
   cursed: 'A world where fear curdled into curses, and sorcerers fought them in the streets. Its strongest wore a blindfold because he saw too much. He saw the jar before anyone, and smiled, and said it was a cramped little domain.',
-  blacksea: 'A painting of a world, painted so well that it began to live. Then the ink began to leak, and the sea went black, and the scholar who painted it lost his head trying to paint his way out.',
+  blacksea: 'The scholar came across the water under an umbrella. He had no head by then. Wherever he stopped, the figures in his paintings came out to meet him; some followed after he left. The ink is still drying on the rocks where he stood.',
   pallid: 'A kingdom by a lake of cloud, under two suns. Its king wore yellow and never showed his face. The people wore masks so that he would not take theirs. When the lid closed, he was the only one in all the jar who laughed.',
 };
 
@@ -55,8 +55,8 @@ const CODEX_LORE = {
   necromancer: 'Raises the dead because, in the jar, there is no one else to talk to.',
   spider: 'Weaves under the lip of the stage, where the light doesn\'t reach. Knows the jar has a bottom.',
   cultivator: 'Spent a hundred years refining a sword that was never going to be enough.',
-  talisman: 'Writes seals on paper. Recognises the ones on the lid.',
-  formation: 'Draws arrays to trap demons. Has never seen one this big.',
+  talisman: 'Writes seals on paper. He recognises the markings around the gate, but cannot read where the road ends.',
+  formation: 'Draws arrays to trap demons. The gate has an array too, with a line that always leads back to the jar.',
   spearmaster: 'Holds the pass with a spear. The pass goes nowhere now.',
   demon: 'Slept in the Netherworld for a thousand years. Woke up in a jar.',
   westdragon: 'Hoarded gold until the gold was all that was left of its world.',
@@ -111,7 +111,7 @@ const CODEX_LORE = {
   bloater: 'Swells until it bursts. That is the whole of its life.',
   brute: 'The brood grew a wall and gave it horns.',
   chessist: 'A head from the painting that became a chess master. Plays both sides. Loses both.',
-  lampbearer: 'Carries a lamp in a world of ink, so the painting can see you.',
+  lampbearer: 'Carries a lamp through the scholar\'s painting. From the shore, other lights can be seen across the water.',
   butcher: 'A headsman painted in a hurry. The axe came out sharper than the rest of him.',
   coffinbearer: 'Carries a coffin with no one in it yet.',
   flutist: 'Plays the song the painting dreams to. You will hear it after.',
@@ -128,10 +128,13 @@ const CODEX_LORE = {
   blind: 'Heard the lid close from the other side of the world. Drew once at it.',
   emperor: 'Ruled the nine heavens. Kept a ledger of every life. One page is in your hand.',
   wukong: 'Tore through heaven once, laughing. Tore at the lid once too. It held, and he stopped laughing.',
-  timeadmin: 'The keeper of the jar. Its clock face shows your Lives. Its movements are yours, a little ahead.',
+  timeadmin: 'The keeper of the jar and its roads. Its clock face shows your Lives. Its movements are yours, a little ahead.',
   gojo: 'The strongest, and he knows it. Called the jar a cramped little domain.',
   mahoraga: 'Adapts to everything. Is still adapting to the jar.',
-  scholar: 'Painted a world so well it came alive, then lost his head trying to paint his way out of it.',
+  scholar: 'The ferrymen recognise his umbrella and refuse to take him aboard. He no longer asks.',
   yellowking: 'The only one in the jar who laughed when the lid closed. Has he seen it from the outside?',
   unknown: 'A black coat, a wide hat, a die that always seems to fall your way. "Wait... do I know her?"',
 };
+
+// A present observation, archived separately from the world-clear memories.
+const BLACK_SEA_ARRIVAL = 'The gate opens onto a narrow shore. There is water in every direction, and lights far out on it. Some stay still; others move. He turns to look back, but the gate has already closed. When he touches the mark over his heart, it is warm.';

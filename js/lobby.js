@@ -161,7 +161,7 @@ class Lobby {
     this.drawSeals(g, info.seals);
     this.drawOldMarks(g, info);
     this.drawTallies(g, info.lives);
-    this.drawPortal(g, t);
+    this.drawPortal(g, t, info.sea);
     // the pavilion reconstructs what you have met: one memory at a time, flickering
     const met = info.met;
     if (met.length) {
@@ -224,13 +224,13 @@ class Lobby {
     const label = hv ? hv.name + (hv.id === 'lid' ? `  ${info.sealsBroken}/${SEALS_SHOWN} BROKEN` : '') : info.hint;
     this.r.text(label, W / 2, H - 9, hv ? '#e8c34a' : '#9a8f7c', 'center');
     this.r.text('LV ' + info.level, 4, 3, '#ece4d2');
-    this.r.text(`${info.sealsBroken}/${SEALS_SHOWN}`, W - 4, 3, '#e8c34a', 'right');
+    this.r.text(`${info.cycle ? 'NG+' + info.cycle + ' ' : ''}${info.sealsBroken}/${SEALS_SHOWN}`, W - 4, 3, '#e8c34a', 'right');
   }
 
   // the moon gate: a stone ring around still, moonlit water that ripples outward
-  drawPortal(g, t) {
+  drawPortal(g, t, sea) {
     const cx = 128, cy = 56, rx = 18, ry = 24;
-    const cols = ['#fff4dc', '#f0e2c4', '#d8d4cc', '#b8c4cc', '#93a8b8', '#7890a4'];
+    const cols = sea ? ['#101b28', '#142331', '#192b39', '#203443', '#263b48', '#304650'] : ['#fff4dc', '#f0e2c4', '#d8d4cc', '#b8c4cc', '#93a8b8', '#7890a4'];
     for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
       const d = Math.hypot(x / rx, y / ry);
       if (d > 1.12) continue;
@@ -241,6 +241,7 @@ class Lobby {
       g.fillStyle = cols[Math.max(0, Math.min(cols.length - 1, Math.floor(k)))];
       g.fillRect(cx + x, cy + y, 1, 1);
     }
+    if (sea) { g.fillStyle = '#e6d9a7'; for (const [x, y] of [[-9,-10],[6,-13],[11,2],[-4,8],[3,15]]) g.fillRect(cx+x, cy+y, 1, 1); }
     g.fillStyle = `rgba(255,240,210,${0.07 + 0.03 * Math.sin(t * 1.6)})`; g.fillRect(cx - 24, cy + 24, 48, 8);
     g.fillStyle = '#4a4038'; g.fillRect(cx - 21, cy + 25, 43, 3); g.fillStyle = '#867b69'; g.fillRect(cx - 20, cy + 25, 41, 1);
   }

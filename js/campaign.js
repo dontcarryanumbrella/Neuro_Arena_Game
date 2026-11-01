@@ -80,7 +80,7 @@ const WORLDS = [
   },
   {
     id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen'],
-    blurb: 'The pit under every world, and the brood that eats its way up.',
+    blurb: 'A world of pits beneath pits, and the brood that eats its way up.',
     pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2), p('imp', 3, 4), p('hellhound', 3, 3),
       p('zergling', 4, 4, { hp: 2.5, dmg: 1.3 }), p('spitter', 2, 3, { hp: 2.5, dmg: 1.2 }), p('bloater', 2, 3, { hp: 2.5, dmg: 1.2 }), p('brute', 2, 2, { hp: 1.5, dmg: 1.1 })],
   },
@@ -106,7 +106,7 @@ const WORLDS = [
   },
   {
     id: 'blacksea', name: 'Black Sea', tier: 6, hidden: true, color: '#1a1a1a', bosses: ['scholar'],
-    blurb: 'A dead sea of ink under a white sky, where the painting leaks.',
+    blurb: 'A shore between worlds. Far out on the water, lights move in the dark.',
     pool: [p('chessist', 3, 2, { hp: 3, dmg: 1.4 }), p('lampbearer', 2, 2, { hp: 3, dmg: 1.4 }), p('butcher', 3, 2, { hp: 3, dmg: 1.4 }),
       p('coffinbearer', 2, 2, { hp: 2.4, dmg: 1.4 }), p('flutist', 2, 2, { hp: 3, dmg: 1.4 }), p('inkdragon', 2, 1, { hp: 3, dmg: 1.3, elite: true })],
   },
@@ -117,6 +117,9 @@ const WORLDS = [
   },
 ];
 const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));
+// The finale is not a world with a seal of its own.
+WORLD_BY_ID.bottom = { id: 'bottom', name: 'The Bottom of the Jar', color: '#b9a88d', tier: 6 };
+WORLD_BY_ID.summit = { id: 'summit', name: "Heaven's End Summit", color: '#c7def3', tier: 6 };
 const HIDDEN_KEY_BOSS = 'timeadmin'; // the keeper: the hidden worlds show themselves once it falls
 
 const worldBosses = w => w.bosses || w.rooms.filter(r => r[0] === 'boss').map(r => r[1]);
@@ -157,7 +160,7 @@ function recommendedLevel(w) {
 }
 
 function freshCampaign() {
-  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], fragments: [], run: null, cycle: 0 };
+  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], fragments: [], blackSeaArrivalSeen: false, snapshots: [], endingReady: false, endingSeen: false, fourteenthPage: false, swordUpgrade: false, previousSelf: null, cycleHistory: [], run: null, cycle: 0 };
 }
 
 const worldVisible = (c, w) => !w.hidden || !!c.seals[HIDDEN_KEY_BOSS];
@@ -216,14 +219,27 @@ function rollRoom(w, kind, budget, stretch, rand) {
 const boost = (w, types) => types.map(t => { const e = boostOf(w, t); return e ? { type: t, hp: e.hp || 1, dmg: e.dmg || 1 } : t; });
 
 // A run through a world: every room decided up front (so a retried room is the same room).
-function buildRun(worldId, seed) {
+function campaignPlan(w, cycle = 0) {
+  const plan = roomPlan(w).map(r => r.slice());
+  if (cycle > 0 && w.pool.length) {
+    const firstBoss = plan.findIndex(r => r[0] === 'boss');
+    const source = plan.find(r => r[0] === 'elite') || plan.find(r => r[0] !== 'boss');
+    const budget = source ? source[1] * (source[0] === 'elite' ? 1 : 1.5) : 5;
+    const stretch = source && source[2];
+    plan.splice(firstBoss < 0 ? plan.length : firstBoss, 0, ...Array.from({length: cycle}, () => ['elite', budget, stretch]));
+  }
+  return plan;
+}
+
+function buildRun(worldId, seed, cycle = 0) {
   const w = WORLD_BY_ID[worldId], rand = mulberry32(seed);
-  const rooms = roomPlan(w).map(([kind, x, stretch]) => {
+  const rooms = campaignPlan(w, cycle).map(([kind, x, stretch]) => {
     if (kind === 'boss') {
       const t = BOSS_TUNE[x] || {};
-      return { kind, boss: x, foes: [{ type: x, hp: t.hp || 1, dmg: t.dmg || 1, teacher: w.teacher === x || undefined }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
+      return { kind, boss: x, foes: [{ type: x, hp: (t.hp || 1) * (1 + cycle * 0.15), dmg: (t.dmg || 1) * (1 + cycle * 0.15), teacher: w.teacher === x || undefined }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
     }
-    return { kind, foes: rollRoom(w, kind, x, stretch, rand), time: ROOM_TIME };
+    const foes = rollRoom(w, kind, x * (1 + cycle * 0.1), stretch, rand).map(f => { const o = typeof f === 'string' ? { type: f } : { ...f }; o.hp = (o.hp || 1) * (1 + cycle * 0.15); o.dmg = (o.dmg || 1) * (1 + cycle * 0.15); if (cycle >= 3) o.modifier = ['shielded', 'swift', 'vampiric', 'explosive'][Math.floor(rand() * 4)]; return o; });
+    return { kind, foes, time: ROOM_TIME };
   });
   return { world: worldId, seed, rooms, idx: 0, cleared: [] };
 }

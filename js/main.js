@@ -1,6 +1,6 @@
 // App wiring: one learning fighter, views, settings, chart, trials and saving.
 
-const STORE_KEY = 'neuroArena.v6';
+const STORE_KEY = location.pathname.endsWith('/demo-finale.html') ? 'neuroArena.demo' : 'neuroArena.v6';
 const $ = id => document.getElementById(id);
 
 const REWARD_INFO = [
@@ -159,7 +159,7 @@ function applyProfile(saved) {
       stage: Math.min(4, Math.max(1, si.stage || 1)), lands: si.lands || 0, synthLands: si.synthLands || 0, stableLives: si.stableLives || 0,
       bossKills: si.bossKills || {}, decay: si.decay || 0, pair: si.pair && si.pair.every(t => HERO_ABILITIES[t]) ? si.pair : null, lastAwaken: si.lastAwaken || null };
   }
-  if (state.identity.special && state.identity.special.stage >= 4) state.identity.special.finale = chosenFinale(); // finales now come from the worlds
+  if (state.identity.special && state.identity.special.stage >= 4) { state.identity.special.finale = chosenFinale(); state.identity.special.swordUpgrade = !!state.campaign.swordUpgrade; } // finales now come from the worlds
   const sk = saved.skins || {};
   state.skins = { owned: { classic: 1, ...Object.fromEntries(Object.keys(sk.owned || {}).filter(id => SKIN_BY_ID[id]).map(id => [id, 1])) }, equipped: SKIN_BY_ID[sk.equipped] && (sk.owned || {})[sk.equipped] ? sk.equipped : 'classic' };
   const st = saved.talents || {};
@@ -301,6 +301,11 @@ function onLife(sim, ret) {
   state.jade += s.bounty * TRAIN_JADE;
   countKills(sim);
   updateIdentity(sim);
+  if ([50, 200, 500, 1000, 2000, 5000].includes(state.livesTotal)) {
+    state.campaign.snapshots.push(JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })));
+    state.campaign.snapshots = state.campaign.snapshots.slice(-6);
+    saveStore();
+  }
 }
 
 // ---------- identity: traits drift with every life; an awakening and a special grow out of them ----------
@@ -427,7 +432,7 @@ function buildSpecial(id, known) {
     sp.name = `${A.prefix} ${cap(HERO_ABILITIES[p1].atk.id)}-${cap(HERO_ABILITIES[third].atk.id)} ${SPECIAL_SUFFIX[HERO_ABILITIES[p2].atk.kind] || 'Art'}`;
   }
   if (stage >= 4) {
-    sp.finale = chosenFinale(); // unlocked by a boss's first defeat in the worlds, chosen at the Tally Wall
+    sp.finale = chosenFinale(); sp.swordUpgrade = !!state.campaign.swordUpgrade; // unlocked by a boss's first defeat in the worlds, chosen at the Tally Wall
     sp.title = `the ${A.prefix} ${TITLE_NOUN[id.awaken]}`;
     sp.name = `${A.prefix} Domain: ${sp.name.split(' ').slice(1).join(' ')}`;
   }
@@ -477,7 +482,7 @@ function renderFinales() {
   fc.querySelectorAll('button').forEach(btn => btn.onclick = () => {
     c.finaleChoice = btn.dataset.b;
     const id = state.identity;
-    if (id.special && id.special.stage >= 4) id.special.finale = chosenFinale();
+    if (id.special && id.special.stage >= 4) { id.special.finale = chosenFinale(); id.special.swordUpgrade = !!c.swordUpgrade; }
     saveStore(); renderFinales(); state.killsDirty = true;
   });
 }
@@ -532,7 +537,7 @@ const lobby = new Lobby(renderer);
 function lobbyInfo() {
   const c = state.campaign, seals = ALL_SEALS.map(b => !!c.seals[b]);
   return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, level: state.level || 1, hint: 'CLICK A STATION',
-    crossed: hasFragment('o5'), yunxi: hasFragment('h1') };
+    crossed: hasFragment('o5'), yunxi: hasFragment('h1'), sea: !!c.seals.timeadmin, cycle: c.cycle };
 }
 
 // walk to a station in the jar (or, away from the lobby, just open it)
@@ -547,17 +552,25 @@ function newViewSim() {
   const v = state.view, c = state.cfg;
   const seed = Math.floor(Math.random() * 1e9);
   const loadout = state.loadout, talents = state.talents.equipped, identity = identityOpts();
-  if (v.mode === 'battle' && v.online) v.sim = buildOnlineSim(v.online); // an online match: the same battle on both screens
+  if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
+    const snap = curRoom().kind === 'echo' ? state.campaign.previousSelf : state.campaign.snapshots[curRoom().snapshot];
+    const card = { ...snap, name: curRoom().kind === 'echo' ? 'The one in the black coat' : `Life ${snap.lives}`, agent: snap.agent };
+    v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped, battle: { timeLimit: 180, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
+    const echo = v.sim.heroes.find(h => h.team === 1);
+    echo.brain = PPOAgent.fromJSON(snap.agent); echo.discarded = curRoom().kind === 'iteration'; echo.guardianEcho = curRoom().kind === 'echo';
+  }
+  else if (v.mode === 'battle' && v.online) v.sim = buildOnlineSim(v.online); // an online match: the same battle on both screens
   else if (v.mode === 'battle') v.sim = new Sim('battle', seed, { visual: true, battle: battleConfig(), fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   else if (v.mode === 'trial') v.sim = new Sim(v.trialId, seed, { visual: true, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   else if (v.mode === 'campaign' && curRoom()) {
     const room = curRoom();
-    v.sim = new Sim('room', seed, { visual: true, waves: [room.foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
+    const foes = state.campaign.run.world === 'bottom' && room.boss === 'timeadmin' ? room.foes.map(f => ({ ...f, finalKeeper: true })) : room.foes;
+    v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   }
   else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
   v.acc = 0; v.ticks = 0; v.action = null; v.endT = 0; v.overlay = null; v.recorded = false; v.paid = false; v.roomResult = null;
-  v.introT = v.mode === 'campaign' && curRoom() ? meetFoes(curRoom()) : 0;
+  v.introT = v.mode === 'campaign' && curRoom() && !['iteration', 'echo'].includes(curRoom().kind) ? meetFoes(curRoom()) : 0;
   renderer.reset();
 }
 
@@ -705,9 +718,15 @@ function loadCampaign(saved, killCounts) {
   c.order = (saved.order || []).filter(id => WORLD_BY_ID[id]);
   c.fragments = (saved.fragments || []).filter(f => f && FRAGMENTS[f.key] && WORLD_BY_ID[f.world]);
   if (!saved.fragments) for (const id of c.order) c.fragments.push({ key: nextFragment(c, WORLD_BY_ID[id]), world: id }); // conquered before memories returned
+  c.blackSeaArrivalSeen = !!saved.blackSeaArrivalSeen || !!(c.worlds.blacksea && (c.worlds.blacksea.runs || Object.keys(c.worlds.blacksea.rooms || {}).length)) || c.order.includes('blacksea') || !!(saved.run && saved.run.world === 'blacksea');
+  c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives)).slice(-6);
+  c.endingReady = !!saved.endingReady; c.endingSeen = !!saved.endingSeen;
+  c.fourteenthPage = !!saved.fourteenthPage; c.swordUpgrade = !!saved.swordUpgrade;
+  c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? saved.previousSelf : null;
+  c.cycleHistory = Array.isArray(saved.cycleHistory) ? saved.cycleHistory.filter(Number.isFinite).slice(-100) : [];
   c.cycle = saved.cycle || 0;
   const r = saved.run;
-  if (r && WORLD_BY_ID[r.world] && Array.isArray(r.rooms) && r.rooms[r.idx] && r.rooms.every(rm => rm.foes.every(f => ENEMY_TYPES[foeType(f)]))) c.run = r;
+  if (r && WORLD_BY_ID[r.world] && Array.isArray(r.rooms) && r.rooms[r.idx] && r.rooms.every(rm => Array.isArray(rm.foes) && rm.foes.every(f => ENEMY_TYPES[foeType(f)]) && (rm.kind !== 'iteration' || Number.isInteger(rm.snapshot) && !!c.snapshots[rm.snapshot]) && (rm.kind !== 'echo' || !!c.previousSelf))) c.run = r;
   return c;
 }
 
@@ -724,6 +743,7 @@ const hasFragment = k => state.campaign.fragments.some(f => f.key === k);
 // a memory returns: what the world was, and what it tells him about himself
 function showMemory(worldId, key) {
   const w = WORLD_BY_ID[worldId], box = $('memory');
+  $('memKicker').textContent = 'A memory returns';
   $('memTitle').textContent = w.name;
   $('memVignette').textContent = WORLD_VIGNETTES[worldId] || '';
   $('memFragment').textContent = key ? FRAGMENTS[key] : '';
@@ -733,7 +753,7 @@ function showMemory(worldId, key) {
   sfx.play('gong');
 }
 const worldRec = id => state.campaign.worlds[id] || (state.campaign.worlds[id] = { rooms: {}, runs: 0 });
-const nonBossRooms = w => roomPlan(w).filter(r => r[0] !== 'boss').length;
+const nonBossRooms = w => campaignPlan(w, state.campaign.cycle).filter(r => r[0] !== 'boss').length;
 const ROLE_ONE = { bruiser: 'Bruiser', duelist: 'Duelist', guardian: 'Guardian', trickster: 'Trickster', marksman: 'Marksman', caster: 'Caster', colossus: 'Colossus', beast: 'Beast' };
 
 // the finale the special ends with at Transcendence: your pick, else the latest one unlocked
@@ -745,8 +765,73 @@ function chosenFinale() {
 function enterWorld(id) {
   const c = state.campaign;
   if (c.run && c.run.world !== id && !confirm(`Leave your run through ${WORLD_BY_ID[c.run.world].name}? Rooms you cleared for the first time stay cleared.`)) return;
-  if (!c.run || c.run.world !== id) c.run = buildRun(id, Math.floor(Math.random() * 1e9));
+  if (!c.run || c.run.world !== id) c.run = buildRun(id, Math.floor(Math.random() * 1e9), c.cycle);
   startRoom();
+  if (id === 'blacksea' && !c.blackSeaArrivalSeen) {
+    c.blackSeaArrivalSeen = true;
+    $('memKicker').textContent = 'Beyond the crossing';
+    $('memTitle').textContent = 'Black Sea';
+    $('memVignette').textContent = BLACK_SEA_ARRIVAL;
+    $('memFragment').textContent = '';
+    $('memory').hidden = false;
+    state.view.paused = true; refreshPauseBtn();
+    $('memClose').focus(); sfx.play('gong');
+    saveStore();
+  }
+}
+
+// The last path uses saved fighters when available; old saves simply begin at the keeper.
+function enterBottom() {
+  const c = state.campaign;
+  if (c.run && c.run.world !== 'bottom' && !confirm('Leave the current run? First-clear rewards stay earned.')) return;
+  if (!c.run || c.run.world !== 'bottom') {
+    const rooms = c.snapshots.map((_, snapshot) => ({ kind: 'iteration', snapshot, foes: [], time: 180 }));
+    rooms.push({ kind: 'boss', boss: 'timeadmin', foes: [{ type: 'timeadmin', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 });
+    if (c.previousSelf) rooms.push({ kind: 'echo', foes: [], time: 240 });
+    else rooms.push({ kind: 'boss', boss: 'unknown', foes: [{ type: 'unknown', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 });
+    c.run = { world: 'bottom', rooms, idx: 0, cleared: [] };
+  }
+  startRoom();
+}
+
+function enterSummit() {
+  const c = state.campaign;
+  if (!ALL_SEALS.every(b => c.seals[b])) return;
+  if (c.run && c.run.world !== 'summit' && !confirm('Leave the current run? First-clear rewards stay earned.')) return;
+  const firstEntry = !c.run || c.run.world !== 'summit';
+  if (firstEntry) c.run = { world: 'summit', idx: 0, cleared: [], rooms: [{ kind: 'boss', boss: 'swordsaint', foes: [{ type: 'swordsaint', hp: 1.5 * (1 + c.cycle * 0.15), dmg: 1.4 * (1 + c.cycle * 0.15) }], time: 240 }] };
+  startRoom();
+  if (firstEntry) {
+    $('memKicker').textContent = "Heaven's End Summit"; $('memTitle').textContent = 'The last lesson';
+    $('memVignette').textContent = 'The Sword Immortal waits above the split sky. He sets the manual on a stone and draws his sword.';
+    $('memFragment').textContent = '“I held back before. I will not do it again.”';
+    $('memory').hidden = false; state.view.paused = true; refreshPauseBtn(); $('memClose').focus();
+  }
+}
+
+function chooseStay() {
+  const old = state.campaign;
+  if (!old.fourteenthPage || !old.endingReady) return;
+  const echo = JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped }));
+  const next = freshCampaign();
+  next.cycle = old.cycle + 1; next.previousSelf = echo;
+  next.finales = old.finales.slice(); next.finaleChoice = old.finaleChoice; next.swordUpgrade = old.swordUpgrade;
+  next.met = { ...old.met }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
+  state.campaign = next; state.codexDirty = true;
+  refreshLevel(false); saveStore(); setMode('lobby'); renderPortal();
+  $('memKicker').textContent = 'The Sheathed Sword'; $('memTitle').textContent = 'Another hand';
+  $('memVignette').textContent = 'He puts the sword down. Yun Xi leaves her coat beside him. Later, when the gate opens, someone else steps through.';
+  $('memFragment').textContent = `New Game+ ${next.cycle}. A new set of marks begins on the wall.`;
+  $('memory').hidden = false; state.view.paused = true; refreshPauseBtn(); $('memClose').focus();
+}
+
+function showDoorEnding() {
+  $('memKicker').textContent = 'The Door';
+  $('memTitle').textContent = 'The lid lifts';
+  $('memVignette').textContent = 'Yun Xi picks up her die. For a while she turns it between her fingers, looking at the open lid. Then she puts it down. The core rises from his chest. Beyond the rim, lights move across black water.';
+  $('memFragment').textContent = 'His face flickers. For an instant, the hands of a clock move where his eyes were.';
+  $('memory').hidden = false; state.view.paused = true; refreshPauseBtn();
+  state.campaign.endingSeen = true; saveStore(); $('memClose').focus();
 }
 
 function startRoom() {
@@ -757,7 +842,7 @@ function startRoom() {
 
 function nextRoom() {
   const r = state.campaign.run;
-  if (!r || !r.cleared[r.idx] || state.view.mode !== 'campaign') return;
+  if (!r || !r.cleared[r.idx]) return;
   r.idx++;
   startRoom();
 }
@@ -777,7 +862,7 @@ function meetFoes(room) {
   const w = WORLD_BY_ID[c.run.world], box = $('encounter');
   box.innerHTML = `<div class="enc-k">${fresh.length > 1 ? 'New enemies' : 'New enemy'}</div>` + fresh.slice(0, 3).map(t => {
     const d = ENEMY_TYPES[t];
-    return `<div class="enc-row" data-t="${t}"><span class="enc-ic"></span><span><b class="enc-n">${d.name}</b><span class="enc-e">${d.boss ? 'Boss' : ROLE_ONE[d.role] || ''} of ${w.name}</span></span></div>`;
+    return `<div class="enc-row" data-t="${t}"><span class="enc-ic"></span><span><b class="enc-n">${d.name}</b><span class="enc-e">${t === 'scholar' && w.id === 'blacksea' ? 'Encountered in Black Sea' : (d.boss ? 'Boss' : ROLE_ONE[d.role] || '') + ' of ' + w.name}</span></span></div>`;
   }).join('');
   box.querySelectorAll('.enc-row').forEach(row => { try { row.querySelector('.enc-ic').appendChild(spriteIcon(row.dataset.t)); } catch (e) { /* no icon */ } });
   box.hidden = false; box.classList.remove('out');
@@ -791,27 +876,44 @@ function meetFoes(room) {
 function finishRoom(sim) {
   const c = state.campaign, r = c.run, room = curRoom(), v = state.view;
   if (!room) return;
-  const w = WORLD_BY_ID[r.world], rec = worldRec(w.id), cleared = sim.stats.result === 'clear';
+  const w = WORLD_BY_ID[r.world], rec = worldRec(w.id), cleared = ['iteration', 'echo'].includes(room.kind) ? sim.stats.result === 'clear' && sim.winner === 0 : sim.stats.result === 'clear';
   for (const t of Object.keys(sim.stats.killsByType || {})) if (isFoeType(t)) c.met[t] = 1; // the Lich's pieces too
-  let jade = sim.stats.bounty;
-  v.roomResult = { cleared, boss: room.boss || null, sealed: false, worldDone: false, world: w.name, last: r.idx === r.rooms.length - 1 };
+  let jade = r.world === 'bottom' ? 0 : sim.stats.bounty;
+  v.roomResult = { cleared, boss: room.boss || null, sealed: false, worldDone: false, world: w.name, worldId: w.id, last: r.idx === r.rooms.length - 1 };
+  if (r.world === 'summit') {
+    if (cleared) {
+      r.cleared[r.idx] = true; c.fourteenthPage = true; c.swordUpgrade = true;
+      if (!rec.runs) { state.jade += Math.round(3000 * (1 + c.cycle * 0.25)); rec.runs = 1; }
+      if (state.identity.special) state.identity.special.swordUpgrade = true;
+      c.run = null; v.roomResult.worldDone = true;
+      toast('The Fourteenth Page. Sword finale upgraded.'); refreshJade();
+    }
+    saveStore(); renderPortal(); refreshWhere(); return;
+  }
+  if (r.world === 'bottom') {
+    if (cleared) {
+      r.cleared[r.idx] = true;
+      if (v.roomResult.last) { c.endingReady = true; v.roomResult.worldDone = true; c.run = null; }
+    }
+    saveStore(); renderPortal(); refreshWhere(); return;
+  }
   if (cleared) {
     r.cleared[r.idx] = true;
     if (room.kind === 'boss' && !c.seals[room.boss]) {
       c.seals[room.boss] = 1;
       if (!c.finales.includes(room.boss)) c.finales.push(room.boss);
-      jade += BOSS_JADE[w.tier];
+      jade += Math.round(BOSS_JADE[w.tier] * (1 + c.cycle * 0.25));
       v.roomResult.sealed = true;
       toast(`A seal burns away: ${ENEMY_TYPES[room.boss].name}. Finale unlocked: ${ENEMY_TYPES[room.boss].name}'s power.`);
-      if (room.boss === HIDDEN_KEY_BOSS) toast('The keeper is gone. Below the Timestream, three hidden worlds come into view.');
+      if (room.boss === HIDDEN_KEY_BOSS) toast('The keeper is gone. Two hidden worlds and a passage into the Black Sea appear.');
     } else if (room.kind !== 'boss' && !rec.rooms[r.idx]) {
       rec.rooms[r.idx] = 1;
-      jade += Math.round(EXPLORE_JADE[w.tier] / nonBossRooms(w));
+      jade += Math.round(EXPLORE_JADE[w.tier] * (1 + c.cycle * 0.25) / nonBossRooms(w));
     }
     if (v.roomResult.last) {
       rec.runs = (rec.runs || 0) + 1;
       if (rec.runs === 1) {
-        c.order.push(w.id); toast(`World conquered: ${w.name}`);
+        c.order.push(w.id); toast(w.id === 'blacksea' ? 'Passage cleared: Black Sea' : `World conquered: ${w.name}`);
         const key = nextFragment(c, w);
         c.fragments.push({ key, world: w.id });
         showMemory(w.id, key);
@@ -830,7 +932,7 @@ function campaignOverlay(sim) {
   const rr = state.view.roomResult || {}, s = sim.stats;
   const line = `K${s.kills} PARRY${s.parries} BREAK${s.postureBreaks}`;
   if (!rr.cleared) return { title: { dead: 'DEFEATED', fell: 'RING OUT', time: 'OUT OF TIME' }[s.result] || 'DEFEATED', color: '#e0603f', sub: line, sub3: 'R: RETRY ROOM' };
-  if (rr.worldDone) return { title: 'CONQUERED', color: '#e8c34a', sub: rr.world.toUpperCase().slice(0, 22), sub2: rr.sealed ? 'A SEAL BURNS AWAY' : line, sub3: 'BACK TO THE PORTAL' };
+  if (rr.worldDone) return { title: rr.worldId === 'summit' ? 'THE FOURTEENTH PAGE' : rr.worldId === 'bottom' ? 'THE DOOR IS OPEN' : rr.worldId === 'blacksea' ? 'PASSAGE CLEARED' : 'CONQUERED', color: '#e8c34a', sub: rr.world.toUpperCase().slice(0, 22), sub2: rr.sealed ? 'A SEAL BURNS AWAY' : line, sub3: 'BACK TO THE PORTAL' };
   if (rr.boss) return { title: rr.sealed ? 'SEAL BROKEN' : 'BOSS DOWN', color: '#e8c34a', sub: ENEMY_TYPES[rr.boss].name.toUpperCase().slice(0, 22), sub2: line, sub3: 'N: NEXT ROOM' };
   return { title: 'ROOM CLEARED', color: '#7fc98a', sub: line, sub3: 'N: NEXT ROOM' };
 }
@@ -839,12 +941,12 @@ function campaignOverlay(sim) {
 function renderPortal() {
   if (!$('portalPanel')) return;
   const c = state.campaign, broken = ALL_SEALS.filter(b => c.seals[b]).length;
-  $('lidLine').innerHTML = `Level <b>${state.level || 1}</b> · Seals broken <b>${broken} / ${ALL_SEALS.length}</b>` + (c.order.length ? ` · Worlds conquered <b>${c.order.length}</b>` : '');
+  $('lidLine').innerHTML = `${c.cycle ? `NG+${c.cycle} · ` : ''}Level <b>${state.level || 1}</b> · Seals broken <b>${broken} / ${ALL_SEALS.length}</b>` + (c.order.length ? ` · Worlds conquered <b>${c.order.length}</b>` : '');
   const r = c.run, rc = $('runCard');
   if (r) {
     const w = WORLD_BY_ID[r.world], room = r.rooms[r.idx], here = state.view.mode === 'campaign';
     const nodes = r.rooms.map((rm, i) => `<span class="rnode${rm.kind === 'boss' ? ' boss' : ''}${r.cleared[i] ? ' done' : ''}${i === r.idx ? ' cur' : ''}" title="${rm.kind === 'boss' ? ENEMY_TYPES[rm.boss].name : rm.kind}">${rm.kind === 'boss' ? '◆' : i + 1}</span>`).join('');
-    const what = room.kind === 'boss' ? `Boss: ${ENEMY_TYPES[room.boss].name}` : `${room.kind[0].toUpperCase() + room.kind.slice(1)}: ` + room.foes.map(f => (c.met[foeType(f)] ? ENEMY_TYPES[foeType(f)].name : '???') + (f.elite ? ' (elite)' : '')).join(', ');
+    const what = room.kind === 'echo' ? 'The one in the black coat' : room.kind === 'iteration' ? `Discarded iteration · life ${c.snapshots[room.snapshot].lives}` : room.kind === 'boss' ? `Boss: ${ENEMY_TYPES[room.boss].name}` : `${room.kind[0].toUpperCase() + room.kind.slice(1)}: ` + room.foes.map(f => (c.met[foeType(f)] ? ENEMY_TYPES[foeType(f)].name : '???') + (f.elite ? ' (elite)' : '')).join(', ');
     rc.innerHTML = `<div class="run-card" style="border-left-color:${w.color}"><div class="k">Run in progress</div><div class="n">${w.name}</div><div class="rnodes">${nodes}</div>` +
       `<div class="mini">Room ${r.idx + 1} of ${r.rooms.length}. ${what}</div><div class="btns">` +
       (r.cleared[r.idx] ? '<button class="primary" data-act="next">Next room</button>' : `<button class="primary" data-act="fight">${here ? 'Restart room' : 'Fight room ' + (r.idx + 1)}</button>`) +
@@ -857,11 +959,21 @@ function renderPortal() {
 
   const list = $('worldList');
   list.innerHTML = '';
+  if (broken === ALL_SEALS.length) {
+    const el = document.createElement('div'); el.className = 'world-card';
+    el.innerHTML = `<div class="wc-head"><b>The Bottom of the Jar</b></div><div class="wc-blurb">The last seal has burned away. The door is within reach.</div><div class="wc-foot"><span class="mini">${c.endingReady ? (c.previousSelf ? 'The one in the coat has fallen.' : 'Yun Xi has fallen.') : c.snapshots.length ? 'The clay holds earlier versions of your fighter.' : 'No earlier lives were preserved. The keeper waits below.'}</span><button>${c.endingReady ? 'Open the door' : 'Enter'}</button></div>`;
+    el.querySelector('button').onclick = () => c.endingReady ? showDoorEnding() : enterBottom();
+    list.appendChild(el);
+    const peak = document.createElement('div'); peak.className = 'world-card';
+    peak.innerHTML = `<div class="wc-head"><b>Heaven's End Summit</b></div><div class="wc-blurb">The Sword Immortal waits above the broken sky.</div><div class="wc-foot"><span class="mini">${c.fourteenthPage ? 'The Fourteenth Page is yours.' : 'An optional duel.'}</span><button>Challenge</button></div>`;
+    peak.querySelector('button').onclick = enterSummit; list.appendChild(peak);
+    if (c.endingReady && c.fourteenthPage) { const stay = document.createElement('button'); stay.textContent = 'Sheathe the sword'; stay.className = 'primary'; stay.onclick = chooseStay; el.querySelector('.wc-foot').appendChild(stay); }
+  }
   for (const w of WORLDS.filter(o => worldVisible(c, o))) {
-    const rec = c.worlds[w.id] || { rooms: {}, runs: 0 }, plan = roomPlan(w);
+    const rec = c.worlds[w.id] || { rooms: {}, runs: 0 }, plan = campaignPlan(w, c.cycle);
     const left = plan.filter((rm, i) => rm[0] !== 'boss' && !rec.rooms[i]).length, nb = nonBossRooms(w);
     const bosses = worldBosses(w), sealsLeft = bosses.filter(b => !c.seals[b]).length;
-    const jadeLeft = (nb ? Math.round(EXPLORE_JADE[w.tier] * left / nb) : 0) + sealsLeft * BOSS_JADE[w.tier];
+    const jadeLeft = (nb ? Math.round(EXPLORE_JADE[w.tier] * (1 + c.cycle * 0.25) * left / nb) : 0) + sealsLeft * BOSS_JADE[w.tier] * (1 + c.cycle * 0.25);
     const mine = r && r.world === w.id;
     const el = document.createElement('div');
     el.className = 'world-card'; el.style.borderLeftColor = w.color;
@@ -941,7 +1053,7 @@ function updateView(dt) {
   if (v.sim.done) {
     if (!v.overlay) {
       if (v.mode === 'trial' && !v.recorded) { v.recorded = true; recordTrial(v.sim); }
-      if (v.mode !== 'play' && v.mode !== 'battle') addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN); // the hero learns from every fight it takes
+      if (v.mode !== 'play' && v.mode !== 'battle' && !v.sim.battle) addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN); // the hero learns from every fight it takes
       if (!v.paid) {
         v.paid = true;
         // only the worlds pay: battles, sparring, trials and play are memories
@@ -963,7 +1075,7 @@ function updateView(dt) {
   let steps = 0;
   while (v.acc >= DT && !v.sim.done && steps < 600) {
     v.acc -= DT; steps++;
-    if (v.mode === 'battle') { stepBattle(); continue; }
+    if (v.mode === 'battle' || (v.mode === 'campaign' && v.sim.battle)) { stepBattle(); continue; }
     if (v.mode === 'play') {
       v.sim.sense();
       v.sim.step(keyAction());
@@ -987,7 +1099,7 @@ function refreshHint() {
   else if (v.mode === 'spar') h.innerHTML = `Sparring vs <b>${ENEMY_TYPES[v.sparType].name}</b> (no learning). <kbd>R</kbd> again.`;
   else if (v.mode === 'campaign') {
     const r = state.campaign.run;
-    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. Your fighter fights; coach it between rooms. <kbd>N</kbd> next room <kbd>R</kbd> restart room` : 'World conquered. Open the <b>Portal</b> to choose the next one.';
+    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. Your fighter fights; coach it between rooms. <kbd>N</kbd> next room <kbd>R</kbd> restart room` : 'Run complete. Open the <b>Portal</b> to choose the next destination.';
   }
   else if (v.mode === 'battle') h.innerHTML = 'Battle. Set it up in the Battle section. <kbd>R</kbd> rematch' + (state.cfg.battle.slots.some(s => s.kind === 'you') ? '. You: <kbd>WASD</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>Space</kbd> <kbd>L</kbd> <kbd>Shift</kbd> <kbd>Q</kbd> <kbd>E</kbd>' : '.');
 }
@@ -1012,7 +1124,7 @@ function refreshWhere() {
   const v = state.view, r = state.campaign.run;
   const pav = { train: 'Training Hall', watch: 'Watching', play: 'You fight', spar: 'Spar', trial: 'Trial', battle: 'Simulation' };
   $('whereLbl').textContent = v.mode === 'lobby' ? 'The Jar'
-    : v.mode === 'campaign' ? (r ? `${WORLD_BY_ID[r.world].name} · room ${r.idx + 1} of ${r.rooms.length}` : 'World conquered')
+    : v.mode === 'campaign' ? (r ? `${WORLD_BY_ID[r.world].name} · room ${r.idx + 1} of ${r.rooms.length}` : 'Run complete')
     : v.mode === 'battle' && v.online ? 'Online match' : 'Memory Pavilion · ' + (pav[v.mode] || '');
 }
 
@@ -1211,6 +1323,8 @@ function startOver() {
   setAgent(new PPOAgent(state.cfg.learning, Math.floor(Math.random() * 1e9)));
   state.lives = []; state.livesTotal = 0; state.chartDirty = true;
   state.mastery = {}; state.abStats = {}; state.loadout = [null, null];
+  state.campaign.snapshots = []; // a reset begins a new fighter's history
+  if (state.campaign.run && state.campaign.run.world === 'bottom') state.campaign.run = null;
   state.identity = freshIdentity(); // a new fighter: no awakening, no special, until it earns them again
   buildAbilities();
   refreshScreen();
@@ -1630,9 +1744,11 @@ function renderPavilion() {
 
 function renderMemories() {
   const c = state.campaign;
-  $('memoryList').innerHTML = c.fragments.length ? c.fragments.map(f => `<details class="memory-item"><summary>${WORLD_BY_ID[f.world].name}</summary>` +
+  const history = c.cycleHistory.length ? `<p class="mini">Earlier cycles: ${c.cycleHistory.map((n, i) => `${i + 1}: ${n.toLocaleString()} lives`).join(' · ')}</p>` : '';
+  const arrival = c.blackSeaArrivalSeen ? `<details class="memory-item"><summary>Beyond the crossing</summary><p>${BLACK_SEA_ARRIVAL}</p></details>` : '';
+  $('memoryList').innerHTML = history + arrival + (c.fragments.length ? c.fragments.map(f => `<details class="memory-item"><summary>${WORLD_BY_ID[f.world].name}</summary>` +
     `<p>${WORLD_VIGNETTES[f.world] || ''}</p>${f.key ? `<p class="mem-f">${FRAGMENTS[f.key]}</p>` : ''}</details>`).join('')
-    : '<p class="mini">Nothing yet. Each world you conquer gives a memory back.</p>';
+    : (arrival ? '' : '<p class="mini">Nothing yet. Each world you conquer gives a memory back.</p>'));
 }
 
 function renderTally() {

@@ -1,10 +1,12 @@
 # Neuro Arena: The Jar (campaign plan)
 
-Status: phases 1 (campaign core), 2 (lobby and Pavilion), 4 (lore) and 5 (promoted foes and the teacher) are built; phase 3 (balance) was dropped; the rest is planned.
+Status: phases 1 (campaign core), 2 (lobby and Pavilion), 4 (original lore) and 5 (promoted foes and the teacher) are built; phase 3 (balance) was dropped; the rest is planned. The Black Sea cosmology, arrival note and campaign wording are now implemented. Section 1 records the earlier audit and draft copy; the live text in js/lore.js is authoritative.
 
 Decisions so far:
 - The AI brain fights every room. You coach between rooms.
-- The lore is the Gu Jar.
+- The lore is the Gu Jar, a refining vessel within the Black Sea: the space between myriad worlds.
+- The portal crosses the Black Sea along protected routes. The hero can travel outside the vessel, but his jade core remains bound to it; crossing the sea is not release.
+- The playable Black Sea is one reachable stretch of the greater sea. The Headless Scholar is a traveler within it, not its creator or ruler.
 - Every room starts at full health, and a lost room is simply retried.
 - Abilities are learned both in worlds and in the Pavilion, faster in the Pavilion.
 - A new enemy gets an intro card and a codex entry.
@@ -27,18 +29,33 @@ Decisions so far:
 ### The premise
 He wakes on cold glazed clay, inside a round room with no door. The walls curve up to a mouth far overhead, sealed with a lid and fifteen paper talismans. Scratched into the clay at the height of a man's hand are tally marks, thousands of them. He has no name and no memory. In the middle of the floor stands a gate of moving light.
 
+### The Black Sea, the jar, and the portal
+The **Black Sea** is the expanse between myriad worlds. Each world is an island of its own reality, with its own skies, history and laws. It is older and larger than the jar. Some beings can cross it through power, knowledge or protective artifacts; others are refugees, pilgrims or predators. The sea itself is not evil.
+
+The **Gu Jar** is a vessel within that expanse. The Jar-Setter swallowed worlds and bound their surviving echoes to it. The ordinary campaign destinations are those captured echoes, reached through protected passages across the sea. The jar's apparent interior need not contain them as physically adjacent rooms: its seals and routes bind them into one refining apparatus.
+
+The **portal** carries the hero along those passages. Until the Time Administrator falls, the keeper restricts its destinations and hides the crossing. Afterwards, two more captured domains and a route into the sea itself become accessible. The jar has lost its route keeper, not all of its bindings.
+
+**Why this is not already escape:** the hero's jade core remains bound to the jar. His body can travel beyond its walls, but death draws what he learned back to the clay and reconstructs him. Distance cannot sever that bond. The final door releases the completed core into the Jar-Setter's custody; it is a handover, not merely another geographical exit. This is a lore rule, not a new timer, travel limit or combat penalty.
+
+The **Headless Scholar** crossed between worlds without the Jar-Setter's routes. Somewhere beyond his native world, he encountered laws that could no longer recognise his head as part of him. His umbrella shelters him and carries fragments of places he has survived. The painting is his portable domain, leaking into this stretch of sea; it is not the origin of the Black Sea. Leave the precise event that changed him uncertain in player-facing text.
+
+The Jar-Setter binds selected worlds and a reachable corridor of the sea, not the whole cosmology. The Scholar's defeat breaks a seal because the jar harvests the encounter through that corridor, not because he rules the sea. Cursed Domain and Pallid Kingdom remain captured echoes. Clearing Black Sea means surviving the passage and defeating its encountered champion, not conquering the infinite sea.
+
+Both endings stay. Refusal denies delivery of the completed weapon; it does not destroy the jar or establish a third escape route. What lies beyond the Jar-Setter's reach remains an unanswered possibility.
+
 ### The truth, built up layer by layer
-This is a **Gu jar** (蛊). In the old art, venomous creatures are sealed in one jar to devour each other, and whatever survives becomes the Gu: a living weapon holding everything it ate. Someone (the **Jar-Setter**, never seen) did this with *worlds*. Each small world behind the portal was swallowed whole, and its strongest are kept as echoes. The hero is the newest thing being refined.
+This is a **Gu jar** (蛊). In the old art, venomous creatures are sealed in one jar to devour each other, and whatever survives becomes the Gu: a living weapon holding everything it ate. Someone (the **Jar-Setter**, never seen) did this with *worlds*. The ordinary worlds behind the portal were swallowed whole, and their strongest are kept as echoes. The later Black Sea passage is the exception: it reaches the expanse those worlds once occupied. The hero is the newest thing being refined.
 
 What the player slowly learns:
 1. **None of these worlds are his.** He can't remember a home because he never had one.
-2. **The worlds were eaten.** Each world is a memory of a place that ended the day the jar closed over it.
+2. **The captive worlds were eaten.** Each is a memory of a place that ended the day the jar closed over it. The Black Sea itself was never swallowed.
 3. **He grows by devouring.** Every new champion he fells makes him stronger: the level system, reframed as the Gu feeding.
 4. **The tally marks are his.** The "Lives" counter is literal. Every training life was a real death, and the network is what survived each one.
 5. **He is not the first.** Older tallies sit under his, scratched by other hands, all crossed out.
-6. **The Time Administrator is him, finished.** It is the Gu that already left, made the jar's keeper. It rifts champions in to feed the jar (Rift), rewinds what goes wrong (Rewind), and stops time on anything that strays. "You, From the Future" is the Gu he will become, and "You, From the Past" is an earlier iteration. While the keeper stands, it keeps the jar's deepest worlds out of sight.
+6. **The Time Administrator is him, finished.** It is the Gu that already left, made the jar's keeper. It rifts champions in to feed the jar (Rift), rewinds what goes wrong (Rewind), and stops time on anything that strays. "You, From the Future" is the Gu he will become, and "You, From the Past" is an earlier iteration. While the keeper stands, it hides the sea crossing and restricts the portal to approved destinations. Its defeat reveals two more captive worlds and the Black Sea passage; the core's binding survives it.
 7. **Yun Xi (???) was the Gu before him.** She conquered every world and stood at the door, and she refused to open it. She stayed in the jar as a gambler against fate, nudging dice so the next Gu might find another way. "Wait... do I know her?" He does. She taught him, in an iteration he no longer remembers.
-8. **The terrible truth:** leaving the jar is not escape. Conquering every world is what *completes* him. When the last seal breaks, the door opens onto the Jar-Setter's hand. What walks out is a weapon, and a clock face is already waiting for it. The Time Administrator was never his enemy. It was his future.
+8. **The terrible truth:** release through the final door is not escape. Traveling the sea never freed his core from the jar. Conquering every world is what *completes* him. When the last seal breaks, the door opens onto the Jar-Setter's hand. What walks out is a weapon, and a clock face is already waiting for it. The Time Administrator was never his enemy. It was his future.
 
 ### The endings
 The final world is the Bottom of the Jar (3.12).
@@ -77,15 +94,15 @@ On top of that:
 
 | # | Fragment |
 |---|---|
-| 1 | The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. |
+| 1 | The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. Between the gate and that dead sky, you remember a moment with no ground beneath you. |
 | 2 | The champions you fell leave something behind, and it settles in you. You are stronger. You did not train for it. |
 | 3 | The tally marks on the wall are as high as your hand. You count them. The number is your Lives. |
 | 4 | Under your tallies are older ones, in a different hand. Then another, and another. All crossed out. |
 | 5 | A word is carved by the oldest marks: 蛊. A jar. Poisons sealed together until one remains. |
-| 6 | The worlds didn't fall into this place. They were put here, as food, and something keeps the jar fed. |
+| 6 | The worlds did not fall into this place. They were taken from somewhere, as food. Each time the gate opens, a line of light crosses the dark between them. Something chooses where it ends. |
 | 7 | You've seen the woman in the black coat before. She was standing at the door, and she did not open it. |
 
-**The Timestream revelation:** A broken watch in the keeper's hand is engraved with your Lives count, and with a number you haven't reached yet. It fought with your openings, and it learned them first. With the keeper gone, the jar's floor cracks open, and three worlds you were never meant to see come into view.
+**The Timestream revelation:** A broken watch in the keeper's hand is engraved with your Lives count, and with a number you haven't reached yet. It fought with your openings, and it learned them first. With the keeper gone, the gate opens without a destination. For a moment you see the crossing: black water, distant worlds like islands, and the thread of light that has carried you between them. Two hidden worlds and a passage into the sea appear. The thread still leads back to the clay.
 
 **Hidden-world fragments:**
 
@@ -93,9 +110,52 @@ On top of that:
 |---|---|
 | H1 | Under her tallies is a name, the only one in the jar that isn't crossed out: 云汐 (Yun Xi). |
 | H2 | The dice. You remember her teaching you to read them, in a life you don't remember living. |
-| H3 | The seals aren't keeping you in. They're keeping the door from opening before you're *done*. |
+| H3 | You have crossed beyond the walls, but the core always answers the clay. The seals are not keeping your body in. They keep the door from releasing what you are becoming before you are done. |
 
 **A known wrinkle:** a player who beats the Timestream early hears "the keeper is you" before the 蛊 fragment. The revelation is worded to work either way, as foreshadowing early or confirmation late.
+
+
+### Existing in-game hints: source audit and revision plan
+Audited against the working tree on 2026-10-31. The audit below records the original code and proposed follow-up; the live game now contains the revision, with rewritten copy.
+
+| Surface | What currently happens | Source | Black Sea follow-up |
+|---|---|---|---|
+| First-clear memory | On the first full world clear, a modal shows that world's vignette plus the next fragment on its track. It pauses play. A mid-run boss grants a seal/finale and toast, but no memory yet. Repeat clears do not grant another fragment | `js/main.js`: `finishRoom` logic around `rec.runs === 1`, `nextFragment`, `showMemory`; `js/lore.js`: `FRAGMENTS`, `WORLD_VIGNETTES` | Revise `o1`, `o6`, `t`, `h3` using the drafts above; replace the Black Sea vignette below |
+| Memory archive | The Tally Wall lists each earned world's vignette and fragment for rereading | `js/main.js`: `renderMemories`; `index.html`: `memoryList` | Existing entries resolve their text from data keys, so copy changes also update old saved memories without awarding them again |
+| Codex | Met enemies show one static lore line, alongside mechanics and campaign kills. Unmet entries show `???`. Lines are not unlocked in stages | `js/lore.js`: `CODEX_LORE`; `js/main.js`: `renderCodex` | Replace the Scholar's origin; add restrained route hints to a few early foes. Avoid putting the full ending revelation in encounter-time entries |
+| Encounter cards | First meetings show sprite, name and a generic role/boss label followed by the world name. There are no authored lore paragraphs or unique epithets here yet | `js/main.js`: `meetFoes` | For the Scholar, future wording should say “Encountered in Black Sea” rather than imply sovereignty with “Boss of Black Sea” |
+| Portal cards and unlock toast | Cards use each world's `blurb`. The keeper's first defeat announces three hidden worlds below the Timestream | `js/campaign.js`: `WORLDS`; `js/main.js`: campaign reward handler and `renderPortal` | Change Black Sea blurb and keeper toast below; describe three destinations, not three swallowed worlds |
+| Lobby clues | Seals burn away; tally strokes grow with Lives. `o5` reveals crossed-out old marks and 蛊; `h1` reveals Yun Xi's name | `js/main.js`: `lobbyInfo`; `js/lobby.js`: `drawSeals`, `drawTallies`, `drawOldMarks` | Preserve these gates. An optional post-keeper portal reflection could show dark water and world-lights; not required for the text revision |
+| Combat captions | Boss second forms carry short lore captions. Scholar: “World Within a Painting” / “THE PAINTING OPENS”. Time Administrator also has past/future-self imagery | `js/sim.js`, `js/render.js` | Keep these: the painting is now the Scholar's domain inside the larger sea. Do not rename it to suggest he created the sea |
+
+There is no separate collectible-note system in the audited lore flow. The existing memory modal, archive and codex are enough for this revision. The teacher also has a yield event and a Thirteenth Sword demonstration; these remain compatible with the revised cosmology.
+
+**Earlier draft copy (the implemented text differs):**
+
+- `WORLDS.blacksea.blurb`: *A passage between worlds. Far lights drift like islands; nearer, a scholar's painting leaks into the dark.*
+- Keeper-defeat toast in `js/main.js`: *The keeper is gone. The portal reveals two hidden worlds and a passage into the Black Sea.*
+- `WORLD_VIGNETTES.blacksea`: *The sea was here before the jar. The lights beyond it are worlds, and the gate has carried you between them all along. The scholar crossed without such a road. Whatever took his head did not stop him; under his umbrella, pieces of the places he passed still live in ink. You follow your own thread home. It ends in the clay, where your core remains bound.*
+- `CODEX_LORE.scholar`: *Crossed between worlds beneath an umbrella. Somewhere along the way, the worlds forgot he should have a head. The painting remembers other things.*
+- `CODEX_LORE.lampbearer`: *Carries a lamp through the scholar's spilled painting. Beyond its edge, other lights drift on black water.*
+- `CODEX_LORE.chessist`: *A head from the scholar's painting that became a chess master. Plays both sides. Loses both.*
+- `CODEX_LORE.talisman`: *Writes seals on paper. The ones around the gate mark a safe passage. He will not say through what.*
+- `CODEX_LORE.formation`: *Draws arrays to trap demons. The gate's array is stranger: a road with a tether running through it.*
+- `CODEX_LORE.timeadmin`: *Keeps the crossings on their appointed paths. Its clock face shows your Lives. Its movements are yours, a little ahead.*
+- `WORLD_VIGNETTES.timestream`: *Not a world at all: the river where the jar keeps its time. Moments from the captive worlds drift in it, torn loose. Its keeper pulled champions through the rifts and kept every crossing on its appointed path. The roads outlived it. So did the thing that binds you to their beginning.*
+- `WORLD_VIGNETTES.abyss`, opening sentence: replace *The pit under every world* with *A world of pits beneath pits*, so the Abyss is not accidentally established as the substrate of the whole Black Sea cosmology. Match its portal blurb to *A world of pits beneath pits, and the brood that eats its way up.* The Nine Heavens can remain above the Abyss in campaign ordering without defining universal geography.
+
+Other Scholar-retinue entries can keep their painting origins. Frontier, temple, night, peaks, isles, heavens, cursed and pallid vignettes still describe captured echoes and remain compatible. Keep Yun Xi's `h1` and `h2`, the tally revelations, and the Fourteenth Page story intact.
+
+**Reveal order and optional arrival note:**
+- Before the keeper: `o1`, `o6`, talisman and formation hint at a crossing and tether without naming the sea or explaining the final door.
+- Keeper victory: `t` provides the essential sea revelation for every player, even one who skipped the outer worlds. Do not require having read a codex entry.
+- On first Black Sea entry, an optional short route note can say: *No borrowed sky waits beyond the gate. Black water stretches between distant worlds. Behind you, the passage narrows to a thread. Something beneath your ribs pulls toward the clay.* Label this “Beyond the crossing”, not “A memory returns”: it is a present observation.
+- This arrival note would be a new feature. Save a separate `blackSeaArrivalSeen` flag, archive it under route observations, and do not add it to `campaign.fragments` or consume `h1`–`h3`. Reset it with story progress in NG+. Existing saves that already cleared Black Sea should receive the archive entry without an intrusive replay.
+- Black Sea clear: its own vignette explains the Scholar and confirms the binding, regardless of which hidden fragment accompanies it.
+- Third hidden clear: `h3` explains the core/door distinction. It must work even if Black Sea was the first or last hidden destination.
+- Keep fragment IDs and track lengths unchanged. The campaign still has **15 boss seals**, seven outer memories, one keeper revelation and three hidden memories. The optional arrival note adds no seal or boss.
+
+**Follow-up verification:** confirm an early Timestream clear, Black Sea first/last among hidden clears, mid-run boss victories, repeat clears, and rereading memories from an existing save. Generic “World conquered” copy should become “Passage cleared” specifically for Black Sea so the victory does not claim dominion over the whole sea.
 
 ---
 
@@ -106,13 +166,13 @@ The round clay chamber. The hero idles in the middle and walks to whatever you c
 
 | Station | Opens | Notes |
 |---|---|---|
-| **Portal** (moon gate of light) | World select | Tier, danger, rooms cleared, seals, first-clear rewards left. Hidden worlds don't appear until the Timestream falls |
+| **Portal** (moon gate of light) | World select | Rooms cleared, seals, first-clear rewards left. Protected routes across the sea; hidden destinations appear after the Timestream falls. No difficulty labels |
 | **Memory Pavilion** (lantern pavilion) | Training, spar, battle sim, trials, codex | See below |
 | **Talent Altar** (incense shrine) | Talents + spins | as today |
 | **Mirror** | Skins | as today |
 | **Tally Wall** | Identity, Kills, level/stats; re-read fragments | where the lore lives |
 | **Memory Urns** | Vault: save/load/export fighters | as today |
-| **Resonance Stone** | Online | Lore: other jars, other Gu, felt through the clay |
+| **Resonance Stone** | Online | Lore: other jars, other Gu, felt through the clay across the Black Sea |
 | **Lid** (overhead) | Final door | 15 seals; opens the final world when all are broken |
 
 Global controls (sound, music, pause) stay in a thin top bar. Ability loadout is reachable from the lobby and between rooms.
@@ -267,10 +327,12 @@ A river of broken moments: eras torn loose and drifting past each other. The kee
 - All of these are generic archetypes, not specific characters.
 
 ### 3.10 Black Sea (hidden)
-A dead sea of ink under a white sky, where the painting leaks.
-- **Boss:** The Headless Scholar
-- **Foes**, all promoted from his heads: Chessboard Scholar, Lamp Bearer, Headsman Butcher, Coffin Bearer, Flutist. Ink dragons appear as elites.
-- The whole world is drawn in the ink palette. It's cheap to build because the art and AI exist.
+One reachable passage through the expanse between worlds. Distant islands are whole realities, not ordinary landmasses. The portal has always carried the hero across this sea; now he can finally see it.
+- **Boss:** The Headless Scholar, a traveler whose painted domain has spilled across this passage. Defeating him clears the route and breaks its assigned seal, not the sea itself.
+- **Current implemented foes:** Chessboard Scholar, Lamp Bearer, Headsman Butcher, Coffin Bearer, Flutist; ink dragons as elites. Keep these as the inhabitants of his painting and the stretch near his encounter. Their existence and art remain valid.
+- **Visual direction:** black water and isolated world-lights across most of the passage; the white sky, brushwork and ink palette intensify near the Scholar. His second form, World Within a Painting, still makes sense: the fight enters his domain.
+- **Possible future inhabitants, not committed roster additions:** Ferryman (displacement), Face Collector (stolen identities), Unfinished Man (partial existence), Door That Walks remain reserve ideas. These are not included in the new-foe count or build commitment below.
+- **No new travel system required:** existing room nodes represent stops along a crossing. Island exploration, World Drift, moving boundaries and new enemies are separate future scope, not prerequisites for this lore revision.
 
 ### 3.11 The Pallid Kingdom (hidden)
 A court under twin suns on the shore of a cloud-lake. Bells ring. Everyone wears a mask.
@@ -368,11 +430,11 @@ Each phase leaves the game playable.
    - The Last Frontier works with existing foes only.
 2. **Lobby and Pavilion.** The pixel jar scene and its stations. Today's panels move behind them (Training Hall, Simulation, Trials, Codex), and the top toolbar is retired.
 3. **Balance harness: dropped.** Difficulty stays as the first-guess budgets and boss tuning, and the Portal shows no difficulty labels or recommended levels. When the fighter is stuck, it is up to the player to improve it and its build.
-4. **Lore.** The three fragment tracks, world vignettes, codex text, and a lobby that changes as seals break.
-5. **Promoted foes and the teacher.** The Heavenly General, the abyss brood, the Scholar's heads and the courtier. This completes the Nine Heavens and the Black Sea, and most of the Abyss. Then the teacher Sword Immortal variant, with the yield and the glimpse of the Thirteenth.
+4. **Lore.** The original three fragment tracks, world vignettes, codex text, and changing lobby are built. Black Sea copy, arrival note and archive are implemented with fragment keys and completion-order tracking preserved.
+5. **Promoted foes and the teacher.** The Heavenly General, the abyss brood, the Scholar's heads and the courtier. This completes the Nine Heavens, the Scholar's current Black Sea encounter roster, and most of the Abyss. Then the teacher Sword Immortal variant, with the yield and the glimpse of the Thirteenth.
 6. **New foes, world by world, in tier order.** Temple, Night, Peaks, Abyss, Isles, then the Timestream, Cursed Domain and Pallid Kingdom. Each world gets a balance pass when it's done.
-7. **The Bottom of the Jar.** Brain snapshots, Discarded Iterations, ending one.
-8. **Heaven's End and ending two.** The serious Sword Immortal, the Fourteenth Page, the "Sheathe the sword" choice, and repeatable New Game+ cycles, with you as the ???.
+7. **The Bottom of the Jar (built).** Brain snapshots, Discarded Iterations, keeper rematch and ending one. The endings currently use text scenes.
+8. **Heaven's End and ending two (built).** The serious Sword Immortal, the Fourteenth Page, the "Sheathe the sword" choice, and repeatable New Game+ cycles; the preceding fighter returns in the black coat.
 
 ---
 

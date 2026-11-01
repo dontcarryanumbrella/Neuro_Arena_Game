@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuro Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Neuro Arena</h1>
+  <span class="sub">one fighter, learning to duel by dying a lot</span>
+</header>
+
+<main class="layout">
+  <section class="left">
+    <div class="toolbar">
+      <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
+      <span class="where" id="whereLbl">The Jar</span>
+      <button class="primary" id="trainBtn">Start training</button>
+      <div class="group" role="group" aria-label="Speed" id="speedGroup">
+        <span class="lbl">Speed</span>
+        <div class="seg" id="speedSeg">
+          <button data-speed="1" class="on">1x</button>
+          <button data-speed="4">4x</button>
+          <button data-speed="16">16x</button>
+          <button data-speed="max" title="No arena, just the chart">Max</button>
+        </div>
+      </div>
+      <button id="pauseBtn" title="Pause the view (P)">Pause</button>
+      <button id="soundBtn" title="Sound effects">Sound on</button>
+      <button id="musicBtn" title="Ambient music">Music on</button>
+      <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
+    </div>
+    <nav class="dock" id="dock" aria-label="Stations of the jar">
+      <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
+      <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+      <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
+      <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
+      <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
+      <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
+      <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
+      <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
+    </nav>
+
+    <div class="screen">
+      <canvas id="game" width="256" height="144"></canvas>
+      <div class="encounter" id="encounter" hidden aria-live="polite"></div>
+      <div class="max-view" id="maxView" hidden>
+        <div class="max-head">Max speed: arena hidden. <span id="maxRate"></span></div>
+        <canvas id="bigChart"></canvas>
+      </div>
+    </div>
+    <p class="hint" id="viewHint"></p>
+    <div class="board" id="battleBoard" hidden></div>
+    <div class="statline" id="statLine"></div>
+
+    <div class="chart-box" id="chartBox">
+      <div class="chart-head">
+        <label for="metric">Chart</label>
+        <select id="metric">
+          <option value="ret">Reward per life</option>
+          <option value="kills">Foes defeated per life</option>
+          <option value="parries">Parries per life</option>
+          <option value="breaks">Posture breaks per life</option>
+          <option value="dmgTaken">Damage taken per life</option>
+          <option value="t">Seconds survived</option>
+          <option value="died">Deaths (% of lives)</option>
+        </select>
+        <span class="legend"><i class="dot"></i>each life <i class="line"></i>average of last 25</span>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+  </section>
+
+  <aside class="right" id="drawer" aria-live="polite">
+    <section class="panel" id="portalPanel" hidden>
+      <div class="panel-head"><h2>Portal</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">Worlds reached through the gate. Any visible destination can be entered; some are far deadlier than others. Your fighter fights every room; between rooms you coach it.</p>
+      <div id="lidLine" class="lid-line"></div>
+      <div id="runCard"></div>
+      <div id="worldList"></div>
+      <details class="note">
+        <summary>How worlds work</summary>
+        <p>A world is a line of rooms, then its bosses. Each room starts at full health; lose one and retry it. Clearing a room for the first time pays part of the world's exploration jade; a boss's first defeat breaks one of the lid's seals, unlocks its Transcendence finale and pays a large amount of jade. Running a world again pays its foes' bounties and a quarter of the exploration jade.</p>
+        <p>Only kills in the worlds raise your level. Training pays a tenth of the bounty; battles, sparring and trials pay nothing.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="pavilionPanel" hidden>
+      <div class="panel-head"><h2>Memory Pavilion</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">A room that reconstructs what you have met. Fights here are memories: they train the brain and teach techniques half again faster than the worlds, but they feed nothing and pay almost nothing.</p>
+      <p class="mini" id="pavMet"></p>
+      <div class="hub">
+        <button data-go="train"><b>Training Hall</b><span>Watch it learn: speeds, chart, and life after life</span></button>
+        <button data-go="watch"><b>Watch it fight</b><span>Your fighter plays, without learning</span></button>
+        <button data-go="play"><b>Fight it yourself</b><span>You on the keyboard</span></button>
+        <button data-panel="battleSection"><b>Simulation</b><span>Battles of up to ten, in teams or free-for-all</span></button>
+        <button data-panel="trialsPanel"><b>Trials</b><span>Set challenges</span></button>
+        <button data-panel="codexPanel"><b>Codex</b><span>Everything you have met</span></button>
+      </div>
+      <h3 class="kill-head">How it trains</h3>
+      <div class="hub small">
+        <button data-panel="foesPanel"><b>Opponents</b><span>Who it trains against</span></button>
+        <button data-panel="rewardsPanel"><b>Rewards</b><span>What it is paid for</span></button>
+        <button data-panel="learningPanel"><b>Learning</b><span>How it learns</span></button>
+        <button data-panel="brainSection"><b>Thinking</b><span>Its choices, live</span></button>
+      </div>
+    </section>
+
+    <section class="panel" id="tallyPanel" hidden>
+      <div class="panel-head"><h2>Tally Wall</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini" id="tallyNote"></p>
+      <div class="hub">
+        <button data-panel="fighterPanel"><b>Level</b><span>What the worlds have made of it</span></button>
+        <button data-panel="abilitiesSection"><b>Abilities</b><span>Learned techniques and the two it carries</span></button>
+        <button data-panel="identitySection"><b>Identity</b><span>Traits, awakening, special and finale</span></button>
+        <button data-panel="killsSection"><b>Kills</b><span>Everything it has felled</span></button>
+      </div>
+      <h3 class="kill-head">Memories</h3>
+      <div id="memoryList"></div>
+    </section>
+
+    <section class="panel" id="codexPanel" hidden>
+      <div class="panel-head"><h2>Codex</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini" id="codexNote"></p>
+      <div id="codexList"></div>
+    </section>
+
+    <section class="panel" id="fighterPanel" hidden>
+      <div class="panel-head"><h2>Fighter</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="level-head">Level <b id="fLevel"></b></div>
+      <div class="level-bar"><i id="fLevelBar"></i></div>
+      <p class="mini" id="fLevelNote"></p>
+      <div class="row stat-row"><span>Health</span><span class="kill-bar"><i id="fHpBar"></i></span><output id="fHpVal"></output></div>
+      <div class="row stat-row"><span>Energy</span><span class="kill-bar"><i id="fEnergyBar"></i></span><output id="fEnergyVal"></output></div>
+      <div class="row stat-row"><span>Energy regen /s</span><span class="kill-bar"><i id="fRegenBar"></i></span><output id="fRegenVal"></output></div>
+      <div class="row stat-row"><span>Posture</span><span class="kill-bar"><i id="fPostureBar"></i></span><output id="fPostureVal"></output></div>
+      <details class="note">
+        <summary>Levels</summary>
+        <p>Every different foe or boss your fighter fells in the worlds (summoned creatures don't count) raises its level by one. Training, battles, sparring and trials don't: they are only memories. Each level adds health, energy, energy regen and posture, up to 300 health, 300 energy, 30 regen and 250 posture once every foe and boss has fallen. New stats apply from the next life.</p>
+      </details>
+      <details class="note">
+        <summary>Move costs</summary>
+        <p>Strike 10, heavy 22, kick 18, roll 20 energy. Guard is free but halves regen. A parry gives back 25.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="foesPanel" hidden>
+      <div class="panel-head"><h2>Opponents</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div id="foeList" class="foes"></div>
+      <div class="row"><label for="atOnce">At once</label><input type="range" id="atOnce" min="1" max="4" step="1"><output id="atOnceVal"></output></div>
+      <div class="row"><label for="episode">Life time limit</label><input type="range" id="episode" min="15" max="120" step="5"><output id="episodeVal"></output></div>
+      <details class="note">
+        <summary>Roles and abilities</summary>
+        <div id="foeNotes"></div>
+      </details>
+    </section>
+
+    <section class="panel" id="battleSection" hidden>
+      <div class="panel-head"><h2>Battle</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="group"><span class="lbl">Mode</span>
+        <div class="seg" id="battleMode">
+          <button data-mode="teams">Teams</button>
+          <button data-mode="ffa">Free-for-all</button>
+        </div>
+      </div>
+      <div class="presets" id="battlePresets"></div>
+      <div id="battleSlots"></div>
+      <div class="row"><label for="battleTime">Time limit</label><input type="range" id="battleTime" min="30" max="300" step="10"><output id="battleTimeVal"></output></div>
+      <div class="row inline"><button class="primary" id="battleStart">Start battle</button><span class="mini" id="battleNote"></span></div>
+    </section>
+
+    <section class="panel" id="abilitiesSection" hidden>
+      <div class="panel-head"><h2>Abilities</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="group"><span class="lbl">Choose</span>
+        <div class="seg" id="abilityMode">
+          <button data-mode="auto" title="The fighter picks, keeping what works and trying what it has not">Auto</button>
+          <button data-mode="manual">Me</button>
+        </div>
+      </div>
+      <div class="row"><label for="slot1">Slot 1</label><select id="slot1"></select><span></span></div>
+      <div class="row"><label for="slot2">Slot 2</label><select id="slot2"></select><span></span></div>
+      <p class="mini" id="autoNote"></p>
+      <div id="abilityList"></div>
+      <div class="row"><label for="learnAfter">Learn after</label><input type="range" id="learnAfter" min="10" max="240" step="5"><output id="learnAfterVal"></output></div>
+      <details class="note">
+        <summary>How abilities work</summary>
+        <p>Fighting a foe for long enough (all lives added up) teaches the fighter that foe's ability. Two can be equipped; they cost energy and have cooldowns. In Auto, every few lives the fighter re-picks: it keeps abilities whose lives went better than average and tries ones it hasn't used. Play keys: Q and E.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="talentSection" hidden>
+      <div class="panel-head"><h2>Talents</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="row inline spin-row">
+        <button class="primary" id="spin1">Spin · 100</button>
+        <button id="spin10">10 spins · 900</button>
+        <label class="mini" title="Show the result at once"><input type="checkbox" id="skipSpin"> skip animation</label>
+      </div>
+      <div class="reveal" id="reveal" hidden></div>
+      <div class="tal-cap"><b id="talCap"></b> <span class="mini">stronger talents take more slots (■)</span></div>
+      <div class="tal-slots" id="talSlots"></div>
+      <div id="talentList"></div>
+      <details class="note">
+        <summary>How talents work</summary>
+        <p>Defeating foes earns jade ◆: bigger foes give more, bosses give 120. Kills while training earn a fifth as much as fights you watch, play or battle. Each spin draws one talent: <span id="talOdds"></span>. A purple or better is guaranteed within 30 spins. Duplicates are refunded as jade. You have 10 talent slots: common talents take 1, purple and red ones 2, black ones up to 3. Changes apply from the next fight.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="skinSection" hidden>
+      <div class="panel-head"><h2>Skins</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">Spend jade ◆ on new looks for your fighter. Looks only: skins never change how it fights.</p>
+      <div class="skin-grid" id="skinGrid"></div>
+    </section>
+
+    <section class="panel" id="rewardsPanel" hidden>
+      <div class="panel-head"><h2>Rewards</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="presets" id="presets"></div>
+      <div id="rewardRows"></div>
+      <button id="resetRewards">Reset rewards</button>
+    </section>
+
+    <section class="panel" id="learningPanel" hidden>
+      <div class="panel-head"><h2>Learning</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="row"><label for="lr">Learning rate</label><input type="range" id="lr" min="0.00005" max="0.002" step="0.00005"><output id="lrVal"></output></div>
+      <div class="row"><label for="ent">Curiosity</label><input type="range" id="ent" min="0" max="0.05" step="0.001"><output id="entVal"></output></div>
+      <div class="row"><label for="gamma">Foresight</label><input type="range" id="gamma" min="0.9" max="0.999" step="0.001"><output id="gammaVal"></output></div>
+      <div class="row"><label for="rollout">Learn every</label><input type="range" id="rollout" min="256" max="4096" step="256"><output id="rolloutVal"></output></div>
+      <div class="row inline"><label for="hidden">Network</label><input type="text" id="hidden" spellcheck="false"><button id="applyArch">Apply</button></div>
+      <button class="danger" id="resetAgent">Forget everything</button>
+      <details class="note">
+        <summary>How the learning works</summary>
+        <p>The fighter is one neural network (PPO). Every 1/15 s it reads 52 senses and picks a direction and an action. Rewards from the Rewards section score each moment. After a batch of decisions ("learn every"), it shifts toward choices that turned out better than it expected.</p>
+        <p><b>Curiosity</b> keeps it trying new things. <b>Foresight</b> is how far ahead it values rewards. <b>Network</b> is neurons per hidden layer, e.g. 64,64. Changing it starts over.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="trialsPanel" hidden>
+      <div class="panel-head"><h2>Trials</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div id="trialList"></div>
+    </section>
+
+    <section class="panel" id="onlineSection" hidden>
+      <div class="panel-head"><h2>Online</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini" id="onlineStatus" role="status"></p>
+      <div id="onlineBody"></div>
+    </section>
+
+    <section class="panel" id="killsSection" hidden>
+      <div class="panel-head"><h2>Kills</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini"><b id="killTotal"></b> Everything your fighter (or its summons and allies) has felled, in the worlds, in training and in the fights you watch, play or battle. The finale its special ends with is marked.</p>
+      <div id="killList"></div>
+    </section>
+
+    <section class="panel" id="identitySection" hidden>
+      <div class="panel-head"><h2>Identity</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">Who your fighter is becoming, read from how it actually fights across its lives. You shape it by choosing opponents and rewards; you can't pick it.</p>
+      <div id="traitBars"></div>
+      <div class="id-card" id="awakenCard"></div>
+      <div class="id-card" id="specialCard"></div>
+      <div class="id-card" id="finaleCard"></div>
+      <details class="note">
+        <summary>How identity works</summary>
+        <p><b>Traits</b> drift slowly with every training life: aggression (how much it attacks), defense (guarding and parrying), mobility (moving and rolling), precision (parries, posture breaks and kills per attack), endurance (fighting on at low health, soaking damage) and versatility (using several abilities).</p>
+        <p><b>Awakening</b> appears after 20 lives, shaped by the strongest trait, and only changes if another trait clearly overtakes it. Its gauge fills as the fighter deals and takes damage; when full it awakens for 8 seconds.</p>
+        <p><b>Ultimate Special</b> is forged once the fighter is awakened. It is built from the two abilities it has equipped (or its two most-used, if fewer are equipped): supercharged casts of both, then a finisher that depends on its awakening. Its gauge fills as it deals damage, faster while awakened. At its last stage it adds a finale borrowed from a boss: each boss's first defeat in the worlds unlocks its finale, and you choose which one it ends with.</p>
+      </details>
+    </section>
+
+    <section class="panel" id="brainSection" hidden>
+      <div class="panel-head"><h2>What it's thinking</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="brain">
+        <div><div class="mini">Action</div><div id="actBars"></div></div>
+        <div><div class="mini">Move</div><div id="moveGrid" class="move-grid"></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="savePanel" hidden>
+      <div class="panel-head"><h2>Save / load</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <div class="row inline"><input type="text" id="saveName" placeholder="name" maxlength="24" spellcheck="false"><button id="saveBrain">Save</button></div>
+      <div id="vault"></div>
+      <div class="row inline"><button id="exportBrain">Export file</button><button id="importBtn">Import file</button><input type="file" id="importFile" accept=".json,application/json" hidden></div>
+    </section>
+
+    <section class="panel" id="helpPanel" hidden>
+      <div class="panel-head"><h2>Controls and rules</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p><b>Play:</b> WASD move, J strike, K heavy, Space guard, L kick, Shift roll, Q / E abilities, R restart.</p>
+      <p><b>Keys:</b> T train on/off, P pause.</p>
+      <p><b>Guard</b> blocks but fills posture. Full posture = stunned. Guard right as a hit lands = <b>parry</b>. <b>Heavy</b> breaks blocks but can be parried. <b>Kick</b> goes through guard. <b>Roll</b> repositions (no invincibility). Hits in a row add up to +15% damage.</p>
+      <p><b>Enemy tells:</b> yellow ! strike, orange ! heavy, green ! kick, red !! unblockable.</p>
+    </section>
+  </aside>
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<div class="memory" id="memory" hidden role="dialog" aria-modal="true" aria-labelledby="memTitle">
+  <div class="mem-card">
+    <div class="mem-k" id="memKicker">A memory returns</div>
+    <h2 id="memTitle"></h2>
+    <p class="mem-v" id="memVignette"></p>
+    <p class="mem-f" id="memFragment"></p>
+    <button class="primary" id="memClose">Continue</button>
+  </div>
+</div>
+
+<script src="js/sfx.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/campaign.js"></script>
+<script src="js/lore.js"></script>
+<script src="js/render.js"></script>
+<script src="js/swordfx.js"></script>
+<script src="js/lobby.js"></script>
+<script src="js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/online-config.js"></script>
+<script src="js/online.js"></script>
+<div id="demoControls" style="position:fixed;z-index:9999;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;gap:8px;align-items:center;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><span>Demo fighter is untrained</span></div>
+<script>
+(() => {
+   function fight(boss) {
+     document.getElementById('memory').hidden = true;
+     state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1]));
+     state.campaign.endingReady = false;
+     state.campaign.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'boss',boss,foes:[{type:boss}],time:240}] };
+     startRoom();
+   }
+   document.getElementById('demoArrival').onclick = () => {
+     document.getElementById('memory').hidden = true;
+     state.campaign.run = null; state.campaign.seals.timeadmin = 1;
+     state.campaign.blackSeaArrivalSeen = false;
+     enterWorld('blacksea');
+   };
+   document.getElementById('demoKeeper').onclick = () => fight('timeadmin');
+   document.getElementById('demoYun').onclick = () => fight('unknown');
+   document.getElementById('demoSummit').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); enterSummit(); };
+   document.getElementById('demoEcho').onclick = () => { document.getElementById('memory').hidden = true; const c = state.campaign; c.previousSelf = c.previousSelf || JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })); c.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'echo',foes:[],time:240}] }; startRoom(); };
+   document.getElementById('demoChoice').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); state.campaign.endingReady = true; state.campaign.fourteenthPage = true; setMode('lobby'); openPanel('portalPanel', true); renderPortal(); };
+   document.getElementById('demoArrival').click();
+ })();
+</script>
+</body>
+</html>

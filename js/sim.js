@@ -1682,6 +1682,11 @@ class Sim {
     h.controller = controller; h.card = card || null;
     h.abilities = [0, 1].map(i => HERO_ABILITIES[(o.loadout || [])[i]] || null);
     h.skin = o.skin || null; // its look, bought with jade
+    if (card && card.fighter) { // a saved iteration keeps the body it trained with
+      const f = { ...DEFAULT_FIGHTER, ...card.fighter };
+      h.maxHp = h.hp = f.hp; h.energyMax = h.energy = f.energy;
+      h.energyRegen = f.energyRegen; h.postureMax = f.posture;
+    }
     this.applyTalents(h, o.talents || []);
     const id = o.identity || {};
     h.awaken = AWAKENINGS[id.awaken] || null; h.awakenKey = id.awaken || null;
@@ -2139,7 +2144,7 @@ class Sim {
     const p = tgt || { x: h.x + h.fx * 40, y: h.y + h.fy * 40, fx: h.fx, fy: h.fy, r: 0, team: -1 };
     this.emit('herofinale', h.x, h.y, { boss: h.special.finale });
     switch (h.special.finale) {
-      case 'swordsaint': this.ultStep(h, 'swordRing', { count: 12, dmg: 12, first: 0.2, gap: 0.06 }, p); break;
+      case 'swordsaint': if (h.special.swordUpgrade) this.ultStep(h, 'onesword', { dmg: 45, pct: 0.15 }, p); else this.ultStep(h, 'swordRing', { count: 12, dmg: 12, first: 0.2, gap: 0.06 }, p); break;
       case 'abbot': for (let i = 0; i < 8; i++) this.ultStep(h, 'palmrain', {}, p); break;
       case 'vampirelord': this.ultStep(h, 'drain', { range: 90, dmg: 10 }, p); break;
       case 'deadeye': this.ultStep(h, 'radial', { count: 16, kind: 'bullet', dmg: 10, speed: 220 }, p); break;
@@ -2217,8 +2222,14 @@ class Sim {
       if (!fell && f.def && f.def.pastRevive && !f.pastUsed) {
         f.pastUsed = true;
         f.def = { ...f.def, sprite: 'b_past', sprite2: 'b_past', form2: 'You, From the Past', phasing: 0.15, phasing2: 0.15, glitch: false, anyUlt: false, ult: PAST_ULT, ult2: PAST_ULT, pastRevive: false, statusImmune: true, noFlinch: true }; // what's already happened can't be stunned
-        f.specials = PAST_SPECIALS.map(s => ({ ...s })); f.cds = { ult: 4 }; f.hist = [];
-        f.maxHp = Math.round(f.maxHp * 0.5); f.hp = f.maxHp; f.posture = 0; f.state = 'recover'; f.st = 0.8;
+        if (f.finalKeeper) {
+          const paradox = { name: 'The Life Before', charge: 1.1, dur: 3.4, cd: 14, dark: 'rgba(45,24,38,0.6)', steps: [[0.2, 'pastechoall', { dmg: 17 }], [0.9, 'pastechoall', { dmg: 17 }], [1.6, 'rewindall', {}], [2.0, 'radial', { count: 14, kind: 'clockhand', dmg: 14, speed: 155 }], [2.8, 'pastechoall', { dmg: 17 }]] };
+          f.def = { ...f.def, ult: paradox, ult2: paradox };
+        }
+        f.specials = PAST_SPECIALS.map(s => f.finalKeeper ? { ...s, dmg: s.dmg ? Math.round(s.dmg * 1.2) : s.dmg, cd: s.cd * 0.8 } : { ...s });
+        if (f.finalKeeper) f.specials.push({ id: 'bossrift', kind: 'summon', projection: true, cap: 4, wind: 0.9, recover: 0.55, cd: 11, maxRange: 999 });
+        f.cds = { ult: 4, bossrift: 2.5 }; f.hist = [];
+        f.maxHp = Math.round(f.maxHp * (f.finalKeeper ? 0.7 : 0.5)); f.hp = f.maxHp; f.posture = 0; f.state = 'recover'; f.st = 0.8;
         f.dmgMul = 1.35; f.speedMul = 1.1; f.cdMul = 1; f.past = true; f.phase = 2;
         this.emit('pastself', f.x, f.y, { name: 'YOU, FROM THE PAST', color: '#ffd8a0', lore: 'BEFORE ANY OF IT HAPPENED' });
         continue;
@@ -2269,7 +2280,7 @@ class Sim {
       by.kills++;
       // jade for the hero's side (its summons count; summoned foes are worth nothing)
       if ((by.isPlayer || by.ally) && f.def && f.def.boss && f.summoner == null) this.stats.bossKills[f.type] = (this.stats.bossKills[f.type] || 0) + 1;
-      if ((by.isPlayer || by.ally) && f.type) this.stats.killsByType[f.type] = (this.stats.killsByType[f.type] || 0) + 1; // the record of everything it has felled
+      if ((by.isPlayer || by.ally) && f.type && !f.projection) this.stats.killsByType[f.type] = (this.stats.killsByType[f.type] || 0) + 1; // the record of everything it has felled
       if ((by.isPlayer || by.ally) && f.summoner == null) { this.stats.bounty += bountyOf(f); by.bounty = (by.bounty || 0) + bountyOf(f); }
       if (this.T(by, 'killHeal')) { by.hp = Math.min(by.maxHp, by.hp + 20); by.energy = Math.min(by.energyMax, by.energy + 30); this.emit('heal', by.x, by.y, { n: 20 }); }
     }
@@ -3097,6 +3108,28 @@ class Sim {
     if (w.dmg && w.dmg !== 1) e.tuneDmg = w.dmg;
     if (w.elite) e.elite = true;
     if (w.teacher && e.def.manual) this.makeTeacher(e);
+    if (w.finalKeeper && e.type === 'timeadmin') this.makeFinalKeeper(e);
+    if (w.modifier === 'shielded') { e.maxHp = Math.round(e.maxHp * 1.25); e.hp = e.maxHp; }
+    if (w.modifier === 'swift') e.speedMul *= 1.2;
+    if (w.modifier === 'vampiric') e.def = { ...e.def, lifesteal: true };
+    if (w.modifier === 'explosive') e.def = { ...e.def, volatile: true };
+
+  }
+
+  // A separate reconstruction for the Bottom of the Jar. Never changes the shared enemy definition.
+  makeFinalKeeper(e) {
+    const base = e.def;
+    e.finalKeeper = true;
+    e.maxHp = e.hp = Math.round(e.maxHp * 1.5);
+    e.tuneDmg = (e.tuneDmg || 1) * 1.2;
+    const hands = { id: 'hands', kind: 'shoot', proj: 'clockhand', shots: 3, spread: 0.28, speed: 220, dmg: 14, minRange: 20, maxRange: 170, wind: 0.5, recover: 0.4, cd: 3 };
+    const echo = { id: 'pastecho', kind: 'pastecho', maxRange: 999, wind: 0.65, recover: 0.45, dmg: 18, cd: 6 };
+    e.specials = base.specials.map(sp => sp.id === 'hands' ? hands : sp.id === 'timestop' ? { ...sp, dur: 1.9, cd: 10 } : sp.id === 'rift' ? { ...sp, cd: 4.5 } : sp);
+    e.specials.push(echo); e.cds.pastecho = 2;
+    e.def = { ...base, name: 'The Last Keeper', color: '#e0b778', form2: 'The Finished Gu', lore: 'THE CLOCK RUNS BACKWARD', anyUlt: false,
+      ult: { name: 'The Hour Closes', charge: 1.2, dur: 3.5, cd: 15, dark: 'rgba(35,20,40,0.6)', steps: [[0, 'timefreeze', { dur: 2.2 }], [0.5, 'radial', { count: 10, kind: 'clockhand', dmg: 14, speed: 145 }], [1.4, 'pastechoall', { dmg: 16 }], [2.3, 'radial', { count: 12, kind: 'clockhand', dmg: 14, speed: 165, offset: 0.26 }]] },
+      ult2: { name: 'A Future Already Written', charge: 1.3, dur: 3.8, cd: 14, dark: 'rgba(30,16,45,0.65)', steps: [[0.3, 'pastechoall', { dmg: 16 }], [1.0, 'rewindall', {}], [1.5, 'timefreeze', { dur: 1.4 }], [2.0, 'radial', { count: 16, kind: 'clockhand', dmg: 15, speed: 165 }], [3.0, 'pastechoall', { dmg: 16 }]] },
+      phase2: { ...base.phase2, speedMul: 1.3, cdMul: 0.7, dmgMul: 1.4, add: [{ id: 'yesterday', kind: 'rewindfoe', maxRange: 999, wind: 0.65, recover: 0.45, cd: 9 }], replace: { hands: { ...hands, shots: 5, spread: 0.24 }, timestop: { ...base.specials[0], dur: 2, cd: 9 } } } };
   }
 
   // The Sword Immortal teaching instead of killing: no true damage, slower draws, a lesson for a second form, and he
@@ -3124,6 +3157,24 @@ class Sim {
     if (sd.multicast) m.fateBound = true;
     if (m.def.lifespan && m.life === undefined) m.life = m.def.lifespan; // some summons only last a while // ???'s summons answer to her dice, not to any king
     this.claimSummon(m);
+    return m;
+  }
+
+  // A single, temporary first-form boss echo; it cannot phase, revive, summon, or use ultimates.
+  openBossProjection(owner) {
+    if (this.enemies.some(e => e.summoner === owner.id && e.projection && !e.dead)) return null;
+    const pool = ['warlord', 'abbot', 'vampirelord', 'deadeye', 'lich'];
+    const type = pool[Math.floor(this.rand() * pool.length)], def = ENEMY_TYPES[type];
+    const [x, y] = this.edgePoint(35);
+    const m = this.spawnMinion(type, x, y, owner);
+    if (!m || m.dead) return null;
+    m.projection = true; m.life = 18;
+    m.maxHp = m.hp = Math.max(1, Math.round(m.maxHp * 0.3));
+    m.dmgMul = (m.dmgMul || 1) * 0.55;
+    m.def = { ...m.def, name: def.name + ' Projection', boss: false, phase2: null, ult: null, ult2: null, pastRevive: false, bloodRevive: false, honoredRevive: false };
+    m.specials = def.specials.filter(sp => sp.kind !== 'summon').map(sp => ({ ...sp }));
+    for (const sp of m.specials) m.cds[sp.id] = 1.5;
+    this.emit('rift', x, y);
     return m;
   }
 
@@ -3252,7 +3303,8 @@ class Sim {
       case 'timestop': return d < s.maxRange && !(this.timeStopT > 0);
       case 'summon': {
         if (!!e.broodSpent !== !!s.desperate) return false; // the true brood until she's at death's door, then only the frantic spill
-        const mine = this.enemies.filter(o => o.summoner === e.id).length;
+        const mine = this.enemies.filter(o => o.summoner === e.id && !o.dead).length;
+        if (s.projection && this.enemies.some(o => o.summoner === e.id && o.projection && !o.dead)) return false;
         return mine < (s.cap || 2) + (s.desperate ? 8 : 0) && this.fighters().length < (s.desperate ? 20 : 14); // the spill at death's door goes past the usual limits
       }
       default: return d < s.maxRange && gap > (s.minRange || 0);
@@ -4420,6 +4472,7 @@ class Sim {
       case 'rewind': this.rewind(e); break;
       case 'summon': {
         if (atk.random) { this.openRift(e); break; }
+        if (atk.projection) { this.openBossProjection(e); break; }
         const list = atk.pick ? Array.from({ length: atk.picks || 1 }, () => atk.minions[Math.floor(this.rand() * atk.minions.length)]) : atk.minions;
         for (const type of list) {
           const a = this.rand() * Math.PI * 2;

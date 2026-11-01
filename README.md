@@ -18,14 +18,14 @@ then open http://localhost:8137. No build step and no dependencies: it is plain 
 
 ## The Jar
 
-The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it with him, and he can only leave once he has conquered every one. The full plan (lore, all worlds, balance, what comes next) is in `docs/campaign-plan.md`; this is what is built so far.
+The fighter wakes in a sealed jar with no memory. The gate leads to worlds bound to the jar; their champions hold the seals on its lid. The full plan (lore, all worlds, balance, what comes next) is in `docs/campaign-plan.md`; this is what is built so far.
 
 - **The lobby** is the inside of the jar, drawn like the arena. Click a station and your fighter walks to it (the buttons above the arena do the same):
   - **Portal** (门): the worlds (below).
   - **Memory Pavilion** (忆): a room that reconstructs what you have met. The Training Hall (speeds, chart), watching your fighter, fighting it yourself, Simulation (battle mode), Trials and the Codex, plus the training settings (opponents, rewards, learning, thinking). It can only reconstruct foes you have met in the worlds, so a new fighter meets its first foe there before it can train. Techniques are learned half again faster here than in the worlds, but nothing here feeds the level or pays more than a tenth of a bounty. A ghost of a foe you have met flickers inside it.
   - **Talent Altar** (玉) talents and spins, **Mirror** (镜) skins, **Tally Wall** (刻) level, abilities, identity and kills, **Memory Urns** (瓮) saving and loading fighters, **Resonance Stone** (联) online play.
   - **The lid** overhead wears the fifteen seals as paper talismans; each broken seal is a charred stub. The tally marks on the wall grow with your lives, one for every twenty.
-- **Portal** (门): every world you can see. Any world can be entered, and nothing says how dangerous it is: some are far deadlier than others, and when the fighter is stuck it is up to you to improve it and its build. The three hidden worlds (Cursed Domain, Black Sea, the Pallid Kingdom) only appear once the Timestream's keeper falls.
+- **Portal** (门): every world you can see. Any world can be entered, and nothing says how dangerous it is: some are far deadlier than others, and when the fighter is stuck it is up to you to improve it and its build. The three hidden destinations (Cursed Domain, Black Sea, the Pallid Kingdom) only appear once the Timestream's keeper falls.
 - **A run** is a line of rooms, then the world's bosses. Each room is drawn at random from the world's foes within a threat budget: a skirmish, a pack (up to 4 of one kind), a warband (up to 3 different kinds) or an elite (one foe at 150% health and 120% damage). Bosses always fight alone. Your AI fighter fights every room; between rooms you coach it (abilities, talents, skins), or press **N** for the next room. Every room starts at full health, and a lost room is simply retried (**R**). Runs are kept when you reload.
 - **Rewards:** a room's first clear pays its share of the world's exploration jade (150 to 1200 by tier); a boss's first defeat breaks one of the lid's 15 seals, unlocks its **Transcendence finale** and pays 400 to 2500 jade; a repeat run pays its foes' bounties and a quarter of the exploration jade.
 - **First meetings:** a new foe gets a name card as its room begins, and goes into the **Codex** (典), with its abilities and how many you have felled in the worlds.
@@ -46,6 +46,12 @@ The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it 
 - **The teacher:** in the Myriad Sword Peaks the Sword Immortal is teaching, not killing. His swords are demonstrations: slower to draw, never true damage, never past every defence. His second form is a lesson (the Ninth to the Twelfth Swords, drawn smaller, no Unfinished Manual), and at a tenth of his health he yields: "Enough. That is all you can carry, for now." As he goes he draws one stroke into the sky, and the heavens split, to show what he was holding back. Everywhere else (the Pavilion, battles) he is the Sword Immortal at full strength.
 
 Every world now has foes of its own, including 25 made for the worlds (see **The worlds' own foes** below).
+
+## The final door and New Game+
+
+After all 15 seals break, the portal reveals the Bottom of the Jar and the optional Heaven's End Summit. At the summit, the Sword Immortal fights at full strength; defeating him grants the Fourteenth Page and upgrades his Transcendence finale. After clearing the Bottom, the page unlocks the choice to sheathe the sword and begin a new cycle.
+
+New Game+ keeps the fighter's brain, learned abilities, identity, talents, skins, jade and unlocked finales. Worlds, seals, campaign level, story memories and the page reset. The previous fighter returns at the end of the next cycle. Each cycle increases health and damage, room budgets and first-clear jade, and adds an elite room per populated world; from NG+3 regular foes also have a modifier. Older saves without snapshots can still enter the finale.
 
 ## How it learns
 

@@ -3409,7 +3409,13 @@ class Renderer {
       }
     }
     for (const a of actors) {
-      if (a.p) this.drawHero(sim, a.p, frame);
+      if (a.p) {
+        if (a.p.discarded || a.p.guardianEcho) { this.g.save(); this.g.filter = a.p.guardianEcho ? 'grayscale(1) brightness(0.48)' : 'grayscale(1)'; }
+        this.drawHero(sim, a.p, frame);
+        if (a.p.discarded || a.p.guardianEcho) this.g.restore();
+        if (a.p.guardianEcho) { const x = sx(a.p.x), y = sy(a.p.y); this.g.fillStyle = '#17151b'; this.g.fillRect(x - 8, y - 21, 16, 2); this.g.fillRect(x - 5, y - 24, 10, 3); this.g.fillRect(x - 7, y - 9, 3, 7); this.g.fillRect(x + 4, y - 9, 3, 7); }
+      }
+      else if (a.e.projection) { this.g.save(); this.g.filter = 'grayscale(1) sepia(0.6) hue-rotate(145deg)'; this.drawEnemy(sim, a.e, frame); this.g.restore(); }
       else this.drawEnemy(sim, a.e, frame);
     }
 
@@ -3969,6 +3975,14 @@ class Renderer {
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'post');
     this.drawStatus(sim, e, lift);
     if (def.glitch) this.drawGlitch(sim, e, name, scale, lift, glitching, flip);
+    if (e.finalKeeper) { // a broken gold dial follows every form of the reconstructed keeper
+      const g = this.g, x = sx(e.x), y = sy(e.y) - 18 - lift, a = sim.t * (e.past ? -1.8 : 1.1);
+      g.save(); g.globalAlpha = 0.8; g.fillStyle = '#d7aa67';
+      for (let i = 0; i < 12; i++) { if (i === 3 || i === 8) continue; const q = a + i * Math.PI / 6; g.fillRect(Math.round(x + Math.cos(q) * 13), Math.round(y + Math.sin(q) * 13), 2, 2); }
+      g.fillStyle = '#f5dfaf'; g.fillRect(Math.round(x - 1), Math.round(y - 15), 3, 3);
+      g.fillStyle = '#a36b50'; g.fillRect(Math.round(x - 6), Math.round(y + 10), 12, 2);
+      g.restore();
+    }
     if (e.state === 'wind' && e.atk && e.atk.weapon) this.drawWeapon(sim, e, scale, lift);
     if (name === 'b_mystery' && !(e.frozenT > 0)) { // eyes glinting in the shadow of the brim
       const sp = SPRITE_CACHE[name], w = Math.round(sp.w * scale), hh = Math.round(sp.h * scale);
