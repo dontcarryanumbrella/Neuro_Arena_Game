@@ -86,8 +86,8 @@ async function refreshOnline() {
 
 // ---------- your fighter, as others will meet it ----------
 function myCard() {
-  return { name: Online.me.username, userId: Online.user.id, agent: state.agent.toJSON(), loadout: state.loadout.slice(),
-    talents: state.talents.equipped.slice(), identity: identityOpts(), skin: state.skins.equipped };
+  return { name: Online.me.username, userId: Online.user.id, agent: state.agent.toJSON({ small: true, actorOnly: true }), loadout: state.loadout.slice(), // only what it takes to fight, compact
+    talents: state.talents.equipped.slice(), race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped };
 }
 async function uploadCard() {
   const { error } = await Online.client.from('fighters').upsert({ owner: Online.user.id, card: myCard(), updated_at: new Date().toISOString() });

@@ -5,6 +5,7 @@
 const STATIONS = [
   { id: 'portal', name: 'PORTAL', desc: 'Enter a world', panel: 'portalPanel', rect: [104, 26, 152, 84], at: [128, 92] },
   { id: 'pavilion', name: 'MEMORY PAVILION', desc: 'Train, spar, simulate', panel: 'pavilionPanel', rect: [46, 44, 96, 86], at: [70, 94] },
+  { id: 'hearth', name: 'ANCESTRAL HEARTH', desc: 'Spin and choose a race', panel: 'raceSection', rect: [158, 48, 203, 104], at: [181, 105] },
   { id: 'altar', name: 'TALENT ALTAR', desc: 'Talents and spins', panel: 'talentSection', rect: [166, 106, 196, 134], at: [160, 124] },
   { id: 'mirror', name: 'MIRROR', desc: 'Skins', panel: 'skinSection', rect: [212, 46, 242, 88], at: [222, 98] },
   { id: 'tally', name: 'TALLY WALL', desc: 'Level, abilities, identity', panel: 'tallyPanel', rect: [4, 26, 46, 80], at: [30, 98] },
@@ -201,7 +202,7 @@ class Lobby {
     }
     g.globalAlpha = 1;
     this.drawUrnGlow(g, t);
-    this.drawHero(dt, info.skin);
+    this.drawHero(dt, info.skin, info.race);
     // firelight over everything near the hearth, breathing with the flames
     g.save(); g.globalCompositeOperation = 'lighter';
     const fl = g.createRadialGradient(HEARTH.x, HEARTH.y - 6, 4, HEARTH.x, HEARTH.y - 6, 90);
@@ -326,7 +327,7 @@ class Lobby {
     }
   }
 
-  drawHero(dt, skin) {
+  drawHero(dt, skin, race) {
     const h = this.hero, dx = h.tx - h.x, dy = h.ty - h.y, d = Math.hypot(dx, dy), speed = 70;
     let walking = false;
     if (d > 0.5) {
@@ -339,5 +340,6 @@ class Lobby {
     const s = SPRITE_CACHE[skinSprite(pose, skin)], g = this.r.g;
     g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(Math.round(h.x - 4), Math.round(h.y), 9, 1);
     g.drawImage(h.flip ? s.f : s.n, Math.round(h.x - s.w / 2), Math.round(h.y - s.h + 1));
+    drawRaceFeatures(g, race, h.x, h.y, 1, h.flip);
   }
 }

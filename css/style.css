@@ -307,3 +307,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .memory-item p { font-size: 13px; margin: 6px 0; }
 .memory-item .mem-f { margin: 6px 0 8px; }
 .cx-lore { display: block; font-style: italic; color: #6b4a2f; font-size: 12px; margin: 1px 0 2px; }
+
+/* The hearth: unlocked lineages and their tradeoffs */
+.race-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-left: 4px solid; padding: 7px 8px; margin: 4px 0; background: var(--soft); border-radius: 4px; }
+.race-row button { flex: 0 0 auto; }
+
+.race-preview { width: 50px; height: 50px; image-rendering: pixelated; flex: 0 0 50px; border-radius: 4px; }
+.race-copy { flex: 1; }
+
+#endingArt { display: block; width: 100%; height: auto; image-rendering: pixelated; margin: 8px 0; border-radius: 5px; }
+#endingArt[hidden] { display: none; }

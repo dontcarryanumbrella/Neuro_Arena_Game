@@ -20,6 +20,42 @@ function gaussian(rand) {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+// ---------- compact weights for saving ----------
+// A layer's weights as base64: the float32 bytes themselves (exact), or 16-bit integers with one scale per layer
+// (a quarter of the old text size, for brains that only need to fight: snapshots, past selves, online cards).
+// Old saves wrote plain arrays of numbers; those still load.
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+function bytesToB64(u8) {
+  let s = '';
+  for (let i = 0; i < u8.length; i += 3) {
+    const n = (u8[i] << 16) | ((u8[i + 1] || 0) << 8) | (u8[i + 2] || 0);
+    s += B64[n >> 18 & 63] + B64[n >> 12 & 63] + (i + 1 < u8.length ? B64[n >> 6 & 63] : '=') + (i + 2 < u8.length ? B64[n & 63] : '=');
+  }
+  return s;
+}
+function b64ToBytes(s) {
+  const len = s.length / 4 * 3 - (s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0), out = new Uint8Array(len);
+  for (let i = 0, j = 0; i < s.length; i += 4) {
+    const n = (B64.indexOf(s[i]) << 18) | (B64.indexOf(s[i + 1]) << 12) | ((B64.indexOf(s[i + 2]) & 63) << 6) | (B64.indexOf(s[i + 3]) & 63);
+    if (j < len) out[j++] = n >> 16 & 255;
+    if (j < len) out[j++] = n >> 8 & 255;
+    if (j < len) out[j++] = n & 255;
+  }
+  return out;
+}
+function packFloats(arr, small) {
+  if (!small) return { f: bytesToB64(new Uint8Array(Float32Array.from(arr).buffer)) };
+  let m = 0;
+  for (const v of arr) m = Math.max(m, Math.abs(v));
+  const q = m / 32767 || 1;
+  return { q, i: bytesToB64(new Uint8Array(Int16Array.from(arr, v => Math.round(v / q)).buffer)) };
+}
+function unpackFloats(o) {
+  if (Array.isArray(o)) return o; // an old save
+  if (o.f) return new Float32Array(b64ToBytes(o.f).buffer);
+  return Float32Array.from(new Int16Array(b64ToBytes(o.i).buffer), v => v * o.q);
+}
+
 // Fully connected network: tanh hidden layers, linear output, with backprop and Adam.
 class MLP {
   constructor(sizes, rand, outScale = 1) {
@@ -111,15 +147,14 @@ class MLP {
     }
   }
 
-  toJSON() {
-    const r = a => Array.from(a, x => Math.round(x * 1e5) / 1e5);
-    return { sizes: this.sizes, W: this.W.map(r), b: this.b.map(r) };
+  toJSON(small = false) {
+    return { sizes: this.sizes, W: this.W.map(w => packFloats(w, small)), b: this.b.map(b => packFloats(b, small)) };
   }
 
   static fromJSON(o) {
     const m = new MLP(o.sizes, null);
-    o.W.forEach((w, l) => m.W[l].set(w));
-    o.b.forEach((b, l) => m.b[l].set(b));
+    o.W.forEach((w, l) => m.W[l].set(unpackFloats(w)));
+    o.b.forEach((b, l) => m.b[l].set(unpackFloats(b)));
     return m;
   }
 }
@@ -279,12 +314,17 @@ class PPOAgent {
     this.lastStats = { entropy: entSum / count, kl: klSum / count, valueLoss: vlSum / count, clipFrac: clipped / count };
   }
 
-  toJSON() { return { cfg: this.cfg, actor: this.actor.toJSON(), critic: this.critic.toJSON(), updates: this.updates, steps: this.steps }; }
+  // { small: 16-bit weights, actorOnly: just what it takes to fight (no critic, so it can't go on learning) }
+  toJSON(opts = {}) {
+    const o = { cfg: this.cfg, actor: this.actor.toJSON(opts.small), updates: this.updates, steps: this.steps };
+    if (!opts.actorOnly) o.critic = this.critic.toJSON(opts.small);
+    return o;
+  }
 
   static fromJSON(o) {
     const a = new PPOAgent(o.cfg);
     a.actor = MLP.fromJSON(o.actor);
-    a.critic = MLP.fromJSON(o.critic);
+    if (o.critic) a.critic = MLP.fromJSON(o.critic);
     a.updates = o.updates || 0; a.steps = o.steps || 0;
     return a;
   }

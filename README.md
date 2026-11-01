@@ -47,6 +47,16 @@ The fighter wakes in a sealed jar with no memory. The gate leads to worlds bound
 
 Every world now has foes of its own, including 25 made for the worlds (see **The worlds' own foes** below).
 
+## Campaign arenas
+
+Every campaign destination has its own pixel scene behind the stage, its own ground and its own floor, and something that moves while you fight: vultures over the frontier sunset, incense and red dust at the temple, bats across the moon, snow and a passing flying sword over the peaks, embers in the Abyss, falling petals on the Isles, a crane over the celestial palace, light flowing down the Timestream past turning clock hands, curses drifting under the Cursed Domain's dome, a ferry lamp crossing the Black Sea, black stars over the Pallid Kingdom, dust in the light at the Bottom of the Jar, and the split sky at Heaven's End. The two ending scenes have their own illustrations. The stage keeps the same combat boundary everywhere. `tests/arenas-preview.html` shows them all, animated.
+
+Each also has its own **music**: a slide-guitar twang and a shaker on the frontier, temple bells and a wooden fish, a music box over an organ in the Night Country, a bamboo flute on the peaks, war drums under a tritone in the Abyss, a koto on the Isles, bright bells in the heavens, a ticking clock in the Timestream, a heartbeat in the Cursed Domain, near-silence on the Black Sea, an out-of-tune bell and a choir in the Pallid Kingdom. The jar, the lobby and the Pavilion keep the guzheng. Changing place crossfades.
+
+## Races at the hearth
+
+Click the fireplace in the jar to open the Ancestral Hearth. A race spin costs 100 jade and uses the same White through Black rarity odds as talents, with a separate 30-spin Purple-or-better guarantee. Duplicate races return jade; unlocked races can be equipped freely. Each lineage has its own appearance and a small leaning, never a power: one or two modest strengths for a modest cost (for example Windkin, +4% speed and 10% shorter roll cooldown for -6 health). No race uses a talent's signature effect, and none of its numbers is as large as the talent that grants the same thing; rarer races are more particular, not much stronger. One can be equipped at a time. Race effects stack with talents and apply to the next fight, including training and online matches. Existing fighters begin as Unformed.
+
 ## The final door and New Game+
 
 After all 15 seals break, the portal reveals the Bottom of the Jar and the optional Heaven's End Summit. At the summit, the Sword Immortal fights at full strength; defeating him grants the Fourteenth Page and upgrades his Transcendence finale. After clearing the Bottom, the page unlocks the choice to sheathe the sword and begin a new cycle.
@@ -438,7 +448,7 @@ Every foe has a stride, a wind-up and a swing. The newer ones are hand-drawn (th
 
 Every ability has its own wind-up, release and impact effects, and sounds synthesized in the browser (no audio files). Sound plays only while you watch at 4x or slower; toggle it with the Sound button.
 
-Ambient music (a drone, pad chords, wind and a guzheng-like melody in D pentatonic) is also generated live; toggle it with the Music button. Audio starts after your first click, as browsers require.
+Ambient music (a drone, pad chords, wind and a melody on each place's own instrument; the jar's is a guzheng in D pentatonic) is also generated live; toggle it with the Music button. Audio starts after your first click, as browsers require.
 
 ## Files
 
@@ -454,5 +464,5 @@ Ambient music (a drone, pad chords, wind and a guzheng-like melody in D pentaton
 - `js/main.js`: UI, speeds, chart, settings, trials, battles, save/load
 - `serve.py`: local server that never caches, so changes show up on reload
 
-Progress autosaves to the browser's localStorage.
+Progress autosaves to the browser's localStorage. Brains are stored compactly: the fighter's own exactly, in packed binary; the earlier selves kept for the Bottom of the Jar (and online fighter cards) as fighting-only 16-bit copies, about a sixth of the old size. A save that passed a life milestone before snapshots existed keeps one of the fighter as it is when it loads.
 

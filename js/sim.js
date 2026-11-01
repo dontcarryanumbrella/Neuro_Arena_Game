@@ -1313,6 +1313,27 @@ const TIERS = [
   { name: 'White', color: '#d8d8d8', odds: 40 }, { name: 'Green', color: '#4caf50', odds: 28 }, { name: 'Blue', color: '#3f8ae0', odds: 18 },
   { name: 'Purple', color: '#9b59d6', odds: 9 }, { name: 'Red', color: '#e0412b', odds: 4 }, { name: 'Black', color: '#141414', odds: 1 },
 ];
+// Races are a separate collection; their modifiers stack with equipped talents.
+// Races are a separate collection, and deliberately small: each is a lineage's leaning, not a power. A race gives
+// one or two modest strengths for a modest cost, uses no talent's signature effect, and no single number reaches
+// the size of the talent that grants it. Rarer races are more particular, not much stronger.
+const RACES = [
+  { id: 'unformed', name: 'Unformed', tier: -1, desc: 'The Gu before it takes a lineage. No bonuses or drawbacks.', mods: {} },
+  { id: 'human', name: 'Human', tier: 0, desc: 'Adaptable: +6 energy and +5% energy regeneration.', mods: { energy: 6, regen: 0.05 } },
+  { id: 'stoneborn', name: 'Stoneborn', tier: 0, desc: 'A clay body: +8 posture and +5 health, but 4% slower.', mods: { posture: 8, hp: 5, speed: -0.04 } },
+  { id: 'windkin', name: 'Windkin', tier: 1, desc: 'Light on its feet: +4% speed and 10% shorter roll cooldown, but -6 health.', mods: { speed: 0.04, rollCd: -0.1, hp: -6 } },
+  { id: 'ironblood', name: 'Ironblood', tier: 1, desc: 'Hard-hitting: +7% heavy damage and +10% kick posture damage, but 5% slower energy regeneration.', mods: { heavyDmg: 0.07, kickPosture: 0.1, regen: -0.05 } },
+  { id: 'moonfang', name: 'Moonfang', tier: 2, desc: 'Hungry: heals 3% of damage dealt, but takes 4% more damage.', mods: { lifesteal: 0.03, dmgTaken: 0.04 } },
+  { id: 'riverfolk', name: 'Riverfolk', tier: 2, desc: 'Yielding: guarding costs 10% less posture and parry windows are 10% longer, but heavies deal 5% less.', mods: { blockPosture: -0.1, parryWin: 0.1, heavyDmg: -0.05 } },
+  { id: 'ashen', name: 'Ashen', tier: 3, desc: 'Burns low: +10% damage below 40% health and +5% energy regeneration, but -8 health.', mods: { lowHpDmg: 0.1, regen: 0.05, hp: -8 } },
+  { id: 'mirrorborn', name: 'Mirrorborn', tier: 3, desc: 'Answers in kind: +5% strike damage and +3% combo cap, but -8 posture.', mods: { strikeDmg: 0.05, comboCap: 0.03, posture: -8 } },
+  { id: 'dragonkin', name: 'Dragonkin', tier: 4, desc: 'Scaled: +8 health, +6% heavy damage and +6% posture damage, but rolls recover 10% slower.', mods: { hp: 8, heavyDmg: 0.06, postureDmg: 0.06, rollCd: 0.1 } },
+  { id: 'voidwalker', name: 'Voidborn', tier: 4, desc: 'Half elsewhere: abilities recover 10% faster and +4% speed, but -10 health.', mods: { abilityCd: -0.1, speed: 0.04, hp: -10 } },
+  { id: 'celestial', name: 'Celestial', tier: 5, desc: 'Of the upper heavens: +5% damage and 5% less damage taken, but 10% slower energy regeneration.', mods: { allDmg: 0.05, dmgTaken: -0.05, regen: -0.1 } },
+  { id: 'hollow', name: 'Hollow Gu', tier: 5, desc: 'Feeds as it fights: heals 4% of damage dealt and abilities recover 8% faster, but takes 6% more damage.', mods: { lifesteal: 0.04, abilityCd: -0.08, dmgTaken: 0.06 } },
+];
+const RACE_BY_ID = Object.fromEntries(RACES.map(r => [r.id, r]));
+
 const TALENTS = [
   { id: 'ironskin', tier: 0, name: 'Iron Skin', desc: '+15 max health', mods: { hp: 15 } },
   { id: 'deepbreath', tier: 0, name: 'Deep Breath', desc: '+15 max energy', mods: { energy: 15 } },
@@ -1687,7 +1708,7 @@ class Sim {
       h.maxHp = h.hp = f.hp; h.energyMax = h.energy = f.energy;
       h.energyRegen = f.energyRegen; h.postureMax = f.posture;
     }
-    this.applyTalents(h, o.talents || []);
+    this.applyTalents(h, o.talents || [], o.race);
     const id = o.identity || {};
     h.awaken = AWAKENINGS[id.awaken] || null; h.awakenKey = id.awaken || null;
     h.special = id.special || null;
@@ -1697,14 +1718,16 @@ class Sim {
   }
 
   // Sum up equipped talents into one modifier table and apply the stat ones.
-  applyTalents(h, ids) {
-    const tal = {};
+  applyTalents(h, ids, raceId) {
+    const race = RACE_BY_ID[raceId] || RACE_BY_ID.unformed;
+    h.race = race.id;
+    const tal = { ...race.mods };
     for (const id of ids) {
       const t = TALENT_BY_ID[id];
       if (t) for (const [k, v] of Object.entries(t.mods)) tal[k] = (tal[k] || 0) + v;
     }
     h.tal = tal;
-    h.maxHp = Math.round((h.maxHp + (tal.hp || 0)) * (1 + (tal.hpPct || 0))); h.hp = h.maxHp;
+    h.maxHp = Math.max(1, Math.round((h.maxHp + (tal.hp || 0)) * (1 + (tal.hpPct || 0)))); h.hp = h.maxHp;
     h.energyMax += tal.energy || 0; h.energy = h.energyMax;
     h.postureMax += tal.posture || 0;
     h.energyRegen *= 1 + (tal.regen || 0);
@@ -2450,7 +2473,7 @@ class Sim {
         if (!dx && !dy) { dx = -f.fx; dy = -f.fy; }
         const d = Math.hypot(dx, dy) || 1;
         f.rdx = dx / d; f.rdy = dy / d;
-        f.state = 'roll'; f.st = P.rollTime; f.cds.roll = P.rollCd * (1 + this.T(f, 'rollCd')); f.rollMul = 1;
+        f.state = 'roll'; f.st = P.rollTime; f.cds.roll = P.rollCd * Math.max(0.1, 1 + this.T(f, 'rollCd')); f.rollMul = 1;
         if (this.T(f, 'flashStep')) this.flashStep(f);
         if (this.T(f, 'shadowClone')) this.shadowClone(f);
         if (f === this.p) this.stats.rolls++;
@@ -2468,7 +2491,7 @@ class Sim {
   useAbility(f, slot) {
     const ab = f.abilities[slot];
     if (!ab || f.abCd[slot] > 0 || !this.spend(f, this.T(f, 'abilityFree') ? 0 : ab.cost)) return false;
-    f.abCd[slot] = ab.cd * (1 + this.T(f, 'abilityCd'));
+    f.abCd[slot] = ab.cd * Math.max(0.1, 1 + this.T(f, 'abilityCd'));
     if (f === this.p) { const u = this.stats.abilUses; u[ab.from] = (u[ab.from] || 0) + 1; }
     f.lastAbility = ab; // (the Glitch is watching)
     this.startAttack(f, ab.atk);

@@ -38,6 +38,7 @@
     <nav class="dock" id="dock" aria-label="Stations of the jar">
       <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
       <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+      <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
       <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
       <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
       <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
@@ -210,6 +211,16 @@
       </details>
     </section>
 
+    <section class="panel" id="raceSection" hidden>
+      <div class="panel-head"><h2>Ancestral Hearth</h2><button data-close aria-label="Close">×</button></div>
+      <p class="mini">The fire reveals lineages from the worlds in the jar. Each gives your fighter a different way to fight. One race can be equipped at a time; changes take effect in the next fight.</p>
+      <div id="raceCurrent" class="id-card"></div>
+      <div class="row spin-row"><button class="primary" id="raceSpin">Spin race · ◆ 100</button><span id="racePity" class="mini"></span></div>
+      <div class="reveal" id="raceReveal" hidden aria-live="polite"></div>
+      <p class="mini">Same odds as talents: White 40%, Green 28%, Blue 18%, Purple 9%, Red 4%, Black 1%. Purple or better within 30 race spins. Duplicates refund jade. Unlocked races can be equipped again for free.</p>
+      <div id="raceList"></div>
+    </section>
+
     <section class="panel" id="skinSection" hidden>
       <div class="panel-head"><h2>Skins</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
       <p class="mini">Spend jade ◆ on new looks for your fighter. Looks only: skins never change how it fights.</p>
@@ -301,6 +312,7 @@
   <div class="mem-card">
     <div class="mem-k" id="memKicker">A memory returns</div>
     <h2 id="memTitle"></h2>
+    <canvas id="endingArt" width="256" height="96" hidden aria-label="Ending scene"></canvas>
     <p class="mem-v" id="memVignette"></p>
     <p class="mem-f" id="memFragment"></p>
     <button class="primary" id="memClose">Continue</button>
@@ -313,21 +325,60 @@
 <script src="js/campaign.js"></script>
 <script src="js/lore.js"></script>
 <script src="js/render.js"></script>
+<script src="js/arenas.js"></script>
 <script src="js/swordfx.js"></script>
 <script src="js/lobby.js"></script>
 <script src="js/main.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/online-config.js"></script>
 <script src="js/online.js"></script>
-<div id="demoControls" style="position:fixed;z-index:9999;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;gap:8px;align-items:center;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><span>Demo fighter is untrained</span></div>
+<div id="demoControls" style="position:fixed;z-index:9999;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;min-width:70%;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><button id="demoJade">Demo jade</button><button id="demoRaces">Preview races</button><label>Map <select id="demoWorld"><option value="">Choose map</option><option value="frontier">Last Frontier</option><option value="temple">Red Dust Temple</option><option value="night">Night Country</option><option value="peaks">Myriad Sword Peaks</option><option value="abyss">Netherworld Abyss</option><option value="isles">Eastern Isles</option><option value="heavens">Nine Heavens</option><option value="timestream">Timestream</option><option value="cursed">Cursed Domain</option><option value="blacksea">Black Sea</option><option value="pallid">Pallid Kingdom</option><option value="bottom">Bottom of the Jar</option><option value="summit">Heaven's End</option></select></label><button id="demoPhase">Next form</button><button id="demoUlt">Play ultimate</button><button id="demoFinish">Finish fight</button><button id="demoEnding">Door ending</button><span id="demoStatus">Immortal dummy · use controls to advance forms</span></div>
 <script>
 (() => {
+   function hideDemoPanels() {
+     document.querySelectorAll('#drawer .panel').forEach(p => { p.hidden = true; });
+     document.querySelector('.layout').classList.remove('panel-open');
+   }
+   function installDummy() {
+     const sim = state.view.sim, p = sim.p;
+     sim.timeLimit = 86400; sim.demoDummy = true;
+     const resolve = sim.resolveFalls.bind(sim);
+     sim.resolveFalls = () => { p.hp = p.maxHp; p.x = 0; p.y = 0; p.kvx = p.kvy = 0; resolve(); p.hp = p.maxHp; };
+     const step = sim.step.bind(sim);
+     sim.step = () => step([0, 0, -1, -1, -1, -1, -1, -1, -1]);
+     document.getElementById('demoStatus').textContent = 'Immortal dummy · use controls to advance forms';
+   }
+   function bossNow() { return state.view.sim && state.view.sim.enemies.find(e => e.def && e.def.boss && !e.dead); }
+   function status(text) { document.getElementById('demoStatus').textContent = text; }
+   document.getElementById('demoPhase').onclick = () => {
+     const sim = state.view.sim, boss = bossNow();
+     if (!boss) { status('Wait for the boss to enter, then try again'); return; }
+     if (boss.phase === 1) { boss.hp = Math.min(boss.hp, boss.maxHp * 0.45); status('Advancing to the second form'); }
+     else if (boss.type === 'timeadmin' && !boss.pastUsed && boss.phase === 2) { boss.hp = 0; status('Advancing to the past form'); }
+     else status(boss.phase === 1.5 ? 'Transformation in progress' : 'No further form');
+   };
+   document.getElementById('demoUlt').onclick = () => {
+     const sim = state.view.sim, boss = bossNow();
+     if (!boss || !boss.def.ult) { status('Wait for the boss to enter, then try again'); return; }
+     if (boss.phase === 1.5 || boss.state === 'ult') { status('Wait for the current animation'); return; }
+     sim.startUlt(boss); status('Playing the current form’s ultimate');
+   };
+   document.getElementById('demoFinish').onclick = () => {
+     const sim = state.view.sim, boss = bossNow();
+     if (!boss) { status('Wait for the boss to enter, then try again'); return; }
+     if (boss.def.manual) {
+       if (boss.phase === 1) { boss.phase = 1.5; boss.state = 'transform'; boss.st = 0; sim.updateTransform(boss); }
+       else if (boss.phase === 1.5) { boss.st = 0; sim.updateTransform(boss); }
+       boss.hp = 1; boss.deathBound = true; sim.startUlt(boss); status('The Thirteenth Sword');
+     } else if (boss.type === 'timeadmin' && !boss.pastUsed) { boss.hp = 0; status('The keeper returns in the past form'); }
+     else { boss.hp = 0; status('Finishing the fight'); }
+   };
    function fight(boss) {
-     document.getElementById('memory').hidden = true;
+     hideDemoPanels(); document.getElementById('memory').hidden = true;
      state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1]));
      state.campaign.endingReady = false;
      state.campaign.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'boss',boss,foes:[{type:boss}],time:240}] };
-     startRoom();
+     startRoom(); installDummy();
    }
    document.getElementById('demoArrival').onclick = () => {
      document.getElementById('memory').hidden = true;
@@ -337,10 +388,20 @@
    };
    document.getElementById('demoKeeper').onclick = () => fight('timeadmin');
    document.getElementById('demoYun').onclick = () => fight('unknown');
-   document.getElementById('demoSummit').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); enterSummit(); };
+   document.getElementById('demoSummit').onclick = () => { hideDemoPanels(); document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); enterSummit(); installDummy(); };
+   document.getElementById('demoWorld').onchange = event => {
+     const id = event.target.value; if (!id) return;
+     if (id === 'summit') { document.getElementById('demoSummit').click(); return; }
+     if (id === 'bottom') { document.getElementById('demoKeeper').click(); return; }
+     hideDemoPanels(); document.getElementById('memory').hidden = true;
+     state.campaign.seals.timeadmin = 1; state.campaign.run = buildRun(id, 481, 0); startRoom(); installDummy();
+   };
+   document.getElementById('demoEnding').onclick = () => { hideDemoPanels(); showDoorEnding(); };
+   document.getElementById('demoRaces').onclick = () => { document.getElementById('memory').hidden = true; state.view.paused = false; state.race.owned = Object.fromEntries(RACES.map(r => [r.id, 1])); setMode('lobby'); openPanel('raceSection', true); };
+   document.getElementById('demoJade').onclick = () => { state.jade += 1000; refreshJade(); saveStore(); };
    document.getElementById('demoEcho').onclick = () => { document.getElementById('memory').hidden = true; const c = state.campaign; c.previousSelf = c.previousSelf || JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })); c.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'echo',foes:[],time:240}] }; startRoom(); };
    document.getElementById('demoChoice').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); state.campaign.endingReady = true; state.campaign.fourteenthPage = true; setMode('lobby'); openPanel('portalPanel', true); renderPortal(); };
-   document.getElementById('demoArrival').click();
+   document.getElementById('demoSummit').click();
  })();
 </script>
 </body>

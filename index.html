@@ -38,6 +38,7 @@
     <nav class="dock" id="dock" aria-label="Stations of the jar">
       <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
       <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+      <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
       <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
       <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
       <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
@@ -210,6 +211,16 @@
       </details>
     </section>
 
+    <section class="panel" id="raceSection" hidden>
+      <div class="panel-head"><h2>Ancestral Hearth</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
+      <p class="mini">The fire reveals lineages from the worlds in the jar. Each gives your fighter a different way to fight. One race can be equipped at a time; changes take effect in the next fight.</p>
+      <div id="raceCurrent" class="id-card"></div>
+      <div class="row spin-row"><button class="primary" id="raceSpin">Spin race · ◆ 100</button><span id="racePity" class="mini"></span></div>
+      <div class="reveal" id="raceReveal" hidden aria-live="polite"></div>
+      <p class="mini">Same odds as talents: White 40%, Green 28%, Blue 18%, Purple 9%, Red 4%, Black 1%. Purple or better within 30 race spins. Duplicates refund jade. Unlocked races can be equipped again for free.</p>
+      <div id="raceList"></div>
+    </section>
+
     <section class="panel" id="skinSection" hidden>
       <div class="panel-head"><h2>Skins</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
       <p class="mini">Spend jade ◆ on new looks for your fighter. Looks only: skins never change how it fights.</p>
@@ -301,6 +312,7 @@
   <div class="mem-card">
     <div class="mem-k" id="memKicker">A memory returns</div>
     <h2 id="memTitle"></h2>
+    <canvas id="endingArt" width="256" height="96" hidden aria-label="Ending scene"></canvas>
     <p class="mem-v" id="memVignette"></p>
     <p class="mem-f" id="memFragment"></p>
     <button class="primary" id="memClose">Continue</button>
@@ -313,6 +325,7 @@
 <script src="js/campaign.js"></script>
 <script src="js/lore.js"></script>
 <script src="js/render.js"></script>
+<script src="js/arenas.js"></script>
 <script src="js/swordfx.js"></script>
 <script src="js/lobby.js"></script>
 <script src="js/main.js"></script>

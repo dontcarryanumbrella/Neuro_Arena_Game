@@ -50,6 +50,7 @@ const state = {
   trials: {}, vault: [],
   jade: 0, talents: { owned: {}, equipped: [], pity: 0, spins: 0 }, killCounts: {},
   skins: { owned: { classic: 1 }, equipped: 'classic' },
+  race: { owned: { unformed: 1 }, equipped: 'unformed', pity: 0, spins: 0 },
   identity: freshIdentity(),
   campaign: freshCampaign(), // the jar: worlds, seals, finales and the run in progress
   rateLog: [],
@@ -136,7 +137,7 @@ function freshIdentity() {
 
 // everything about the fighter besides its brain: what it has learned, its loadout, identity, talents, jade and skins
 const profile = () => ({ mastery: state.mastery, abStats: state.abStats, loadout: state.loadout, manual: state.cfg.manual, abilityMode: state.cfg.abilityMode,
-  jade: state.jade, talents: state.talents, identity: state.identity, skins: state.skins, livesTotal: state.livesTotal, killCounts: state.killCounts, campaign: state.campaign });
+  jade: state.jade, talents: state.talents, identity: state.identity, skins: state.skins, race: state.race, livesTotal: state.livesTotal, killCounts: state.killCounts, campaign: state.campaign });
 
 // take a profile in (from the browser's save or a file), keeping only what this version of the game still has
 function applyProfile(saved) {
@@ -147,6 +148,8 @@ function applyProfile(saved) {
   if (saved.abilityMode === 'auto' || saved.abilityMode === 'manual') state.cfg.abilityMode = saved.abilityMode;
   state.cfg.manual = (state.cfg.manual || [null, null]).map(t => HERO_ABILITIES[t] ? t : null);
   state.jade = saved.jade || 0;
+  const raceSave = saved.race || {}, raceOwned = { unformed: 1, ...Object.fromEntries(Object.keys(raceSave.owned || {}).filter(id => RACE_BY_ID[id]).map(id => [id, 1])) };
+  state.race = { owned: raceOwned, equipped: raceOwned[raceSave.equipped] ? raceSave.equipped : 'unformed', pity: Math.max(0, Math.min(29, Number(raceSave.pity) || 0)), spins: Math.max(0, Number(raceSave.spins) || 0) };
   state.killCounts = Object.fromEntries(Object.entries(saved.killCounts || {}).filter(([t, n]) => ENEMY_TYPES[t] && n > 0));
   state.campaign = loadCampaign(saved.campaign, state.killCounts);
   state.codexDirty = true;
@@ -178,7 +181,7 @@ function saveStore() {
       lives: state.lives.slice(-3000).map(packLife), livesTotal: state.livesTotal,
       trials: state.trials, vault: state.vault,
       mastery: state.mastery, abStats: state.abStats, loadout: state.loadout,
-      jade: state.jade, talents: state.talents, identity: state.identity, skins: state.skins, killCounts: state.killCounts, campaign: state.campaign,
+      jade: state.jade, talents: state.talents, identity: state.identity, skins: state.skins, race: state.race, killCounts: state.killCounts, campaign: state.campaign,
     }));
   } catch (e) { /* storage unavailable or full: learning still works */ }
 }
@@ -187,10 +190,33 @@ function loadStore() {
   try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
 
+// a saved brain this version can use (a fighting-only brain carries no critic)
 function validAgentJSON(o) {
-  if (!o || !o.actor || !o.critic) return false;
+  if (!o || !o.actor) return false;
   const s = o.actor.sizes;
-  return s[0] === N_INPUTS && s[s.length - 1] === N_MOVE + N_ACT && o.critic.sizes[0] === N_INPUTS;
+  return s[0] === N_INPUTS && s[s.length - 1] === N_MOVE + N_ACT && (!o.critic || o.critic.sizes[0] === N_INPUTS);
+}
+
+// The fighter as it is now, kept to be fought later (an earlier life, or the self that chose to stay): only what it
+// needs to fight, its brain in compact 16-bit form.
+const LIFE_MILESTONES = [50, 200, 500, 1000, 2000, 5000];
+function fighterSnapshot() {
+  return JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON({ small: true, actorOnly: true }), fighter: state.cfg.fighter, loadout: state.loadout,
+    talents: state.talents.equipped, race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped }));
+}
+function keepSnapshot() {
+  state.campaign.snapshots.push(fighterSnapshot());
+  state.campaign.snapshots = state.campaign.snapshots.slice(-6);
+}
+// A save that already passed a milestone without a snapshot of it (older saves) keeps one of the fighter as it is now.
+function catchUpSnapshot() {
+  const passed = LIFE_MILESTONES.filter(m => m <= (state.livesTotal || 0)), last = passed[passed.length - 1];
+  if (last && !state.campaign.snapshots.some(sn => sn.lives >= last)) { keepSnapshot(); saveStore(); }
+}
+// a brain saved in an older, larger form, made compact
+function compactBrain(agent) {
+  const legacy = Array.isArray(agent.actor.W[0]) || !!agent.critic;
+  return legacy ? PPOAgent.fromJSON(agent).toJSON({ small: true, actorOnly: true }) : agent;
 }
 
 function toast(text) {
@@ -216,7 +242,7 @@ function trainingRoster() {
 
 function makeTrainingSim() {
   const c = state.cfg;
-  return new Sim('custom', simSeed++, { visual: showingTraining(), timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped });
+  return new Sim('custom', simSeed++, { visual: showingTraining(), timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped });
 }
 
 // ---------- learning foes' abilities ----------
@@ -301,11 +327,7 @@ function onLife(sim, ret) {
   state.jade += s.bounty * TRAIN_JADE;
   countKills(sim);
   updateIdentity(sim);
-  if ([50, 200, 500, 1000, 2000, 5000].includes(state.livesTotal)) {
-    state.campaign.snapshots.push(JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })));
-    state.campaign.snapshots = state.campaign.snapshots.slice(-6);
-    saveStore();
-  }
+  if (LIFE_MILESTONES.includes(state.livesTotal)) { keepSnapshot(); saveStore(); }
 }
 
 // ---------- identity: traits drift with every life; an awakening and a special grow out of them ----------
@@ -536,7 +558,7 @@ const lobby = new Lobby(renderer);
 
 function lobbyInfo() {
   const c = state.campaign, seals = ALL_SEALS.map(b => !!c.seals[b]);
-  return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, level: state.level || 1, hint: 'CLICK A STATION',
+  return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, race: state.race.equipped, level: state.level || 1, hint: 'CLICK A STATION',
     crossed: hasFragment('o5'), yunxi: hasFragment('h1'), sea: !!c.seals.timeadmin, cycle: c.cycle };
 }
 
@@ -550,25 +572,26 @@ const keys = new Set();
 
 function newViewSim() {
   const v = state.view, c = state.cfg;
+  v.worldId = v.mode === 'campaign' && state.campaign.run ? state.campaign.run.world : null;
   const seed = Math.floor(Math.random() * 1e9);
   const loadout = state.loadout, talents = state.talents.equipped, identity = identityOpts();
   if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
     const snap = curRoom().kind === 'echo' ? state.campaign.previousSelf : state.campaign.snapshots[curRoom().snapshot];
     const card = { ...snap, name: curRoom().kind === 'echo' ? 'The one in the black coat' : `Life ${snap.lives}`, agent: snap.agent };
-    v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped, battle: { timeLimit: 180, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
+    v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped, battle: { timeLimit: 180, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
     const echo = v.sim.heroes.find(h => h.team === 1);
     echo.brain = PPOAgent.fromJSON(snap.agent); echo.discarded = curRoom().kind === 'iteration'; echo.guardianEcho = curRoom().kind === 'echo';
   }
   else if (v.mode === 'battle' && v.online) v.sim = buildOnlineSim(v.online); // an online match: the same battle on both screens
-  else if (v.mode === 'battle') v.sim = new Sim('battle', seed, { visual: true, battle: battleConfig(), fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
-  else if (v.mode === 'trial') v.sim = new Sim(v.trialId, seed, { visual: true, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
+  else if (v.mode === 'battle') v.sim = new Sim('battle', seed, { visual: true, battle: battleConfig(), fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
+  else if (v.mode === 'trial') v.sim = new Sim(v.trialId, seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   else if (v.mode === 'campaign' && curRoom()) {
     const room = curRoom();
     const foes = state.campaign.run.world === 'bottom' && room.boss === 'timeadmin' ? room.foes.map(f => ({ ...f, finalKeeper: true })) : room.foes;
-    v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
+    v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   }
-  else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
-  else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, identity, skin: state.skins.equipped });
+  else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
+  else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   v.acc = 0; v.ticks = 0; v.action = null; v.endT = 0; v.overlay = null; v.recorded = false; v.paid = false; v.roomResult = null;
   v.introT = v.mode === 'campaign' && curRoom() && !['iteration', 'echo'].includes(curRoom().kind) ? meetFoes(curRoom()) : 0;
   renderer.reset();
@@ -719,10 +742,11 @@ function loadCampaign(saved, killCounts) {
   c.fragments = (saved.fragments || []).filter(f => f && FRAGMENTS[f.key] && WORLD_BY_ID[f.world]);
   if (!saved.fragments) for (const id of c.order) c.fragments.push({ key: nextFragment(c, WORLD_BY_ID[id]), world: id }); // conquered before memories returned
   c.blackSeaArrivalSeen = !!saved.blackSeaArrivalSeen || !!(c.worlds.blacksea && (c.worlds.blacksea.runs || Object.keys(c.worlds.blacksea.rooms || {}).length)) || c.order.includes('blacksea') || !!(saved.run && saved.run.world === 'blacksea');
-  c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives)).slice(-6);
+  c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives)).slice(-6)
+    .map(x => ({ ...x, agent: compactBrain(x.agent) }));
   c.endingReady = !!saved.endingReady; c.endingSeen = !!saved.endingSeen;
   c.fourteenthPage = !!saved.fourteenthPage; c.swordUpgrade = !!saved.swordUpgrade;
-  c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? saved.previousSelf : null;
+  c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? { ...saved.previousSelf, agent: compactBrain(saved.previousSelf.agent) } : null;
   c.cycleHistory = Array.isArray(saved.cycleHistory) ? saved.cycleHistory.filter(Number.isFinite).slice(-100) : [];
   c.cycle = saved.cycle || 0;
   const r = saved.run;
@@ -743,6 +767,7 @@ const hasFragment = k => state.campaign.fragments.some(f => f.key === k);
 // a memory returns: what the world was, and what it tells him about himself
 function showMemory(worldId, key) {
   const w = WORLD_BY_ID[worldId], box = $('memory');
+  $('endingArt').hidden = true;
   $('memKicker').textContent = 'A memory returns';
   $('memTitle').textContent = w.name;
   $('memVignette').textContent = WORLD_VIGNETTES[worldId] || '';
@@ -769,6 +794,7 @@ function enterWorld(id) {
   startRoom();
   if (id === 'blacksea' && !c.blackSeaArrivalSeen) {
     c.blackSeaArrivalSeen = true;
+    $('endingArt').hidden = true;
     $('memKicker').textContent = 'Beyond the crossing';
     $('memTitle').textContent = 'Black Sea';
     $('memVignette').textContent = BLACK_SEA_ARRIVAL;
@@ -802,6 +828,7 @@ function enterSummit() {
   if (firstEntry) c.run = { world: 'summit', idx: 0, cleared: [], rooms: [{ kind: 'boss', boss: 'swordsaint', foes: [{ type: 'swordsaint', hp: 1.5 * (1 + c.cycle * 0.15), dmg: 1.4 * (1 + c.cycle * 0.15) }], time: 240 }] };
   startRoom();
   if (firstEntry) {
+    $('endingArt').hidden = true;
     $('memKicker').textContent = "Heaven's End Summit"; $('memTitle').textContent = 'The last lesson';
     $('memVignette').textContent = 'The Sword Immortal waits above the split sky. He sets the manual on a stone and draws his sword.';
     $('memFragment').textContent = '“I held back before. I will not do it again.”';
@@ -812,20 +839,43 @@ function enterSummit() {
 function chooseStay() {
   const old = state.campaign;
   if (!old.fourteenthPage || !old.endingReady) return;
-  const echo = JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped }));
+  const echo = fighterSnapshot();
   const next = freshCampaign();
   next.cycle = old.cycle + 1; next.previousSelf = echo;
   next.finales = old.finales.slice(); next.finaleChoice = old.finaleChoice; next.swordUpgrade = old.swordUpgrade;
   next.met = { ...old.met }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
   state.campaign = next; state.codexDirty = true;
   refreshLevel(false); saveStore(); setMode('lobby'); renderPortal();
-  $('memKicker').textContent = 'The Sheathed Sword'; $('memTitle').textContent = 'Another hand';
+  showEndingArt('stay'); $('memKicker').textContent = 'The Sheathed Sword'; $('memTitle').textContent = 'Another hand';
   $('memVignette').textContent = 'He puts the sword down. Yun Xi leaves her coat beside him. Later, when the gate opens, someone else steps through.';
   $('memFragment').textContent = `New Game+ ${next.cycle}. A new set of marks begins on the wall.`;
   $('memory').hidden = false; state.view.paused = true; refreshPauseBtn(); $('memClose').focus();
 }
 
+// Ending illustrations are separate from the arena; they are shown only for the two choices.
+function showEndingArt(kind) {
+  const canvas = $('endingArt'), g = canvas.getContext('2d'); canvas.hidden = false;
+  g.imageSmoothingEnabled = false;
+  const rect = (x,y,w,h,c) => { g.fillStyle=c; g.fillRect(x,y,w,h); };
+  if (kind === 'door') {
+    rect(0,0,256,96,'#101f27');
+    for (let y=38;y<96;y++) { rect(0,y,256,1,y%3 ? '#192d31' : '#314a4a'); }
+    for (const [x,y] of [[23,18],[65,30],[125,14],[184,26],[230,12]]) { rect(x,y,3,3,'#e5e2b6'); rect(x-4,y+7,11,1,'#708a80'); }
+    // Open jar, its lid drifting above it, and a core rising toward the sky.
+    rect(75,48,106,5,'#96795a'); rect(80,53,96,34,'#67452d'); rect(85,87,86,5,'#473021');
+    rect(96,57,64,28,'#2d2019'); rect(77,32,102,5,'#ba9668'); rect(84,29,88,3,'#d0ad78');
+    rect(124,43,8,8,'#cfe9c8'); rect(122,45,12,4,'#f6edb9'); rect(125,35,6,5,'#f1ebca');
+  } else {
+    rect(0,0,256,96,'#1c120e'); rect(12,8,232,78,'#4c2d1d'); rect(24,15,208,65,'#745039');
+    rect(44,10,168,5,'#342115'); rect(54,15,148,3,'#b48b61');
+    for (let x=33;x<101;x+=10) for (let y=24;y<65;y+=12) { for(let i=0;i<4;i++) rect(x+i*2,y,1,7,'#c6a07a'); rect(x-1,y+4,9,1,'#5a3526'); }
+    rect(164,47,12,24,'#17151c'); rect(161,46,18,3,'#22202a'); rect(168,40,4,6,'#d7bca6');
+    rect(183,54,7,17,'#a16e4a'); rect(184,50,5,4,'#e1bd9a'); rect(180,69,14,2,'#c9ac82');
+  }
+}
+
 function showDoorEnding() {
+  showEndingArt('door');
   $('memKicker').textContent = 'The Door';
   $('memTitle').textContent = 'The lid lifts';
   $('memVignette').textContent = 'Yun Xi picks up her die. For a while she turns it between her fingers, looking at the open lid. Then she puts it down. The core rises from his chest. Beyond the rim, lights move across black water.';
@@ -1126,6 +1176,8 @@ function refreshWhere() {
   $('whereLbl').textContent = v.mode === 'lobby' ? 'The Jar'
     : v.mode === 'campaign' ? (r ? `${WORLD_BY_ID[r.world].name} · room ${r.idx + 1} of ${r.rooms.length}` : 'Run complete')
     : v.mode === 'battle' && v.online ? 'Online match' : 'Memory Pavilion · ' + (pav[v.mode] || '');
+  // the music of where you are: a world's own in its rooms, the jar's everywhere else
+  music.setTheme(v.mode === 'campaign' ? (r ? r.world : v.worldId) || 'jar' : 'jar');
 }
 
 function setSpeed(sp) {
@@ -1547,6 +1599,49 @@ let spinning = false, skipNow = false;
 const SKIP_KEY = 'neuro-arena-skip-spin';
 const skipSpin = () => { try { return localStorage.getItem(SKIP_KEY) === '1'; } catch (e) { return false; } };
 
+// Race rolls have their own pity counter and never replace an equipped race without a choice.
+function spinRace() {
+  if (state.jade < SPIN_COST) return;
+  const R = state.race;
+  state.jade -= SPIN_COST; R.spins++; R.pity++;
+  let tier = rollTier();
+  if (R.pity >= PITY && tier < 3) tier = rollTier(3);
+  if (tier >= 3) R.pity = 0;
+  const pool = RACES.filter(r => r.tier === tier), race = pool[Math.floor(Math.random() * pool.length)];
+  const duplicate = !!R.owned[race.id];
+  if (duplicate) state.jade += DUP_REFUND[tier]; else R.owned[race.id] = 1;
+  const box = $('raceReveal'); box.hidden = false; box.style.borderColor = TIERS[tier].color;
+  box.innerHTML = `<div class="r-tier">${TIERS[tier].name}${duplicate ? ` · duplicate +${DUP_REFUND[tier]} jade` : ' · unlocked'}</div><div class="r-name">${race.name}</div><div class="r-desc">${race.desc}</div>`;
+  sfx.unlock(); sfx.play('gong'); saveStore(); refreshJade(); buildRaces();
+}
+
+function buildRaces() {
+  const R = state.race, current = RACE_BY_ID[R.equipped] || RACE_BY_ID.unformed;
+  $('raceCurrent').innerHTML = `<div class="k">Current race</div><div class="n">${current.name}</div>${current.desc}`;
+  $('raceSpin').disabled = state.jade < SPIN_COST;
+  $('racePity').textContent = `Purple or better in at most ${PITY - R.pity} spins · ${R.spins} spun`;
+  const list = $('raceList'); list.innerHTML = '';
+  for (let tier = -1; tier < TIERS.length; tier++) {
+    const heading = document.createElement('div'); heading.className = 'tal-tier';
+    heading.textContent = tier < 0 ? 'Starting race' : `${TIERS[tier].name} · ${TIERS[tier].odds}%`;
+    list.appendChild(heading);
+    for (const race of RACES.filter(r => r.tier === tier)) {
+      const row = document.createElement('div'); row.className = 'race-row';
+      row.style.borderLeftColor = tier < 0 ? '#aaa' : TIERS[tier].color;
+      const owned = !!R.owned[race.id], equipped = race.id === R.equipped;
+      row.innerHTML = `<canvas class="race-preview" width="50" height="50" aria-hidden="true"></canvas><div class="race-copy"><b>${race.name}</b><div class="mini">${race.desc}</div></div>`;
+      const g = row.querySelector('canvas').getContext('2d'), sprite = SPRITE_CACHE[skinSprite('hero', state.skins.equipped)];
+      g.imageSmoothingEnabled = false; g.fillStyle = '#1a2238'; g.fillRect(0, 0, 50, 50);
+      g.drawImage(sprite.n, 25 - sprite.w * 1.5, 44 - sprite.h * 3, sprite.w * 3, sprite.h * 3);
+      drawRaceFeatures(g, race.id, 25, 43, 3, false);
+      const button = document.createElement('button'); button.textContent = equipped ? 'Equipped' : owned ? 'Equip' : 'Locked';
+      button.disabled = !owned || equipped;
+      button.onclick = () => { R.equipped = race.id; saveStore(); buildRaces(); toast(`${race.name} equipped for the next fight`); };
+      row.appendChild(button); list.appendChild(row);
+    }
+  }
+}
+
 // ---------- the skin shop ----------
 function buyOrWearSkin(id) {
   const S = state.skins, sk = SKIN_BY_ID[id];
@@ -1596,7 +1691,8 @@ function refreshJade() {
   $('jadeBal').textContent = '◆ ' + j.toLocaleString();
   $('spin1').disabled = spinning || j < SPIN_COST;
   $('spin10').disabled = spinning || j < TEN_COST;
-  if (!$('skinSection').hidden) buildSkins(); // prices you can now afford
+  if (!$('skinSection').hidden) buildSkins();
+  if (!$('raceSection').hidden) buildRaces(); // prices you can now afford
 }
 
 function rollTier(min = 0) {
@@ -1725,6 +1821,7 @@ function openPanel(id, force) {
   document.querySelector('.layout').classList.toggle('panel-open', !!next);
   if (next === 'abilitiesSection') buildAbilities();
   if (next === 'skinSection') buildSkins();
+  if (next === 'raceSection') buildRaces();
   if (next === 'portalPanel') renderPortal();
   if (next === 'codexPanel') renderCodex();
   if (next === 'pavilionPanel') renderPavilion();
@@ -1758,13 +1855,14 @@ function renderTally() {
 }
 
 function bindMemory() {
-  const close = () => { $('memory').hidden = true; state.view.paused = false; refreshPauseBtn(); };
+  const close = () => { $('endingArt').hidden = true; $('memory').hidden = true; state.view.paused = false; refreshPauseBtn(); };
   $('memClose').addEventListener('click', close);
   $('memory').addEventListener('keydown', e => { if (e.code === 'Escape') { e.stopPropagation(); close(); } });
 }
 
 function bindPanels() {
   bindMemory();
+  $('raceSpin').addEventListener('click', spinRace);
   document.querySelectorAll('#dock button').forEach(b => b.addEventListener('click', () => (b.dataset.station ? visitStation(b.dataset.station) : openPanel(b.dataset.panel))));
   document.querySelectorAll('.hub button[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, true)));
   document.querySelectorAll('.hub button[data-go]').forEach(b => b.addEventListener('click', () => {
@@ -1810,6 +1908,7 @@ function boot() {
   }
   setAgent(agent || new PPOAgent(state.cfg.learning, Math.floor(Math.random() * 1e9)));
   refreshLevel(false);
+  catchUpSnapshot();
 
   // each panel is built on its own: one that trips over an odd save must not stop the fighter from training or fighting
   const safely = (what, fn) => { try { fn(); } catch (e) { console.error(what, e); toast(`Couldn't build ${what}: ${e.message}`); } };
@@ -1894,7 +1993,7 @@ function boot() {
       const r = state.campaign.run, room = curRoom();
       const label = { watch: 'WATCH', trial: 'TRIAL', spar: 'SPAR', play: 'YOU', battle: v.sim.p && v.sim.p.dead ? 'WATCHING' : 'BATTLE',
         campaign: room ? (room.kind === 'boss' ? 'BOSS' : `ROOM ${r.idx + 1}/${r.rooms.length}`) : 'JAR' }[v.mode];
-      renderer.draw(v.sim, v.paused ? 0 : dt, { label, labelColor: v.mode === 'play' ? '#e8c34a' : '#ece4d2', overlay: v.overlay, paused: v.paused, sound: state.speed === 'max' || state.speed <= 4 });
+      renderer.draw(v.sim, v.paused ? 0 : dt, { label, labelColor: v.mode === 'play' ? '#e8c34a' : '#ece4d2', overlay: v.overlay, paused: v.paused, world: v.worldId, sound: state.speed === 'max' || state.speed <= 4 });
     }
 
     if (now - lastBrain > 150 && !$('brainSection').hidden) { lastBrain = now; updateBrain(); }

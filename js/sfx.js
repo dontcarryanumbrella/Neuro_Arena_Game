@@ -196,19 +196,83 @@ const SOUNDS = {
 
 const sfx = new Sfx();
 
-// Generative ambient music: a low drone, slow pad chords, soft wind and a wandering
-// guzheng-like pluck in D pentatonic, all fed through a gentle echo.
-const SCALE = [220, 246.94, 293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25];
-const PADS = [[146.83, 220, 329.63], [123.47, 185, 293.66], [146.83, 220, 369.99], [110, 164.81, 246.94]];
+// Generative ambient music, one theme per place: a low drone, slow pad chords, soft wind, a wandering melody on the
+// place's own instrument and, in some, quiet percussion, all through a gentle echo. Changing place crossfades.
+const N = (n) => 440 * Math.pow(2, n / 12); // semitones from A4
+const notes = (root, steps) => steps.map(s => N(root + s));
+const MUSIC_THEMES = {
+  // the jar, the lobby and the Pavilion: the guzheng in D pentatonic it always had
+  jar: { drone: [73.42, 110, 146.83], scale: [220, 246.94, 293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25],
+    pads: [[146.83, 220, 329.63], [123.47, 185, 293.66], [146.83, 220, 369.99], [110, 164.81, 246.94]], inst: 'pluck', beat: 0.5, density: 0.38, wind: 0.025, echo: 0.6 },
+  // a slide-guitar twang over a low E, a shaker in the dust
+  frontier: { drone: [82.41, 123.47], scale: notes(-17, [0, 3, 5, 7, 10, 12, 15, 17, 19]), pads: [[164.81, 246.94, 392], [146.83, 220, 349.23], [130.81, 196, 329.63]],
+    inst: 'twang', beat: 0.42, density: 0.45, wind: 0.035, echo: 0.42, perc: { kind: 'shaker', every: 2, level: 0.03 } },
+  // temple bells and a wooden fish keeping time
+  temple: { drone: [73.42, 110], scale: notes(-19, [0, 2, 5, 7, 9, 12, 14, 17, 19]), pads: [[146.83, 220, 293.66], [130.81, 196, 261.63]],
+    inst: 'bell', beat: 0.6, density: 0.3, wind: 0.02, echo: 0.7, perc: { kind: 'woodfish', every: 4, level: 0.05 } },
+  // a music box in a minor key, an organ underneath
+  night: { drone: [73.42, 110, 116.54], scale: notes(-7, [0, 2, 3, 5, 7, 8, 11, 12, 14]), pads: [[146.83, 174.61, 220], [116.54, 146.83, 174.61], [130.81, 155.56, 196], [110, 138.59, 164.81]],
+    inst: 'musicbox', beat: 0.45, density: 0.42, wind: 0.03, echo: 0.55, pad: 'organ' },
+  // a bamboo flute over wide, cold air
+  peaks: { drone: [98, 146.83], scale: notes(-14, [0, 2, 4, 7, 9, 12, 14, 16, 19]), pads: [[196, 293.66, 392], [174.61, 261.63, 349.23]],
+    inst: 'flute', beat: 0.65, density: 0.32, wind: 0.05, echo: 0.8 },
+  // low and wrong: a tritone in the drone, slow war drums
+  abyss: { drone: [55, 77.78, 110], scale: notes(-21, [0, 1, 3, 6, 7, 8, 11, 12, 13]), pads: [[110, 155.56, 207.65], [103.83, 146.83, 196]],
+    inst: 'synth', beat: 0.55, density: 0.28, wind: 0.04, echo: 0.5, perc: { kind: 'taiko', every: 4, level: 0.09 } },
+  // a koto in the old in-scale, waves for wind
+  isles: { drone: [82.41, 123.47], scale: notes(-17, [0, 1, 5, 7, 8, 12, 13, 17, 19]), pads: [[164.81, 220, 329.63], [146.83, 207.65, 293.66]],
+    inst: 'koto', beat: 0.5, density: 0.4, wind: 0.035, echo: 0.65 },
+  // bright bells over a major pad
+  heavens: { drone: [98, 146.83, 196], scale: notes(-2, [0, 2, 4, 7, 9, 12, 14, 16, 19]), pads: [[196, 246.94, 392], [220, 277.18, 440], [174.61, 220, 349.23]],
+    inst: 'bell', beat: 0.45, density: 0.4, wind: 0.02, echo: 0.75 },
+  // a ticking clock under a whole-tone arpeggio
+  timestream: { drone: [65.41, 98], scale: notes(-9, [0, 2, 4, 6, 8, 10, 12, 14, 16]), pads: [[130.81, 164.81, 207.65], [146.83, 185, 233.08]],
+    inst: 'synth', beat: 0.25, density: 0.55, wind: 0.015, echo: 0.375, perc: { kind: 'tick', every: 2, level: 0.035 } },
+  // a slow heartbeat under something that never resolves
+  cursed: { drone: [61.74, 87.31], scale: notes(-10, [0, 1, 3, 6, 7, 10, 12, 13, 15]), pads: [[123.47, 146.83, 174.61], [116.54, 138.59, 174.61]],
+    inst: 'synth', beat: 0.6, density: 0.26, wind: 0.03, echo: 0.6, perc: { kind: 'heartbeat', every: 4, level: 0.07 } },
+  // almost nothing: water, a deep tone, a note now and then across the dark
+  blacksea: { drone: [55, 82.41], scale: notes(-14, [0, 3, 5, 7, 10, 12, 15, 17]), pads: [[110, 164.81, 220]],
+    inst: 'bell', beat: 0.9, density: 0.16, wind: 0.06, echo: 0.9 },
+  // a bell slightly out of tune, a choir that never quite arrives
+  pallid: { drone: [69.3, 103.83], scale: notes(-13, [0, 1, 4, 5, 7, 8, 10, 12, 13]), pads: [[138.59, 174.61, 207.65], [130.81, 164.81, 207.65]],
+    inst: 'bell', detune: 30, beat: 0.6, density: 0.3, wind: 0.025, echo: 0.7, pad: 'choir' },
+  // the jar's own song, slower and deeper
+  bottom: { drone: [55, 73.42, 110], scale: [146.83, 164.81, 196, 220, 246.94, 293.66, 329.63], pads: [[110, 164.81, 220], [98, 146.83, 196]],
+    inst: 'pluck', beat: 0.75, density: 0.25, wind: 0.03, echo: 0.8 },
+  // high, sparse and cold: bells above the clouds
+  summit: { drone: [98, 146.83], scale: notes(3, [0, 2, 4, 7, 9, 12, 14]), pads: [[293.66, 440, 587.33]],
+    inst: 'bell', beat: 0.8, density: 0.22, wind: 0.07, echo: 0.9 },
+};
+// how each instrument sounds: its partials ([wave, multiple, level]), how loud and long, how it bends into the note
+const INSTRUMENTS = {
+  pluck: { peak: 0.07, len: 2.2, bend: 1.03, parts: [['triangle', 1, 1], ['sine', 2, 0.35], ['sine', 3, 0.12]] },        // a guzheng
+  koto: { peak: 0.07, len: 1.6, bend: 1.05, parts: [['triangle', 1, 1], ['sine', 2, 0.5], ['sine', 4, 0.15]] },          // a sharper bend, quicker
+  twang: { peak: 0.06, len: 1.8, bend: 0.94, parts: [['sawtooth', 1, 0.35], ['triangle', 1, 0.8], ['sine', 2, 0.25]] },  // a slide up into it
+  bell: { peak: 0.055, len: 3.2, bend: 1, parts: [['sine', 1, 1], ['sine', 2.76, 0.4], ['sine', 5.4, 0.18]] },           // struck metal
+  musicbox: { peak: 0.05, len: 1.4, bend: 1, parts: [['sine', 2, 1], ['sine', 4, 0.3], ['sine', 6.1, 0.1]] },            // small and high
+  flute: { peak: 0.05, len: 1.6, bend: 1, attack: 0.15, vibrato: true, parts: [['sine', 1, 1], ['triangle', 2, 0.12]] }, // breath and a waver
+  synth: { peak: 0.035, len: 1.0, bend: 1, filter: 900, parts: [['square', 1, 0.5], ['sawtooth', 0.5, 0.3]] },          // cold
+};
 
 class Music {
   constructor(sound) {
     this.sound = sound;
     this.on = false;
+    this.themeId = 'jar';
+  }
+
+  get theme() { return MUSIC_THEMES[this.themeId] || MUSIC_THEMES.jar; }
+
+  // a new place: the old theme fades out while the new one fades in
+  setTheme(id) {
+    if (!MUSIC_THEMES[id] || id === this.themeId) return;
+    this.themeId = id;
+    if (this.on) { this.stop(); this.start(); }
   }
 
   start() {
-    const s = this.sound;
+    const s = this.sound, T = this.theme;
     s.unlock();
     if (!s.ctx || this.on) return;
     const ctx = s.ctx;
@@ -219,26 +283,26 @@ class Music {
     this.out.connect(ctx.destination);
     // echo send
     this.echo = ctx.createDelay(2);
-    this.echo.delayTime.value = 0.6;
+    this.echo.delayTime.value = T.echo;
     const fb = ctx.createGain(); fb.gain.value = 0.38;
     const wet = ctx.createGain(); wet.gain.value = 0.45;
     this.echo.connect(fb); fb.connect(this.echo); this.echo.connect(wet); wet.connect(this.out);
     this.nodes = [];
-    // drone: D2 and A2 through a dark filter, breathing slowly
+    // drone: the theme's low notes through a dark filter, breathing slowly
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320;
     const droneGain = ctx.createGain(); droneGain.gain.value = 0.05;
     lp.connect(droneGain); droneGain.connect(this.out);
-    for (const f of [73.42, 110, 146.83]) {
+    for (const f of T.drone) {
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 8;
       o.connect(lp); o.start(); this.nodes.push(o);
     }
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07;
     const lfoAmt = ctx.createGain(); lfoAmt.gain.value = 0.025;
     lfo.connect(lfoAmt); lfoAmt.connect(droneGain.gain); lfo.start(); this.nodes.push(lfo);
-    // wind: filtered noise drifting through the mountains
+    // wind: filtered noise drifting
     const wind = ctx.createBufferSource(); wind.buffer = s.noiseBuf; wind.loop = true;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6;
-    const wg = ctx.createGain(); wg.gain.value = 0.025;
+    const wg = ctx.createGain(); wg.gain.value = T.wind;
     const wl = ctx.createOscillator(); wl.frequency.value = 0.05;
     const wla = ctx.createGain(); wla.gain.value = 250;
     wl.connect(wla); wla.connect(bp.frequency);
@@ -246,7 +310,7 @@ class Music {
     wind.start(); wl.start(); this.nodes.push(wind, wl);
 
     this.next = ctx.currentTime + 1;
-    this.step = 0; this.note = 4;
+    this.step = 0; this.note = Math.floor(T.scale.length / 2);
     this.timer = setInterval(() => this.schedule(), 200);
   }
 
@@ -262,49 +326,80 @@ class Music {
   }
 
   schedule() {
-    const ctx = this.sound.ctx;
+    const ctx = this.sound.ctx, T = this.theme, beatsPerPad = Math.round(8 / T.beat);
     while (this.next < ctx.currentTime + 1) {
       const t = this.next;
-      if (this.step % 16 === 0) this.pad(t, PADS[(this.step / 16) % PADS.length]);
+      if (this.step % beatsPerPad === 0) this.pad(t, T.pads[(this.step / beatsPerPad) % T.pads.length]);
+      if (T.perc && this.step % T.perc.every === 0) this.hit(t, T.perc);
       // the melody wanders a step or two at a time, resting often
-      if (Math.random() < 0.38) {
-        this.note = Math.max(0, Math.min(SCALE.length - 1, this.note + [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]));
-        this.pluck(t, SCALE[this.note], 0.07);
-        if (Math.random() < 0.15) this.pluck(t + 0.25, SCALE[Math.max(0, this.note - 2)], 0.04);
+      if (Math.random() < T.density) {
+        this.note = Math.max(0, Math.min(T.scale.length - 1, this.note + [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)]));
+        this.voice(t, T.scale[this.note], T);
+        if (Math.random() < 0.15) this.voice(t + T.beat / 2, T.scale[Math.max(0, this.note - 2)], T, 0.6);
       }
       this.step++;
-      this.next += 0.5;
+      this.next += T.beat;
     }
   }
 
-  // a plucked string that bends down into its note, like a guzheng
-  pluck(t, f, peak) {
-    const ctx = this.sound.ctx;
-    const g = ctx.createGain();
+  // one note on the theme's instrument
+  voice(t, f, T, vol = 1) {
+    const ctx = this.sound.ctx, g = ctx.createGain(), I = INSTRUMENTS[T.inst] || INSTRUMENTS.pluck;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    g.gain.exponentialRampToValueAtTime(I.peak * vol, t + (I.attack || 0.01));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + I.len);
+    let dest = g;
+    if (I.filter) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = I.filter; lp.connect(g); dest = lp; }
     g.connect(this.out); g.connect(this.echo);
-    for (const [type, mul, amt] of [['triangle', 1, 1], ['sine', 2, 0.35], ['sine', 3, 0.12]]) {
+    for (const [type, mul, amt] of I.parts) {
       const o = ctx.createOscillator(), og = ctx.createGain();
       o.type = type;
-      o.frequency.setValueAtTime(f * mul * 1.03, t);
+      if (T.detune) o.detune.value = (Math.random() - 0.5) * T.detune;
+      o.frequency.setValueAtTime(f * mul * I.bend, t);
       o.frequency.exponentialRampToValueAtTime(f * mul, t + 0.12);
+      if (I.vibrato) { const v = ctx.createOscillator(), va = ctx.createGain(); v.frequency.value = 5; va.gain.value = f * mul * 0.008; v.connect(va); va.connect(o.frequency); v.start(t); v.stop(t + I.len + 0.1); }
       og.gain.value = amt;
-      o.connect(og); og.connect(g);
-      o.start(t); o.stop(t + 2.3);
+      o.connect(og); og.connect(dest);
+      o.start(t); o.stop(t + I.len + 0.1);
     }
+  }
+
+  // quiet percussion: a shaker, a wooden fish, a war drum, a clock, a heartbeat
+  hit(t, p) {
+    const ctx = this.sound.ctx, g = ctx.createGain(), L = p.level;
+    g.connect(this.out);
+    const tone = (f0, f1, dur, lvl, at = t) => {
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+      og.gain.setValueAtTime(lvl, at); og.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      o.connect(og); og.connect(g); o.start(at); o.stop(at + dur + 0.05);
+    };
+    const noise = (dur, lvl, freq) => {
+      const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), ng = ctx.createGain();
+      n.buffer = this.sound.noiseBuf; f.type = 'highpass'; f.frequency.value = freq;
+      ng.gain.setValueAtTime(lvl, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      n.connect(f); f.connect(ng); ng.connect(g); n.start(t); n.stop(t + dur + 0.05);
+    };
+    if (p.kind === 'shaker') noise(0.08, L, 5000);
+    else if (p.kind === 'tick') noise(0.025, L, 7000);
+    else if (p.kind === 'woodfish') tone(820, 700, 0.12, L);
+    else if (p.kind === 'taiko') { tone(110, 50, 0.6, L); noise(0.05, L * 0.4, 1500); }
+    else if (p.kind === 'heartbeat') { tone(70, 45, 0.25, L); tone(65, 42, 0.22, L * 0.7, t + 0.28); }
   }
 
   pad(t, chord) {
-    const ctx = this.sound.ctx;
+    const ctx = this.sound.ctx, T = this.theme;
     for (const f of chord) {
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 10;
+      o.type = T.pad === 'organ' ? 'square' : T.pad === 'choir' ? 'sawtooth' : 'sine';
+      o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * (T.pad === 'choir' ? 22 : 10);
+      const lvl = T.pad === 'organ' ? 0.008 : T.pad === 'choir' ? 0.007 : 0.025;
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.025, t + 2.5);
+      g.gain.exponentialRampToValueAtTime(lvl, t + 2.5);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 8);
-      o.connect(g); g.connect(this.out);
+      let dest = g;
+      if (T.pad) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = T.pad === 'choir' ? 1200 : 700; lp.connect(g); dest = lp; }
+      o.connect(dest); g.connect(this.out);
       o.start(t); o.stop(t + 8.1);
     }
   }

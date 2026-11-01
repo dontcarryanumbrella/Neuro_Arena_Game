@@ -19,6 +19,28 @@ const PAL = {
   E: '#5dff9a', B: '#ff2a3a', K: '#0a0a12', S: '#ffd84a', q: '#6fc3ff',
 };
 
+// Pixel features drawn over any outfit; coordinates are relative to the fighter's feet.
+function drawRaceFeatures(g, race, x, y, scale = 1, flip = false) {
+  if (!race || race === 'unformed') return;
+  const pixel = (dx, dy, w, h, color) => { g.fillStyle = color; g.fillRect(Math.round(x + (flip ? -dx - w : dx) * scale), Math.round(y + dy * scale), Math.max(1, Math.round(w * scale)), Math.max(1, Math.round(h * scale))); };
+  g.save();
+  switch (race) {
+    case 'human': pixel(-3, -9, 6, 1, '#d7a85e'); pixel(3, -8, 2, 2, '#c47545'); break; // headband and knot
+    case 'stoneborn': pixel(-5,-8,2,6,'#7a8585'); pixel(3,-8,2,6,'#a5ad9c'); pixel(-4,-2,3,2,'#626f72'); break;
+    case 'windkin': pixel(-5,-9,3,2,'#b9f1d7'); pixel(2,-9,3,2,'#b9f1d7'); pixel(4,-7,3,1,'#7cd6bf'); break;
+    case 'ironblood': pixel(-4,-10,2,3,'#d48745'); pixel(2,-10,2,3,'#d48745'); pixel(-3,-5,6,1,'#a9472f'); break;
+    case 'moonfang': pixel(-4,-12,2,4,'#9a9cbf'); pixel(2,-12,2,4,'#9a9cbf'); pixel(3,-3,3,2,'#c8c9df'); pixel(5,-5,2,3,'#c8c9df'); break;
+    case 'riverfolk': pixel(-5,-7,2,3,'#4fc5cf'); pixel(3,-7,2,3,'#4fc5cf'); pixel(-2,-4,4,1,'#78dce5'); pixel(-1,-3,2,2,'#388caa'); break;
+    case 'ashen': pixel(-4,-11,2,3,'#ef8a4b'); pixel(-1,-13,2,4,'#ffe3a0'); pixel(2,-11,2,3,'#e85b31'); pixel(-4,-3,2,2,'#8d7771'); break;
+    case 'mirrorborn': pixel(-4,-7,8,3,'#c8d4ee'); pixel(-3,-6,2,1,'#6b82b0'); pixel(1,-6,2,1,'#6b82b0'); pixel(-2,-2,4,1,'#eaf6ff'); break;
+    case 'dragonkin': pixel(-5,-12,2,4,'#f0cf82'); pixel(3,-12,2,4,'#f0cf82'); pixel(-5,-4,3,3,'#b34931'); pixel(3,-4,3,3,'#b34931'); pixel(4,-1,3,1,'#dc9b45'); break;
+    case 'voidwalker': pixel(-4,-11,8,3,'#302748'); pixel(-5,-8,10,3,'#302748'); pixel(-2,-6,1,1,'#b992f2'); pixel(1,-6,1,1,'#b992f2'); pixel(3,-4,2,4,'#443058'); break;
+    case 'celestial': pixel(-4,-13,8,1,'#ffe087'); pixel(-5,-12,1,2,'#ffe087'); pixel(4,-12,1,2,'#ffe087'); pixel(-6,-5,2,4,'#f9e8c1'); pixel(4,-5,2,4,'#f9e8c1'); break;
+    case 'hollow': pixel(-3,-11,6,4,'#222032'); pixel(-2,-8,4,3,'#eee3cf'); pixel(-1,-7,2,1,'#9c49a4'); pixel(-4,-3,8,1,'#b07acd'); break;
+  }
+  g.restore();
+}
+
 const SPRITES = {
   hero: [
     '....kk....',
@@ -2348,6 +2370,8 @@ const BITE_S = 18;
 // which picture a foe uses right now (bosses change in their second form)
 const spriteFor = e => e.spriteNow || (e.def.boss && e.phase === 2 && e.def.sprite2) || e.def.sprite || spriteOf(e.type);
 
+// (each world's arena, its scene and its ambient life live in js/arenas.js)
+
 class Renderer {
   constructor(canvas) {
     this.cv = canvas;
@@ -2360,6 +2384,7 @@ class Renderer {
     this.flashT = 0;
     this.shake = 0;
     this.bg = this.bakeBackground();
+    this.worldBackgrounds = {};
   }
 
   bakeBackground() {
@@ -3322,8 +3347,12 @@ class Renderer {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.fillStyle='#000';g.fillRect(0,0,W,H);
     g.setTransform(1,0,0,1,ox,oy);
-    g.drawImage(this.bg, 0, 0);
-    this.drawLanterns(sim.t);
+    const world = extra.world;
+    const scene = typeof WORLD_SCENES !== 'undefined' && WORLD_SCENES[world];
+    if (scene && !this.worldBackgrounds[world]) this.worldBackgrounds[world] = bakeWorldArena(world);
+    g.drawImage(this.worldBackgrounds[world] || this.bg, 0, 0);
+    if (scene) { this.ambT = (this.ambT || 0) + dt; drawWorldAmbient(g, world, this.ambT); }
+    else this.drawLanterns(sim.t);
     this.drawSkyOmens(sim);
     this.drawYellowCosmos(sim);
     if (sim.timeStopT > 0) this.drawTimeStop(sim);
@@ -3665,6 +3694,7 @@ class Renderer {
     p.drawScale = (p.drawScale || 1) + (((p.awakeT > 0 && p.fxScale) || 1) - (p.drawScale || 1)) * 0.15; // grows into each awakening
     const held = p.cocoonT > 0 || p.liftT > 0 || p.heldT > 0, hl = p.liftT > 0 ? Math.round(Math.min(1, (1 - p.liftT) * 4) * 10) : 0;
     this.sprite(name, p.x, p.y, flip, hurtFlash ? 'flash' : p.frozenT > 0 && !held ? 'ghost' : null, hl, Math.round(p.drawScale * 8) / 8);
+    if (name !== 'rabbit' && !beast) drawRaceFeatures(this.g, p.race, sx(p.x), sy(p.y) - hl, Math.round(p.drawScale * 8) / 8, flip);
     this.g.globalAlpha = 1;
     if (skin && skin.fx) this.drawSkinFx(sim, p, skin, 'post');
     this.drawStatus(sim, p, hl);
@@ -5351,6 +5381,7 @@ class Renderer {
 
   drawHud(sim, extra, dt) {
     const p = sim.p, s = sim.stats;
+    if (typeof WORLD_SCENES !== 'undefined' && WORLD_SCENES[extra.world]) { this.g.fillStyle = 'rgba(9, 13, 19, 0.82)'; this.g.fillRect(0, 0, W, 13); }
     if (sim.battle) this.drawTeamCounts(sim);
     this.bar(4, 4, 40, p.hp / p.maxHp, INK.verm, '#3a1410');
     this.bar(48, 4, 28, p.energy / p.energyMax, '#5fb86a', '#16301a');
@@ -5370,7 +5401,7 @@ class Renderer {
       if (this.combo.life <= 0 || sim.t - p.lastHitT > COMBO_GAP) this.combo = null;
       else this.text('COMBO x' + this.combo.n + ' +' + Math.round(Math.min(COMBO_CAP, COMBO_STEP * (this.combo.n - 1)) * 100) + '%', 4, 16, INK.gold);
     }
-    this.text(Math.max(0, sim.timeLimit - sim.t).toFixed(0) + 's', 252, 2, '#8a8f9c', 'right');
+    this.text(sim.demoDummy ? 'DEMO' : Math.max(0, sim.timeLimit - sim.t).toFixed(0) + 's', 252, 2, '#8a8f9c', 'right');
     if (extra.label) this.text(extra.label, 214, 2, extra.labelColor || INK.rice, 'right');
     // equipped abilities, bottom-left: source foe, cooldown shade, gold edge when ready
     for (let i = 0; i < 2; i++) {
