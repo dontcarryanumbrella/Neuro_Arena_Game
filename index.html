@@ -10,55 +10,49 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="top">
-  <h1>Neuro Arena</h1>
-  <span class="sub">one fighter, learning to duel by dying a lot</span>
-</header>
 
 <main class="layout">
-  <section class="left">
-    <div class="toolbar">
-      <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
-      <span class="where" id="whereLbl">The Jar</span>
-      <button class="primary" id="trainBtn">Start training</button>
-      <div class="group" role="group" aria-label="Speed" id="speedGroup">
-        <span class="lbl">Speed</span>
-        <div class="seg" id="speedSeg">
-          <button data-speed="1" class="on">1x</button>
-          <button data-speed="4">4x</button>
-          <button data-speed="16">16x</button>
-          <button data-speed="max" title="No arena, just the chart">Max</button>
-        </div>
-      </div>
-      <button id="pauseBtn" title="Pause the view (P)">Pause</button>
-      <button id="soundBtn" title="Sound effects">Sound on</button>
-      <button id="musicBtn" title="Ambient music">Music on</button>
-      <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
-    </div>
-    <nav class="dock" id="dock" aria-label="Stations of the jar">
-      <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
-      <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
-      <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
-      <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
-      <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
-      <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
-      <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
-      <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
-      <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
-    </nav>
 
-    <div class="screen">
+  <div class="screen" id="screen">
+    <div class="hud hud-top">
+    <div class="toolbar">
+        <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
+        <span class="where" id="whereLbl">The Jar</span>
+        <button class="primary" id="trainBtn">Start training</button>
+        <div class="group" role="group" aria-label="Speed" id="speedGroup">
+          <span class="lbl">Speed</span>
+          <div class="seg" id="speedSeg">
+            <button data-speed="1" class="on">1x</button>
+            <button data-speed="4">4x</button>
+            <button data-speed="16">16x</button>
+            <button data-speed="max" title="No arena, just the chart">Max</button>
+          </div>
+        </div>
+        <button id="pauseBtn" title="Pause the view (P)">Pause</button>
+        <button id="soundBtn" title="Sound effects">Sound on</button>
+        <button id="musicBtn" title="Ambient music">Music on</button>
+        <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
+      </div>
+      <nav class="dock" id="dock" aria-label="Stations of the jar">
+        <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
+        <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+        <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
+        <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
+        <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
+        <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
+        <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
+        <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
+        <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
+      </nav>
+    </div>
+    <div class="stage" id="stage">
       <canvas id="game" width="256" height="144"></canvas>
       <div class="encounter" id="encounter" hidden aria-live="polite"></div>
       <div class="max-view" id="maxView" hidden>
         <div class="max-head">Max speed: arena hidden. <span id="maxRate"></span></div>
         <canvas id="bigChart"></canvas>
       </div>
-    </div>
-    <p class="hint" id="viewHint"></p>
-    <div class="board" id="battleBoard" hidden></div>
-    <div class="statline" id="statLine"></div>
-
+    <div class="room-end" id="roomEnd" hidden></div>
     <div class="chart-box" id="chartBox">
       <div class="chart-head">
         <label for="metric">Chart</label>
@@ -75,9 +69,7 @@
       </div>
       <canvas id="chart"></canvas>
     </div>
-  </section>
-
-  <aside class="right" id="drawer" aria-live="polite">
+    <aside class="right" id="drawer" aria-live="polite">
     <section class="panel" id="portalPanel" hidden>
       <div class="panel-head"><h2>Portal</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
       <p class="mini">Worlds reached through the gate. Any visible destination can be entered; some are far deadlier than others. Your fighter fights every room; between rooms you coach it.</p>
@@ -303,7 +295,14 @@
       <p><b>Guard</b> blocks but fills posture. Full posture = stunned. Guard right as a hit lands = <b>parry</b>. <b>Heavy</b> breaks blocks but can be parried. <b>Kick</b> goes through guard. <b>Roll</b> repositions (no invincibility). Hits in a row add up to +15% damage.</p>
       <p><b>Enemy tells:</b> yellow ! strike, orange ! heavy, green ! kick, red !! unblockable.</p>
     </section>
-  </aside>
+    </aside>
+    </div>
+    <div class="hud hud-bottom">
+    <p class="hint" id="viewHint"></p>
+    <div class="board" id="battleBoard" hidden></div>
+    <div class="statline" id="statLine"></div>
+    </div>
+  </div>
 </main>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>

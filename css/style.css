@@ -317,3 +317,106 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 
 #endingArt { display: block; width: 100%; height: auto; image-rendering: pixelated; margin: 8px 0; border-radius: 5px; }
 #endingArt[hidden] { display: none; }
+
+/* ==========================================================================
+   The game fills the window. The arena is the screen; the bar above it, the line below it and every panel sit on it,
+   in the game's own colours: dark wood, rice paper, gold, the pixel font for anything that is pressed or named.
+   ========================================================================== */
+:root {
+  --ink: #ece4d2; --muted: #a8997e; --line: #4a3a2a; --soft: #241a13; --accent: #6ab06e; --danger: #e0603f;
+  --gold: #c9a65a; --wood: #120d0a; --wood2: #1c140f; --pixel: 'Press Start 2P', monospace;
+}
+html, body { height: 100%; overflow: hidden; background: #000; color: var(--ink); }
+.layout, .layout.panel-open { display: block; padding: 0; margin: 0; max-width: none; height: 100vh; }
+.screen { height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: #000; border-radius: 0; line-height: 1.45; overflow: hidden; }
+.stage { position: relative; min-height: 0; background: #000; }
+#game { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; }
+.max-view { position: absolute; inset: 0; aspect-ratio: auto; background: var(--wood); border: 0; border-radius: 0; }
+.max-head { color: var(--muted); font-family: var(--pixel); font-size: 9px; }
+
+/* the bar above the arena */
+.hud { background: linear-gradient(var(--wood2), var(--wood)); border-color: #3a2a1c; z-index: 5; }
+.hud-top { border-bottom: 2px solid #3a2a1c; padding: 6px 10px 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.hud-top .toolbar { margin: 0; gap: 6px 10px; }
+.hud-top .dock { margin: 0; gap: 4px; }
+.where { font-family: var(--pixel); font-size: 10px; color: var(--gold); letter-spacing: .04em; }
+.lbl { color: var(--muted); font-family: var(--pixel); font-size: 8px; }
+.hud-bottom { border-top: 2px solid #3a2a1c; padding: 5px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; font-size: 12px; }
+.hud-bottom .hint, .hud-bottom .statline { margin: 0; min-height: 0; }
+.hud-bottom .board { width: 100%; }
+
+/* buttons: dark wood with a gold edge; the pixel font */
+button, select, input[type=text] { background: var(--wood2); color: var(--ink); border: 1px solid #5a4430; border-radius: 3px; }
+button { font-family: var(--pixel); font-size: 9px; padding: 6px 9px; line-height: 1.3; }
+button:hover { background: #2c2017; border-color: var(--gold); }
+button.on, .dock button.on { background: var(--gold); color: #1a120c; border-color: var(--gold); }
+button.primary { background: #2f5a34; border-color: #6ab06e; color: #eaf6e4; min-width: 0; }
+button.primary:hover { background: #3a6e40; }
+button.primary.running { background: var(--wood2); color: #9ad49c; }
+button.danger { color: #ff8a6a; border-color: #7a3a2a; }
+.seg button { margin-left: -1px; border-radius: 0; }
+.seg button:first-child { border-radius: 3px 0 0 3px; } .seg button:last-child { border-radius: 0 3px 3px 0; }
+.dock button { border-radius: 3px; padding: 4px 8px 4px 4px; font-size: 8px; gap: 5px; }
+.dock .ic { background: #2a1d14; color: #e8a050; border-radius: 2px; width: 18px; height: 18px; font-family: system-ui, sans-serif; font-size: 11px; }
+.dock button.on .ic { background: #1a120c; }
+.jade, button.jade { color: #9ad49c; background: #13221a; border-color: #2f5a34; }
+button.jade:hover { background: #1a2e22; }
+.hint kbd { border-color: #5a4430; color: var(--gold); }
+.statline b { color: var(--ink); }
+
+/* the room's end: what you can do now */
+.room-end { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; z-index: 6; }
+.room-end[hidden] { display: none; }
+.room-end button { font-size: 10px; padding: 9px 12px; box-shadow: 0 2px 0 #000; }
+
+/* the training chart floats over the bottom of the arena */
+.chart-box { position: absolute; left: 10px; right: 10px; bottom: 10px; margin: 0; z-index: 4; background: rgba(14, 10, 8, 0.88); border: 1px solid #4a3a2a; border-radius: 4px; }
+.chart-box[hidden] { display: none; }
+#chart { height: 130px; }
+.chart-head label, .legend { color: var(--muted); }
+.legend .dot { background: #8a7a62; } .legend .line { background: var(--gold); }
+
+/* panels open over the arena, on the right */
+.right, .layout.panel-open .right { display: none; }
+.layout.panel-open .right {
+  display: block; position: absolute; top: 8px; right: 8px; bottom: 8px; width: min(400px, 92%); max-height: none; overflow: auto; z-index: 8;
+  background: rgba(18, 13, 10, 0.97); border: 2px solid #5a4430; border-radius: 4px; box-shadow: 0 0 0 1px #000, 0 10px 40px rgba(0,0,0,0.6);
+  padding: 0 14px 14px; color: var(--ink);
+}
+.panel-head { background: rgba(18, 13, 10, 0.98); border-bottom: 1px solid #4a3a2a; }
+.panel-head h2 { font-family: var(--pixel); font-size: 11px; color: var(--gold); letter-spacing: .04em; }
+.panel-head .x, .panel-head .back { background: transparent; border: 0; color: var(--muted); }
+.panel-head .back { font-family: var(--pixel); font-size: 8px; }
+details.note p, .right p { color: #d8ccb6; }
+.mini { color: var(--muted); }
+.kill-head { color: var(--gold); font-family: var(--pixel); font-size: 9px; letter-spacing: .04em; }
+.hub button { text-align: left; }
+.hub button b { font-size: 9px; color: var(--gold); }
+.hub button span { font-family: system-ui, sans-serif; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.right select, .right input[type=text] { font-family: system-ui, sans-serif; font-size: 13px; }
+/* lighter cards and rows elsewhere, made dark */
+.id-card, .run-card, .world-card, .foe, .skin-card, .tal-slot, .trial, .codex-row { background: transparent; border-color: #4a3a2a; }
+.run-card { background: #1e1611; }
+.id-card .n, .run-card .n, .world-card b { color: var(--ink); }
+.id-card.locked, .codex-row.unmet, .trial.locked .tname { color: #6a5c48; }
+.foe.in { background: #1a2a1c; border-color: #4a8a50; }
+.rnode { background: var(--wood2); border-color: #5a4430; color: var(--muted); }
+.rnode.done { background: #3a6e40; border-color: #6ab06e; color: #fff; }
+.rnode.cur { outline-color: var(--gold); }
+.seal { background: #1e1611; border-color: #4a3a2a; }
+.seal.broken { background: #3a2c12; border-color: var(--gold); color: #f0d890; }
+.finales button.on { background: #3a2c12; border-color: var(--gold); color: #f0d890; }
+.tal-slot { background: #1a130e; border-color: #5a4430; color: var(--ink); }
+.skin-card { background: #1a130e; }
+.skin-card .sk-desc, .reveal .r-desc { color: #c8bca4; }
+.level-bar, .kill-bar, .ab-prog { background: #2a1f17; }
+.level-head b { color: #9ad49c; }
+.toast { background: #1e1611; color: var(--ink); border: 1px solid var(--gold); font-family: var(--pixel); font-size: 9px; line-height: 1.6; }
+.cx-lore { color: #c8a878; }
+.mem-card { background: #f3ead6; }
+.mem-card button.primary { color: #fff; }
+.encounter { top: 12%; }
+@media (max-width: 760px) {
+  .hud-top .dock { display: none; } /* the lobby's stations are in the scene itself */
+  button { font-size: 8px; padding: 5px 7px; }
+}

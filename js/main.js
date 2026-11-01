@@ -516,6 +516,7 @@ function setAgent(agent) {
 }
 
 function setTraining(on) {
+  if (on && state.view.mode === 'campaign') return; // not while inside a world
   if (on && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first: open the Portal.'); return; }
   state.training = on;
   const b = $('trainBtn');
@@ -886,6 +887,8 @@ function showDoorEnding() {
 
 function startRoom() {
   if (!curRoom()) return;
+  if (state.training) { setTraining(false); toast('Training pauses while you are in a world.'); }
+  $('roomEnd').hidden = true;
   setMode('campaign');
   saveStore(); renderPortal();
 }
@@ -895,6 +898,36 @@ function nextRoom() {
   if (!r || !r.cleared[r.idx]) return;
   r.idx++;
   startRoom();
+}
+
+// A room is over: what can be done now, and always a way back to the jar (the run waits at the Portal).
+function showRoomEnd() {
+  const rr = state.view.roomResult || {}, box = $('roomEnd'), r = state.campaign.run;
+  const acts = [];
+  if (!rr.cleared && curRoom()) acts.push(['retry', 'Retry room · R', 'primary']);
+  if (rr.cleared && r && r.cleared[r.idx]) acts.push(['next', 'Next room · N', 'primary'], ['abilities', 'Abilities'], ['talents', 'Talents']);
+  acts.push(['lobby', 'Return to the jar · Esc']);
+  box.innerHTML = acts.map(([a, label, cls]) => `<button data-a="${a}" class="${cls || ''}">${label}</button>`).join('');
+  box.querySelectorAll('button').forEach(b => { b.onclick = () => roomEndAction(b.dataset.a); });
+  box.hidden = false;
+  refreshScreen();
+}
+
+function roomEndAction(a) {
+  if (a === 'retry') { $('roomEnd').hidden = true; newViewSim(); refreshHint(); refreshScreen(); }
+  else if (a === 'next') nextRoom();
+  else if (a === 'abilities') openPanel('abilitiesSection', true);
+  else if (a === 'talents') openPanel('talentSection', true);
+  else if (a === 'lobby') returnToJar();
+}
+
+// back to the lobby; the run waits at the Portal to be continued
+function returnToJar() {
+  $('roomEnd').hidden = true;
+  const cur = document.querySelector('#drawer .panel:not([hidden])');
+  if (cur) openPanel(cur.id);
+  setMode('lobby');
+  renderPortal();
 }
 
 function leaveRun() {
@@ -1112,6 +1145,7 @@ function updateView(dt) {
         else saveStore();
       }
       v.overlay = resultOverlay(v.sim);
+      if (v.mode === 'campaign') showRoomEnd();
     }
     v.endT += dt;
     if (v.mode === 'watch' && v.endT > 2) newViewSim();
@@ -1149,7 +1183,7 @@ function refreshHint() {
   else if (v.mode === 'spar') h.innerHTML = `Sparring vs <b>${ENEMY_TYPES[v.sparType].name}</b> (no learning). <kbd>R</kbd> again.`;
   else if (v.mode === 'campaign') {
     const r = state.campaign.run;
-    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. Your fighter fights; coach it between rooms. <kbd>N</kbd> next room <kbd>R</kbd> restart room` : 'Run complete. Open the <b>Portal</b> to choose the next destination.';
+    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. Your fighter fights; coach it between rooms. When the room is over: <kbd>N</kbd> next room, <kbd>R</kbd> retry, <kbd>Esc</kbd> back to the jar` : 'Run complete. Open the <b>Portal</b> to choose the next destination.';
   }
   else if (v.mode === 'battle') h.innerHTML = 'Battle. Set it up in the Battle section. <kbd>R</kbd> rematch' + (state.cfg.battle.slots.some(s => s.kind === 'you') ? '. You: <kbd>WASD</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>Space</kbd> <kbd>L</kbd> <kbd>Shift</kbd> <kbd>Q</kbd> <kbd>E</kbd>' : '.');
 }
@@ -1193,7 +1227,11 @@ function refreshScreen() {
   $('game').hidden = max;
   $('maxView').hidden = !max;
   // the lobby is a place, not a fight: no speeds, no pause, no chart
-  $('lobbyBtn').hidden = mode === 'lobby';
+  const fighting = mode === 'campaign' && state.view.sim && !state.view.sim.done; // inside a world's room, mid-fight
+  $('lobbyBtn').hidden = mode === 'lobby' || mode === 'campaign';
+  $('trainBtn').hidden = mode === 'campaign';
+  $('dock').hidden = mode === 'campaign';
+  if (mode === 'campaign') { const cur = document.querySelector('#drawer .panel:not([hidden])'); if (cur && fighting) openPanel(cur.id); }
   $('speedGroup').hidden = mode === 'lobby';
   $('pauseBtn').hidden = mode === 'lobby';
   $('chartBox').hidden = (mode !== 'train' && mode !== 'watch') || max; // at Max the big chart takes the arena's place
@@ -1225,7 +1263,7 @@ function drawChart(cv) {
   const key = $('metric').value, mul = METRIC_SCALE[key] || 1;
   const all = state.lives;
   if (all.length < 2) {
-    g.fillStyle = '#5f5f5f'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#a8997e'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText('Each life the fighter lives adds a point here.', w / 2, h / 2);
     return;
   }
@@ -1243,21 +1281,21 @@ function drawChart(cv) {
   const padL = 44, padR = 8, padT = 8, padB = 22;
   const X = i => padL + i / (data.length - 1) * (w - padL - padR);
   const Y = v => padT + (1 - (v - lo) / (hi - lo)) * (h - padT - padB);
-  g.strokeStyle = '#eeeeee'; g.lineWidth = 1;
-  g.fillStyle = '#5f5f5f'; g.textAlign = 'right'; g.textBaseline = 'middle';
+  g.strokeStyle = '#2e241b'; g.lineWidth = 1;
+  g.fillStyle = '#a8997e'; g.textAlign = 'right'; g.textBaseline = 'middle';
   for (let k = 0; k <= 4; k++) {
     const v = lo + (hi - lo) * k / 4, y = Y(v);
     g.beginPath(); g.moveTo(padL, y); g.lineTo(w - padR, y); g.stroke();
     g.fillText(Math.abs(hi - lo) > 20 ? v.toFixed(0) : v.toFixed(1), padL - 6, y);
   }
-  if (lo < 0 && hi > 0) { g.strokeStyle = '#bbbbbb'; g.beginPath(); g.moveTo(padL, Y(0)); g.lineTo(w - padR, Y(0)); g.stroke(); }
-  g.fillStyle = 'rgba(0,0,0,0.18)';
+  if (lo < 0 && hi > 0) { g.strokeStyle = '#5a4430'; g.beginPath(); g.moveTo(padL, Y(0)); g.lineTo(w - padR, Y(0)); g.stroke(); }
+  g.fillStyle = 'rgba(236,228,210,0.22)';
   const stride = Math.max(1, Math.floor(data.length / 1200));
   for (let i = 0; i < data.length; i += stride) g.fillRect(X(i) - 1, Y(data[i]) - 1, 2, 2);
-  g.strokeStyle = '#161616'; g.lineWidth = 2; g.beginPath();
+  g.strokeStyle = '#c9a65a'; g.lineWidth = 2; g.beginPath();
   for (let i = 0; i < ma.length; i++) { const x = X(i), y = Y(ma[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); }
   g.stroke();
-  g.fillStyle = '#5f5f5f'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillStyle = '#a8997e'; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
   const total = state.livesTotal || all.length, offset = total - all.length + first;
   g.fillText(`life ${offset + 1}`, padL + 24, h - 6);
   g.fillText(`life ${total}`, w - padR - 30, h - 6);
@@ -1578,8 +1616,9 @@ window.addEventListener('keydown', e => {
   if (e.target instanceof Element && e.target.matches('input, select, textarea')) return;
   const mode = state.view.mode;
   if ((mode === 'play' || mode === 'battle') && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
-  if (e.code === 'KeyR' && mode !== 'train' && mode !== 'watch' && (mode !== 'campaign' || curRoom())) { newViewSim(); refreshHint(); }
+  if (e.code === 'KeyR' && mode !== 'train' && mode !== 'watch' && (mode !== 'campaign' || curRoom())) { if (mode === 'campaign' && !(state.view.sim && state.view.sim.done)) return; $('roomEnd').hidden = true; newViewSim(); refreshHint(); refreshScreen(); }
   if (e.code === 'KeyN' && mode === 'campaign') nextRoom();
+  if (e.code === 'Escape' && mode === 'campaign' && state.view.sim && state.view.sim.done && $('memory').hidden && !document.querySelector('#drawer .panel:not([hidden])')) returnToJar();
   if (e.code === 'KeyP' && !e.repeat) { state.view.paused = !state.view.paused; refreshPauseBtn(); }
   if (e.code === 'KeyT' && !e.repeat && mode !== 'play') setTraining(!state.training);
   keys.add(e.code);
@@ -1951,7 +1990,10 @@ function boot() {
   $('pauseBtn').addEventListener('click', () => { state.view.paused = !state.view.paused; refreshPauseBtn(); });
   $('lobbyBtn').addEventListener('click', () => setMode('lobby'));
   const cv = $('game');
-  const at = e => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) / b.width * W, (e.clientY - b.top) / b.height * H]; };
+  const at = e => { // the picture is fitted inside the canvas box (letterboxed): map to the picture
+    const b = cv.getBoundingClientRect(), k = Math.min(b.width / W, b.height / H), ox = (b.width - W * k) / 2, oy = (b.height - H * k) / 2;
+    return [(e.clientX - b.left - ox) / k, (e.clientY - b.top - oy) / k];
+  };
   cv.addEventListener('mousemove', e => {
     if (state.view.mode !== 'lobby') return;
     lobby.hover = lobby.hit(...at(e));
