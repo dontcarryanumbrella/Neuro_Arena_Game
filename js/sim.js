@@ -3272,6 +3272,9 @@ class Sim {
     }
     if (sc.custom && this.opts.healBetweenWaves && this.waveIdx > 0 && this.p && !this.p.dead) {
       this.p.hp = this.p.maxHp;
+      this.p.energy = this.p.energyMax; this.p.posture = 0;
+      this.p.phoenixUsed = false; this.p.berserkUsed = false; this.p.berserkT = 0;
+      this.p.cds.kick = 0; this.p.cds.roll = 0; this.p.abCd = [0, 0];
     }
     const twins = [];
     for (const w of wave) {

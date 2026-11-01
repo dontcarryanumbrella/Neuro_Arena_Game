@@ -286,6 +286,17 @@ function scoreLoadout(sim, ret) {
     st.n++; st.adv += ret - base;
     st.dmg += sim.stats.abilDmg[type] || 0; st.uses += sim.stats.abilUses[type] || 0;
   }
+  state.abilitiesDirty = true;
+}
+
+// Solo fights outside the trainer still count as practice, without affecting loadout scores.
+function recordAbilityPractice(sim) {
+  for (const [type, uses] of Object.entries(sim.stats.abilUses || {})) {
+    if (!HERO_ABILITIES[type] || !uses) continue;
+    const st = state.abStats[type] || (state.abStats[type] = { n: 0, adv: 0, dmg: 0, uses: 0 });
+    st.uses += uses;
+  }
+  state.abilitiesDirty = true;
 }
 
 // Auto mode: every few lives, keep what works and try what has not been tried (UCB).
@@ -1143,7 +1154,10 @@ function updateView(dt) {
   if (v.sim.done) {
     if (!v.overlay) {
       if (v.mode === 'trial' && !v.recorded) { v.recorded = true; recordTrial(v.sim); }
-      if (v.mode !== 'play' && v.mode !== 'battle' && !v.sim.battle) addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN); // the hero learns from every fight it takes
+      if (v.mode !== 'play' && v.mode !== 'battle' && !v.sim.battle) {
+        addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN);
+        recordAbilityPractice(v.sim);
+      }
       if (!v.paid) {
         v.paid = true;
         // only the worlds pay: battles, sparring, trials and play are memories
@@ -1411,7 +1425,7 @@ function refreshAbilityList() {
     const ab = HERO_ABILITIES[t], pr = abProgress(t), m = pr.m, done = pr.ok && m >= pr.need, st = state.abStats[t];
     if (!m || (ab.manual && ab.manual > 1 && !isLearned(pr.prev))) return null; // the manual reveals one sword at a time
     const equipped = state.loadout.includes(t);
-    const stat = done && st && st.n ? `${st.n} lives, ${(st.adv / st.n >= 0 ? '+' : '') + (st.adv / st.n).toFixed(0)} vs avg, ${(st.uses / st.n).toFixed(1)} uses` : done ? 'not used yet' : '';
+    const stat = done && st && st.n ? `${st.n} lives, ${(st.adv / st.n >= 0 ? '+' : '') + (st.adv / st.n).toFixed(0)} vs avg, ${st.uses} uses` : done && st && st.uses ? `${st.uses} uses` : done ? 'not used yet' : '';
     return `<div class="ab-row${equipped ? ' eq' : ''}" title="${ab.desc}"><span class="ab-name">${ab.name}${equipped ? ' ●' : ''}</span>` +
       `<span class="ab-from">${abFoe(t).name}</span>` +
       (done ? `<span class="ab-stat">${stat}</span>` : !pr.ok && m >= pr.need ? `<span class="ab-stat">use ${HERO_ABILITIES[pr.prev].name.split(':')[0]} ${MANUAL_PRACTICE}x first</span>`
