@@ -18,6 +18,8 @@ const LID = { x: 128, y: 6, rx: 46, ry: 9 };
 const SEALS_SHOWN = 15;
 const HEARTH = { x: 180, y: 84 }; // the fireplace, on the back wall
 const ALTAR = { x: 181, y: 128 };
+const FLOOR_CANDLES = [[80, 98], [152, 93]]; // flame positions; each candle stands under its flame
+const CANDLE_FLAMES = [[8, 109], [233, 38], ...FLOOR_CANDLES]; // every loose candle in the room
 
 class Lobby {
   constructor(renderer) {
@@ -40,47 +42,79 @@ class Lobby {
     this.hero.then = null;
   }
 
-  // the parts that never move: walls, floor, rug, the structures of the stations
+  // the parts that never move: walls, floor, rug, the structures of the stations and the clutter of a long stay
   bake() {
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d'), rand = mulberry32(7);
-    const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
-    const rect = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    // furniture and clutter are painted on their own layer, so each piece can get a dark outline
+    const lc = document.createElement('canvas'); lc.width = W; lc.height = H;
+    const L = lc.getContext('2d');
+    let tg = g;
+    const px = (x, y, col) => { tg.fillStyle = col; tg.fillRect(x, y, 1, 1); };
+    const rect = (x, y, w, h, col) => { tg.fillStyle = col; tg.fillRect(x, y, w, h); };
+    // warm light (f > 0) or shadow (f < 0), in coarse steps so it stays pixel art
+    const shade = (hex, f) => {
+      const n = parseInt(hex.slice(1), 16), to = f > 0 ? [232, 168, 104] : [16, 9, 5], k = Math.min(1, Math.abs(f));
+      const ch = i => Math.round(((n >> (16 - i * 8)) & 255) * (1 - k) + to[i] * k);
+      return `rgb(${ch(0)},${ch(1)},${ch(2)})`;
+    };
+    const floorTop = x => Math.round(112 - 35.7 * Math.sqrt(Math.max(0, 1 - ((x - 128) / 134.4) ** 2)));
     // the jar's wall: warm glazed clay, curving away at the sides, lit by the fire and the gate
-    const wall = ['#1c120c', '#28190f', '#342114', '#412a18', '#4e331d'];
-    for (let y = 0; y < 96; y++) for (let x = 0; x < W; x++) {
+    const wall = ['#1e130d', '#2a1a11', '#372315', '#452d1a', '#53381f', '#5f4128'];
+    for (let x = 0; x < W; x++) for (let y = 0, ft = floorTop(x); y < ft; y++) {
       const curve = Math.abs(x - 128) / 128;
       const light = Math.max(0, 1 - Math.hypot(x - 128, (y - 56) * 1.6) / 120) * 0.8 + Math.max(0, 1 - Math.hypot(x - HEARTH.x, (y - 72) * 1.3) / 70) * 1.4;
       const k = 1 + light * 2.4 - curve * 1.5 + (y / 96) * 0.7 + ((x + y) % 2 ? 0.25 : 0);
-      px(x, y, wall[Math.max(0, Math.min(4, Math.floor(k)))]);
+      px(x, y, wall[Math.max(0, Math.min(5, Math.floor(k)))]);
     }
-    // crackle in the glaze
-    for (let i = 0; i < 22; i++) {
-      let x = Math.floor(rand() * W), y = 24 + Math.floor(rand() * 60);
-      for (let j = 0; j < 6 + rand() * 8; j++) { px(x, y, '#4a311e'); x += rand() < 0.5 ? 1 : -1; y += rand() < 0.6 ? 1 : 0; }
-    }
+    // glaze that ran as it fired
+    for (let i = 0; i < 40; i++) { tg.fillStyle = 'rgba(255,220,170,0.05)'; tg.fillRect(Math.floor(rand() * W), 26 + Math.floor(rand() * 34), 1, 3 + Math.floor(rand() * 6)); }
     // older tallies under his, worn almost smooth: someone was here before
     for (let i = 0; i < 70; i++) {
       const grp = Math.floor(i / 5), k = i % 5, x = 7 + (grp % 4) * 9 + (grp % 3), y = 31 + Math.floor(grp / 4) * 8 + (grp % 2);
       if (k < 4) { for (let j = 0; j < 6; j++) if (rand() < 0.75) px(x + k * 2, y + j, '#3d2a1d'); }
       else for (let j = 0; j < 7; j++) px(x - 1 + j, y + 5 - Math.floor(j * 0.8), '#36251a');
     }
-    // ribs of the jar, where the potter's coils joined
-    for (const ry of [30, 46]) for (let x = 0; x < W; x++) if ((x + ry) % 3) px(x, ry + Math.round(Math.pow(Math.abs(x - 128) / 128, 2) * 6), '#4a311e');
-    // the floor: the jar's round bottom, worn warm and smooth
-    for (let y = 80; y < H; y++) for (let x = 0; x < W; x++) {
+    // a painted band round the jar's shoulder, where the potter's coils joined
+    for (let x = 0; x < W; x++) {
+      const y0 = 21 + Math.round(((x - 128) / 128) ** 2 * 6);
+      px(x, y0, '#2a1a10'); px(x, y0 + 4, '#2a1a10');
+      for (let k = 1; k <= 3; k++) {
+        const m = (x + 2) % 8, diamond = Math.abs(m - 3.5) + Math.abs(k - 2) * 1.5 < 2;
+        px(x, y0 + k, diamond ? '#7a2a1c' : k === 2 && m === 7 ? '#c9a65a' : '#7e6040');
+      }
+    }
+    // wooden wainscot along the foot of the wall: upright boards under a rail
+    for (let x = 0; x < W; x++) {
+      const ft = floorTop(x), top = ft - 13, lit = Math.max(0, 1 - Math.abs(x - HEARTH.x) / 70) * 0.6 + Math.max(0, 1 - Math.abs(x - 128) / 80) * 0.35;
+      for (let y = top; y < ft; y++) {
+        const r = y - top, board = x % 9;
+        const col = r === 0 ? '#2e1c10' : r === 1 ? '#8a6040' : r === 2 ? '#4a301c' : y === ft - 1 ? '#24160c' : board === 0 ? '#36210f' : board === 1 ? '#74502f' : (x * 13 + y * 7) % 11 === 0 ? '#4e321e' : '#5c3c22';
+        px(x, y, r === 0 || y === ft - 1 ? col : shade(col, Math.round(lit * 3) / 3 * 0.3 - Math.abs(x - 128) / 128 * 0.25));
+      }
+    }
+    // the floor: worn planks laid across the jar's round bottom, darker toward the wall, warm where the light falls
+    const tones = ['#6a4629', '#62412a', '#704b2d', '#5c3d25'];
+    for (let y = 70; y < H; y++) for (let x = 0; x < W; x++) {
+      const ft = floorTop(x);
+      if (y < ft) continue;
       const d = Math.hypot((x - 128) / 128, (y - 112) / 34);
-      if (d > 1.05) continue;
+      if (d > 1.05) { px(x, y, '#170e09'); continue; }
+      const row = Math.floor((y - 77) / 5), r = y - 77 - row * 5, plank = Math.floor((x + row * 23) / 41);
+      let base = tones[(plank * 7 + row * 3) % 4];
+      if (r === 4 || (x + row * 23) % 41 === 0) base = '#3a2516';
+      else if (r === 0) base = '#7e563a';
+      else if ((x * 31 + y * 17 + plank * 5) % 23 === 0) base = '#553820'; // the grain
       const glow = Math.max(0, 1 - Math.hypot(x - 128, (y - 92) * 2.2) / 70) + Math.max(0, 1 - Math.hypot(x - HEARTH.x, (y - 88) * 2) / 60) * 0.8;
-      const ring = Math.floor(d * 7) % 2 === 0 && (x + y) % 2 === 0;
-      px(x, y, glow > 0.55 ? '#86603e' : glow > 0.25 ? '#714e32' : ring ? '#523825' : d > 0.92 ? '#3e2a1b' : '#61432c');
+      const dark = Math.max(0, (d - 0.78) / 0.27) + (y - ft < 2 ? 0.6 : 0);
+      px(x, y, shade(base, Math.round(Math.min(1, glow) * 4) / 4 * 0.4 - Math.round(Math.min(1, dark) * 3) / 3 * 0.55));
     }
     // a woven rug in the middle, where the fighter rests
     for (let y = -11; y <= 11; y++) for (let x = -44; x <= 44; x++) {
       const d = Math.hypot(x / 44, y / 11);
       if (d > 1) continue;
-      const band = d > 0.88 ? '#b8913c' : d > 0.8 ? '#7a2a1c' : d > 0.7 ? '#c9a65a' : ((Math.abs(x) + Math.abs(y) * 3) % 8 < 2 ? '#a8462c' : '#8f3420');
-      px(128 + x, 113 + y, (x + y) % 2 && d > 0.9 ? '#8f7438' : band);
+      const band = d > 0.95 ? '#3a1a10' : d > 0.88 ? '#b8913c' : d > 0.8 ? '#7a2a1c' : d > 0.7 ? '#c9a65a' : ((Math.abs(x) + Math.abs(y) * 3) % 8 < 2 ? '#a8462c' : '#8f3420');
+      px(128 + x, 113 + y, (x + y) % 2 && d > 0.9 && d <= 0.95 ? '#8f7438' : band);
     }
     for (const [x, y] of [[128, 113], [112, 113], [144, 113]]) { rect(x - 2, y, 5, 1, '#e8c34a'); rect(x, y - 1, 1, 3, '#e8c34a'); }
     for (let x = -46; x <= 46; x += 3) { px(128 + x, 113 + Math.round(Math.sqrt(Math.max(0, 1 - (x / 46) ** 2)) * 12), '#c9a65a'); } // fringe
@@ -89,6 +123,22 @@ class Lobby {
       const d = Math.hypot(x / (LID.rx + 3), y / (LID.ry + 3));
       if (d <= 1 && LID.y + y >= 0) px(LID.x + x, LID.y + y, d > 0.86 ? '#6b4a2f' : d > 0.78 ? '#4a3220' : (x * 3 + y) % 7 === 0 ? '#1a1410' : '#0c0908');
     }
+    // cobwebs in the top corners
+    for (const [sx, dir] of [[0, 1], [W - 1, -1]]) {
+      for (let i = 0; i < 9; i++) { px(sx + dir * i, 0, '#5a4a3a'); px(sx, i, '#5a4a3a'); if (i < 7) px(sx + dir * i, i, '#4a3c30'); }
+      for (const r of [3, 6]) for (let i = 0; i <= r; i++) px(sx + dir * i, r - i, '#3e3228');
+    }
+    if (this.access.hearth) { // the chimney breast: bricks rising into the dark, fading as they go (no outline: it crumbles)
+      const hx = HEARTH.x, hy = HEARTH.y;
+      for (let y = 22; y < hy - 34; y++) for (let x = hx - 13; x <= hx + 13; x++) {
+        const row = Math.floor((y - 22) / 3), off = row % 2 ? 3 : 0, fade = (y - 22) / (hy - 56);
+        const mortar = (y - 22) % 3 === 2 || (x + off) % 6 === 5;
+        if (rand() > 0.35 + fade) continue;
+        px(x, y, mortar ? '#2e2018' : fade > 0.6 ? '#5a4030' : '#4a3628');
+      }
+    }
+
+    tg = L; // ---- everything below stands in the room and is outlined ----
     if (this.access.pavilion) {
     // the Memory Pavilion: a small pavilion of red posts under a dark tiled roof
     rect(48, 82, 46, 3, '#2a1d14'); rect(50, 81, 42, 1, '#4a3220');
@@ -101,13 +151,6 @@ class Lobby {
     if (this.access.hearth) {
     // the fireplace: a brick hearth set into the clay, a mantel with a teapot and a candle
     const hx = HEARTH.x, hy = HEARTH.y;
-    // the chimney breast: bricks rising into the dark, fading as they go
-    for (let y = 22; y < hy - 34; y++) for (let x = hx - 13; x <= hx + 13; x++) {
-      const row = Math.floor((y - 22) / 3), off = row % 2 ? 3 : 0, fade = (y - 22) / (hy - 56);
-      const mortar = (y - 22) % 3 === 2 || (x + off) % 6 === 5;
-      if (rand() > 0.35 + fade) continue; // the top crumbles into the jar's shadow
-      px(x, y, mortar ? '#2e2018' : fade > 0.6 ? '#5a4030' : '#4a3628');
-    }
     for (let y = hy - 32; y < hy; y++) for (let x = hx - 22; x <= hx + 22; x++) {
       const row = Math.floor((y - (hy - 32)) / 3), off = row % 2 ? 3 : 0;
       const mortar = (y - (hy - 32)) % 3 === 2 || (x + off - (hx - 22)) % 6 === 5;
@@ -121,15 +164,24 @@ class Lobby {
     rect(hx - 25, hy - 34, 50, 3, '#5e4630'); rect(hx - 25, hy - 34, 50, 1, '#8a6a4a'); rect(hx - 24, hy - 31, 48, 1, '#3a2a20'); // mantel
     rect(hx - 24, hy, 48, 3, '#5a4838'); rect(hx - 24, hy, 48, 1, '#7a6250'); // hearthstone
     rect(hx - 9, hy - 3, 18, 2, '#4a3220'); rect(hx - 7, hy - 5, 14, 2, '#5e4630'); px(hx - 6, hy - 5, '#8a6a4a'); px(hx + 5, hy - 3, '#8a6a4a'); // logs
-    // on the mantel: a clay teapot and two cups, a small jar
+    // on the mantel: a clay teapot and two cups, a small jar, the candle
     rect(hx - 20, hy - 38, 6, 4, '#8a6a4a'); rect(hx - 19, hy - 39, 4, 1, '#a8825a'); px(hx - 14, hy - 37, '#8a6a4a'); px(hx - 21, hy - 37, '#8a6a4a');
     rect(hx - 11, hy - 36, 2, 2, '#d8cfb8'); rect(hx - 8, hy - 36, 2, 2, '#d8cfb8');
     rect(hx + 10, hy - 37, 4, 3, '#4f7a6a'); px(hx + 11, hy - 38, '#33544a');
+    rect(hx + 18, hy - 38, 2, 4, '#ece4d2');
+    // firewood stacked beside it, ends out
+    for (const [x, y] of [[209, 99], [215, 99], [212, 94]]) {
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const r = Math.hypot(dx, dy);
+        if (r <= 3.2) px(x + dx, y + dy, r > 2.4 ? '#5a3a22' : r > 1.4 ? '#a87a4a' : r > 0.6 ? '#c89a62' : '#7a5234');
+      }
+    }
     }
     if (this.access.altar) {
-    // the Talent Altar, at the front: a low table, a bronze censer, candles
+    // the Talent Altar, at the front: a low table under a red runner, a bronze censer, candles
     const ax = ALTAR.x, ay = ALTAR.y;
     rect(ax - 13, ay - 9, 26, 3, '#6b4a2f'); rect(ax - 13, ay - 6, 26, 1, '#4a3220'); rect(ax - 11, ay - 5, 2, 6, '#4a3220'); rect(ax + 9, ay - 5, 2, 6, '#4a3220');
+    rect(ax - 4, ay - 9, 8, 6, '#8f2416'); rect(ax - 4, ay - 9, 8, 1, '#c23b22'); px(ax - 4, ay - 3, '#c9a65a'); px(ax + 3, ay - 3, '#c9a65a');
     rect(ax - 5, ay - 15, 10, 6, '#8f7438'); rect(ax - 4, ay - 15, 8, 1, '#c9a65a'); rect(ax - 6, ay - 16, 12, 1, '#b8913c');
     rect(ax - 10, ay - 12, 2, 3, '#ece4d2'); rect(ax + 8, ay - 12, 2, 3, '#ece4d2');
     }
@@ -155,9 +207,56 @@ class Lobby {
       const half = Math.round(6 - Math.abs(y - 13) * 0.18 - (y < 4 ? (4 - y) : 0));
       for (let x = -half; x <= half; x++) px(226 + x, 134 - y, x > half - 2 ? '#4a4a52' : (x + y) % 5 === 0 ? '#6e6e78' : '#5c5c66');
     }
-    // shadows where things stand on the floor
+    // shelves on the clay, crowded the way a long stay crowds them
+    const shelf = (x0, y, w) => { rect(x0, y, w, 2, '#6b4a2f'); rect(x0, y, w, 1, '#8a6240'); rect(x0 + 2, y + 2, 2, 3, '#4a3220'); rect(x0 + w - 4, y + 2, 2, 3, '#4a3220'); };
+    shelf(58, 40, 30);
+    for (const [x, h, col] of [[60, 7, '#7a2a1c'], [62, 6, '#3e5a4a'], [64, 8, '#a8822a'], [66, 7, '#4a4a6a']]) { rect(x, 40 - h, 2, h, col); rect(x, 42 - h, 2, 1, '#d8c48a'); }
+    for (let i = 0; i < 6; i++) px(69 + (i >> 1), 39 - i, '#8f3420'); // one leaning on the rest
+    rect(74, 35, 5, 5, '#4f7a6a'); rect(75, 34, 3, 1, '#33544a'); px(75, 36, '#8fc8b0'); // a little glazed jar
+    rect(81, 37, 5, 3, '#a8582c'); rect(81, 37, 5, 1, '#c87040'); // a pot of something green
+    for (const [x, y, col] of [[82, 35, '#5a9a4a'], [83, 34, '#6ab85a'], [84, 35, '#5a9a4a'], [83, 36, '#4a8a3a'], [81, 34, '#4a8a3a'], [85, 33, '#6ab85a'], [80, 35, '#5a9a4a']]) px(x, y, col);
+    shelf(204, 44, 46);
+    for (const [x, col] of [[206, '#6a4a8a'], [210, '#b87a2a'], [227, '#3e7a6a']]) { rect(x, 38, 3, 6, col); rect(x + 1, 36, 1, 2, col); px(x, 39, '#e8dcc4'); px(x + 1, 35, '#8a6a4a'); }
+    rect(214, 41, 9, 3, '#d8cfb8'); rect(215, 38, 7, 3, '#c8bc9e'); px(214, 42, '#a8997e'); px(222, 39, '#a8997e'); // scrolls
+    rect(233, 40, 2, 4, '#ece4d2'); // a candle
+    rect(240, 40, 6, 4, '#a8582c'); rect(240, 40, 6, 1, '#c87040'); // and ivy spilling off the end
+    for (let i = 0; i < 12; i++) { px(240 + (i % 3 === 0 ? 0 : 1), 44 + i, i % 2 ? '#4a8a3a' : '#6ab85a'); if (i < 8) px(246 - (i % 2), 44 + i, i % 2 ? '#6ab85a' : '#4a8a3a'); }
+    // herbs drying from the shoulder of the jar
+    for (const [x, len] of [[14, 6], [62, 3], [196, 4], [244, 7]]) {
+      rect(x, 0, 1, len, '#3a2a1c'); rect(x - 1, len, 3, 1, '#b8913c');
+      for (let i = 1; i <= 5; i++) for (let j = -Math.ceil(i / 2); j <= Math.ceil(i / 2); j++) px(x + j, len + i, (i + j) % 3 ? '#5a7a3a' : '#7a6a3a');
+    }
+    // a stack of books by the wall, a candle burning on top
+    rect(3, 121, 12, 3, '#3e5a4a'); rect(4, 118, 11, 3, '#7a2a1c'); rect(3, 115, 12, 3, '#a8822a');
+    for (const y of [116, 119, 122]) rect(13, y, 2, 1, '#e8dcc4');
+    rect(8, 111, 2, 4, '#ece4d2');
+    // candles on the floor, each on a brass dish
+    for (const [x, fy] of FLOOR_CANDLES) { rect(x, fy + 2, 2, 4, '#ece4d2'); rect(x - 1, fy + 6, 4, 1, '#8f7438'); }
+    // a cushion beside the rug
+    rect(93, 128, 14, 5, '#3e6a6a'); rect(92, 129, 16, 3, '#3e6a6a'); rect(94, 128, 12, 1, '#5a8a8a'); rect(99, 130, 2, 1, '#c9a65a');
+    for (const [x, y] of [[92, 128], [107, 128], [92, 132], [107, 132]]) px(x, y, '#c9a65a');
+    // a potted plant in the corner
+    for (const [dx, dy, len] of [[-1, -1, 9], [1, -1, 8], [0, -1, 11], [-1, 0, 6], [1, 0, 6], [-1, -2, 6], [1, -2, 7]]) {
+      for (let i = 0; i < len; i++) rect(247 + dx * i, 127 + dy * i, 2, 2, i % 3 ? '#4a8a3a' : '#6ab85a');
+    }
+    rect(242, 128, 11, 10, '#a8582c'); rect(241, 127, 13, 2, '#c87040'); rect(250, 130, 2, 7, '#8a4420');
+    // loose pages on the floor
+    rect(64, 134, 5, 3, '#d8cfb8'); px(65, 135, '#a8997e'); px(67, 135, '#a8997e');
+    rect(197, 113, 4, 3, '#d8cfb8'); px(198, 114, '#a8997e');
+
+    // shadows where things stand on the floor, then the outlines, then the things themselves
     g.fillStyle = 'rgba(0,0,0,0.25)';
-    for (const [x, y, w] of [[42, 134, 40], [226, 135, 16], ...(this.access.pavilion ? [[71, 85, 50]] : []), ...(this.access.altar ? [[ALTAR.x, ALTAR.y + 1, 30]] : []), ...(this.access.mirror ? [[226, 87, 16]] : [])]) g.fillRect(x - w / 2, y, w, 2);
+    for (const [x, y, w] of [[42, 134, 40], [226, 135, 16], [9, 124, 14], [100, 133, 18], [247, 138, 14], [212, 103, 14], ...FLOOR_CANDLES.map(([x, fy]) => [x + 1, fy + 7, 6]), ...(this.access.pavilion ? [[71, 85, 50]] : []), ...(this.access.altar ? [[ALTAR.x, ALTAR.y + 1, 30]] : []), ...(this.access.mirror ? [[226, 87, 16]] : [])]) g.fillRect(x - w / 2, y, w, 2);
+    const img = L.getImageData(0, 0, W, H);
+    if (img && img.data) {
+      const a = img.data, solid = i => a[i * 4 + 3] > 0;
+      g.fillStyle = '#140b07';
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (!solid(i) && ((x > 0 && solid(i - 1)) || (x < W - 1 && solid(i + 1)) || (y > 0 && solid(i - W)) || (y < H - 1 && solid(i + W)))) g.fillRect(x, y, 1, 1);
+      }
+    }
+    g.drawImage(lc, 0, 0);
     return c;
   }
 
@@ -175,6 +274,7 @@ class Lobby {
     const g = this.r.g, t = (this.t += dt);
     const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
     const flick = 0.75 + 0.15 * Math.sin(t * 7.3) + 0.1 * Math.sin(t * 13.1 + 1.7); // the fire breathes
+    const lights = this.lights = []; // every flame adds a pool of light, laid over the room at the end
     g.drawImage(this.bg, 0, 0);
     this.drawSeals(g, info.seals);
     this.drawOldMarks(g, info);
@@ -191,7 +291,7 @@ class Lobby {
     }
     if (this.access.pavilion) for (const [x, y] of [[55, 63], [87, 63]]) { // lanterns on the pavilion's posts
       const f = Math.floor(t * 8 + x) % 3;
-      g.fillStyle = 'rgba(232,140,60,0.14)'; g.fillRect(x - 5, y - 2, 11, 12);
+      lights.push([x + 1, y + 3, 12, '255,140,60', 0.065]);
       g.fillStyle = '#c23b22'; g.fillRect(x - 1, y, 4, 6); g.fillStyle = f ? '#e8703a' : '#f09050'; g.fillRect(x, y + 1, 2, 4);
     }
     if (this.access.hearth) this.drawFire(g, t, flick);
@@ -204,8 +304,14 @@ class Lobby {
     this.smoke = this.smoke.filter(s => s.life > 0);
     for (const s of this.smoke) { g.globalAlpha = Math.min(0.55, s.life / 2.4); px(Math.round(s.x), Math.round(s.y), '#c9bfa8'); }
     g.globalAlpha = 1;
-    for (const x of [ax - 9, ax + 9]) { px(x, ay - 13, Math.sin(t * 11 + x) > 0 ? '#ffd27a' : '#f0a040'); g.fillStyle = 'rgba(255,190,90,0.12)'; g.fillRect(x - 3, ay - 16, 7, 6); }
+    for (const x of [ax - 9, ax + 9]) { px(x, ay - 13, Math.sin(t * 11 + x) > 0 ? '#ffd27a' : '#f0a040'); lights.push([x, ay - 13, 11, '255,180,90', 0.065]); }
     }
+    // loose candles about the room
+    CANDLE_FLAMES.forEach(([x, y], i) => {
+      const f = Math.sin(t * 11 + i * 2.3) > 0;
+      px(x, y, f ? '#ffd27a' : '#f0a040'); px(x, y + 1, '#fff2b0'); if (f) px(x, y - 1, '#e05a1c');
+      lights.push([x, y + 1, 13, '255,175,85', 0.07 + 0.015 * Math.sin(t * 7 + i)]);
+    });
     // the mirror catches a moving glint of firelight
     const gl = Math.floor((t * 12) % 40) - 10;
     if (this.access.mirror && gl > -8 && gl < 8) for (let i = -2; i <= 2; i++) px(226 + gl + i, 60 - i - gl, '#fff0d0');
@@ -222,6 +328,10 @@ class Lobby {
     g.globalAlpha = 1;
     this.drawUrnGlow(g, t);
     this.drawHero(dt, info.skin, info.race);
+    // pools of candle and lantern light, in rings the way pixel art holds them
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const [x, y, r, rgb, a] of lights) this.glow(g, x, y, r, rgb, a);
+    g.restore();
     if (this.access.hearth) {
     // firelight over everything near the hearth, breathing with the flames
     g.save(); g.globalCompositeOperation = 'lighter';
@@ -285,8 +395,17 @@ class Lobby {
     this.sparks = this.sparks.filter(s => s.life > 0 && s.y > HEARTH.y - 22);
     for (const s of this.sparks) { g.fillStyle = s.life > 0.6 ? '#ffd060' : '#e05a1c'; g.fillRect(Math.round(s.x), Math.round(s.y), 1, 1); }
     // the candle on the mantel
-    g.fillStyle = '#ece4d2'; g.fillRect(hx + 18, HEARTH.y - 38, 2, 4);
     g.fillStyle = Math.sin(t * 12) > 0 ? '#ffd27a' : '#f0a040'; g.fillRect(hx + 18, HEARTH.y - 40, 1, 2);
+    this.lights.push([hx + 18, HEARTH.y - 39, 12, '255,175,85', 0.065]);
+  }
+
+  // a disc of light in three stepped rings (drawn additively)
+  glow(g, x, y, r, rgb, a) {
+    g.fillStyle = `rgba(${rgb},${a})`;
+    for (const k of [1, 0.66, 0.38]) {
+      const R = Math.round(r * k);
+      for (let dy = -R; dy <= R; dy++) { const w = Math.round(Math.sqrt(R * R - dy * dy)); g.fillRect(x - w, y + dy, w * 2 + 1, 1); }
+    }
   }
 
   // paper lanterns hanging from the shoulder of the jar, swaying a little
@@ -294,7 +413,7 @@ class Lobby {
     for (const [x, len, ph] of [[34, 16, 0], [222, 14, 1.3], [92, 10, 2.1]]) {
       const sway = Math.round(Math.sin(t * 0.9 + ph) * 1.2), y = 12 + len;
       g.fillStyle = '#2a1a12'; g.fillRect(x, 12, 1, len);
-      g.fillStyle = 'rgba(255,170,80,0.12)'; g.fillRect(x - 6 + sway, y - 2, 13, 13);
+      this.lights.push([x + sway, y + 4, 15, '255,150,70', 0.065]);
       g.fillStyle = '#c23b22'; g.fillRect(x - 3 + sway, y, 7, 8); g.fillStyle = '#e8703a'; g.fillRect(x - 2 + sway, y + 1, 5, 6);
       g.fillStyle = Math.floor(t * 6 + ph * 3) % 3 ? '#ffb060' : '#ffd090'; g.fillRect(x - 1 + sway, y + 2, 3, 4);
       g.fillStyle = '#b8913c'; g.fillRect(x - 3 + sway, y - 1, 7, 1); g.fillRect(x - 3 + sway, y + 8, 7, 1); g.fillRect(x + sway, y + 9, 1, 2);
