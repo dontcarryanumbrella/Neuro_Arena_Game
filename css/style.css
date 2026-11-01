@@ -430,3 +430,15 @@ details.note p, .right p { color: #d8ccb6; }
 .layout.panel-open .stage::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 7; pointer-events: none; }
 .layout, .layout.panel-open { grid-template-columns: none; }
 .hub.small button b { font-size: 9px; }
+
+/* no scrollbars on the panels: they fit, and anything long still scrolls with the wheel or a finger */
+.right, .layout.panel-open .right { scrollbar-width: none; }
+.right::-webkit-scrollbar { display: none; }
+/* the Portal opens wide, its worlds in a grid of compact cards */
+.layout.panel-open #drawer[data-panel="portalPanel"] { width: min(980px, 96%); }
+#worldList { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+#worldList .world-card { margin: 0; display: flex; flex-direction: column; gap: 3px; padding: 7px 9px; }
+#worldList .wc-blurb { font-size: 12px; line-height: 1.35; margin: 2px 0; color: #c8bca4; flex: 1; }
+#worldList .wc-foot { margin-top: 2px; }
+#worldList .wc-foot .mini { font-size: 11px; }
+#portalPanel > .mini { margin: 4px 0; }

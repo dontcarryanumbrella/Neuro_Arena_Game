@@ -2374,9 +2374,18 @@ const spriteFor = e => e.spriteNow || (e.def.boss && e.phase === 2 && e.def.spri
 
 class Renderer {
   constructor(canvas) {
-    this.cv = canvas;
-    this.g = canvas.getContext('2d');
+    // The fight is drawn in its own pixels on a small layer; present() lays that layer, scaled up crisp, over the
+    // world's backdrop, which is painted at a finer resolution (js/arenas.js). Without the arenas (the test pages)
+    // the fight draws straight onto the canvas.
+    this.S = typeof ARENA_S !== 'undefined' ? ARENA_S : 1;
+    if (this.S > 1) {
+      canvas.width = W * this.S; canvas.height = H * this.S;
+      this.sg = canvas.getContext('2d');
+      this.cv = document.createElement('canvas'); this.cv.width = W; this.cv.height = H;
+    } else this.cv = canvas;
+    this.g = this.cv.getContext('2d');
     this.g.imageSmoothingEnabled = false;
+    this.backdrop = null;
     this.parts = [];
     this.falls = [];
     this.banner = null;
@@ -2385,6 +2394,31 @@ class Renderer {
     this.shake = 0;
     this.bg = this.bakeBackground();
     this.worldBackgrounds = {};
+  }
+
+  // the whole picture at the fight's resolution: the backdrop (if any) under the fight's layer
+  flatten(g2) {
+    if (this.backdrop) { g2.imageSmoothingEnabled = true; g2.drawImage(this.backdrop.cv, 0, 0, W, H); }
+    g2.drawImage(this.cv, 0, 0);
+  }
+
+  // Put the frame on screen: the world's backdrop and what moves in it, then the fight's layer scaled up crisp.
+  // Called once per frame after drawing (the lobby passes lobby = true: it has no backdrop).
+  present(lobby) {
+    if (this.S === 1) return;
+    const sg = this.sg, S = this.S, bd = lobby ? null : this.backdrop;
+    sg.setTransform(1, 0, 0, 1, 0, 0);
+    if (bd) {
+      sg.fillStyle = '#000'; sg.fillRect(0, 0, W * S, H * S);
+      // the backdrop and what moves in it, on the backdrop's own pixel grid, then up to the screen crisp
+      const P = bd.cv.width / W;
+      if (!this.amb) { this.amb = document.createElement('canvas'); this.amb.width = W * P; this.amb.height = H * P; this.ag = this.amb.getContext('2d'); }
+      const ag = this.ag; ag.setTransform(1, 0, 0, 1, 0, 0); ag.drawImage(bd.cv, 0, 0);
+      ag.setTransform(P, 0, 0, P, 0, 0); drawWorldAmbient(ag, bd.id, this.ambT);
+      sg.imageSmoothingEnabled = false; sg.drawImage(this.amb, bd.ox * S, bd.oy * S, W * S, H * S);
+    }
+    sg.imageSmoothingEnabled = false;
+    sg.drawImage(this.cv, 0, 0, W * S, H * S);
   }
 
   bakeBackground() {
@@ -3344,15 +3378,15 @@ class Renderer {
     const oy = this.shake > 0 ? Math.round((Math.random() - .5) * this.shake) : 0;
     this.shake = Math.max(0, this.shake - dt * 20);
 
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.fillStyle='#000';g.fillRect(0,0,W,H);
-    g.setTransform(1,0,0,1,ox,oy);
     const world = extra.world;
-    const scene = typeof WORLD_SCENES !== 'undefined' && WORLD_SCENES[world];
+    const scene = this.S > 1 && typeof WORLD_SCENES !== 'undefined' && WORLD_SCENES[world];
     if (scene && !this.worldBackgrounds[world]) this.worldBackgrounds[world] = bakeWorldArena(world);
-    g.drawImage(this.worldBackgrounds[world] || this.bg, 0, 0);
-    if (scene) { this.ambT = (this.ambT || 0) + dt; drawWorldAmbient(g, world, this.ambT); }
-    else this.drawLanterns(sim.t);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // a world's scene lies under this layer (see present); anywhere else the old arena is drawn here
+    if (scene) { g.clearRect(0, 0, W, H); this.ambT = (this.ambT || 0) + dt; this.backdrop = { id: world, cv: this.worldBackgrounds[world], ox, oy }; }
+    else { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); this.backdrop = null; }
+    g.setTransform(1,0,0,1,ox,oy);
+    if (!scene) { g.drawImage(this.bg, 0, 0); this.drawLanterns(sim.t); }
     this.drawSkyOmens(sim);
     this.drawYellowCosmos(sim);
     if (sim.timeStopT > 0) this.drawTimeStop(sim);
@@ -4472,7 +4506,7 @@ class Renderer {
   // The picture cracks like a mirror around the cut, then falls apart into the void behind it.
   startShatter(cx, cy, strong) {
     const snap = document.createElement('canvas'); snap.width = W; snap.height = H;
-    snap.getContext('2d').drawImage(this.g.canvas, 0, 0);
+    this.flatten(snap.getContext('2d'));
     const n = strong ? 14 : 10, angles = Array.from({ length: n }, (_, i) => (i + Math.random() * 0.7) / n * Math.PI * 2), pieces = [];
     const at = (a, rr) => [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr];
     for (let i = 0; i < n; i++) {
@@ -4489,7 +4523,7 @@ class Renderer {
   // then the frozen half cracks from the cut outward and falls away like a broken pane.
   startSever(cx, cy, a) {
     const snap = document.createElement('canvas'); snap.width = W; snap.height = H;
-    snap.getContext('2d').drawImage(this.g.canvas, 0, 0);
+    this.flatten(snap.getContext('2d'));
     const dx = Math.cos(a), dy = Math.sin(a);
     let nx = -dy, ny = dx; if (ny > 0) { nx = -nx; ny = -ny; } // the half above the cut (the sky side) is the one that freezes
     const along = u => [cx + dx * u, cy + dy * u], pieces = [], cuts = [];
@@ -4508,7 +4542,7 @@ class Renderer {
   // Heaven and Earth, One Sword: the arena comes apart along the stroke, a gap of light between the halves, then closes
   startSeparate(cx, cy, a) {
     const snap = document.createElement('canvas'); snap.width = W; snap.height = H;
-    snap.getContext('2d').drawImage(this.g.canvas, 0, 0);
+    this.flatten(snap.getContext('2d'));
     const dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx, L = 600;
     const side = sgn => [[cx - dx * L, cy - dy * L], [cx + dx * L, cy + dy * L], [cx + dx * L + nx * L * sgn, cy + dy * L + ny * L * sgn], [cx - dx * L + nx * L * sgn, cy - dy * L + ny * L * sgn]];
     this.shatter = { mode: 'separate', snap, t: 0, halves: [side(1), side(-1)], nx, ny, line: [[cx - dx * L, cy - dy * L], [cx + dx * L, cy + dy * L]] };
@@ -4715,7 +4749,7 @@ class Renderer {
     const g = this.g;
     if (!this.paintBuf) { this.paintBuf = document.createElement('canvas'); this.paintBuf.width = W; this.paintBuf.height = H; }
     const b = this.paintBuf.getContext('2d');
-    b.clearRect(0, 0, W, H); b.drawImage(g.canvas, 0, 0);
+    b.clearRect(0, 0, W, H); this.flatten(b);
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
     g.filter = 'grayscale(1) contrast(1.25) brightness(1.08)';
     g.drawImage(this.paintBuf, 0, 13, W, H - 13, 0, 13, W, H - 13);

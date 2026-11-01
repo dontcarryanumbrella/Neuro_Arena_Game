@@ -1856,6 +1856,7 @@ function openPanel(id, force) {
   const cur = document.querySelector('#drawer .panel:not([hidden])');
   const next = cur && cur.id === id && !force ? null : id; // clicking the open one closes it
   document.querySelectorAll('#drawer .panel').forEach(el => { el.hidden = el.id !== next; });
+  $('drawer').dataset.panel = next || ''; // some panels open wider (the Portal's worlds sit in a grid)
   const root = PANEL_PARENT[next] || next;
   document.querySelectorAll('#dock button').forEach(b => b.classList.toggle('on', b.dataset.panel === root));
   document.querySelector('.layout').classList.toggle('panel-open', !!next);
@@ -2017,7 +2018,7 @@ function boot() {
     const v = state.view;
     if (state.training) runTraining(dt, now);
 
-    if (v.mode === 'lobby') lobby.draw(dt, lobbyInfo());
+    if (v.mode === 'lobby') { lobby.draw(dt, lobbyInfo()); renderer.present(true); }
     else if (v.mode === 'train') {
       if (state.speed !== 'max') {
         const sim = state.trainer.sim;
@@ -2028,6 +2029,7 @@ function boot() {
         }
         const label = state.trainer.updating ? 'LEARNING' : 'LIFE ' + ((state.livesTotal || 0) + 1);
         renderer.draw(sim, state.training && !v.paused ? dt : 0, { label, labelColor: state.trainer.updating ? '#e8c34a' : '#ece4d2', paused: v.paused, sound: state.speed <= 4 });
+        renderer.present();
       } else if (now - lastBig > 300) {
         lastBig = now; drawChart($('bigChart'));
       }
@@ -2037,6 +2039,7 @@ function boot() {
       const label = { watch: 'WATCH', trial: 'TRIAL', spar: 'SPAR', play: 'YOU', battle: v.sim.p && v.sim.p.dead ? 'WATCHING' : 'BATTLE',
         campaign: room ? (room.kind === 'boss' ? 'BOSS' : `ROOM ${r.idx + 1}/${r.rooms.length}`) : 'JAR' }[v.mode];
       renderer.draw(v.sim, v.paused ? 0 : dt, { label, labelColor: v.mode === 'play' ? '#e8c34a' : '#ece4d2', overlay: v.overlay, paused: v.paused, world: v.worldId, sound: state.speed === 'max' || state.speed <= 4 });
+      renderer.present();
     }
 
     if (now - lastBrain > 150 && !$('brainSection').hidden) { lastBrain = now; updateBrain(); }
