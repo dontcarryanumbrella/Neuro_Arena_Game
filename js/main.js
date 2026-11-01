@@ -423,7 +423,7 @@ function reforgeSpecial() {
 
 // ---------- the special's four stages ----------
 const STAGE_NAMES = ['Manifestation', 'Specialization', 'Synthesis', 'Transcendence'];
-const STAGE_RULES = { lands2: 10, lives3: 5000, lives4: 10000, stable4: 200, synth4: 30, wins4: 3 };
+const STAGE_RULES = { lands2: 10, lives3: 5000, lives4: 10000, stable4: 200, synth4: 30, wins4: 3 }; // lives: all training lives, shared by every stage and awakening
 const roleOf = t => abFoe(t) && abFoe(t).role;
 
 // a third tradition: its most-used learned ability from a role the other two don't share
@@ -441,7 +441,7 @@ function thirdOf(id, known = knownByUse()) {
 }
 
 // Progress belongs to an awakening, not the currently equipped ability pair.
-function newSpecialProgress() { return { stage: 1, lands: 0, lives3: 0, lives4: 0, synthLands: 0, stableLives: 0, closeWins: 0 }; }
+function newSpecialProgress() { return { stage: 1, lands: 0, synthLands: 0, stableLives: 0, closeWins: 0 }; }
 function specialProgress(id, awakening) {
   id.progress ||= {};
   const p = id.progress[awakening] || (id.progress[awakening] = newSpecialProgress());
@@ -450,12 +450,12 @@ function specialProgress(id, awakening) {
   return p;
 }
 function stageChecks(id, known = knownByUse()) {
-  const p = specialProgress(id, id.awaken), third = thirdOf(id, known), seals = Object.keys(state.campaign.seals || {}).length, worlds = (state.campaign.order || []).length;
+  const p = specialProgress(id, id.awaken), third = thirdOf(id, known), lives = state.livesTotal || 0, seals = Object.keys(state.campaign.seals || {}).length, worlds = (state.campaign.order || []).length;
   return {
     2: [['Defeat a world boss', seals > 0 || p.stage >= 2], [`Special landed ${Math.min(p.lands, 10)}/10 times`, p.lands >= 10 || p.stage >= 2]],
-    3: [['Conquer a world', worlds > 0 || p.stage >= 3], [`Training lives since Specialization: ${Math.min(p.lives3, 5000)}/5000`, p.lives3 >= 5000 || p.stage >= 3],
+    3: [['Conquer a world', worlds > 0 || p.stage >= 3], [`Training lives: ${Math.min(lives, 5000)}/5000`, lives >= 5000 || p.stage >= 3],
         [third ? `Third ability: ${abFoe(third).name}` : 'Choose a third ability, or use one (3+ uses) from a different role than the first two', !!third || p.stage >= 3]],
-    4: [[`Training lives since Synthesis: ${Math.min(p.lives4, 10000)}/10000`, p.lives4 >= 10000 || p.stage >= 4],
+    4: [[`Training lives: ${Math.min(lives, 10000)}/10000`, lives >= 10000 || p.stage >= 4],
         [`Same awakening for ${Math.min(p.stableLives, 200)}/200 consecutive training lives`, p.stableLives >= 200 || p.stage >= 4],
         [`Synthesis special landed ${Math.min(p.synthLands, 30)}/30 times`, p.synthLands >= 30 || p.stage >= 4],
         [`Wins after falling below 5% health: ${Math.min(p.closeWins, 3)}/3`, p.closeWins >= 3 || p.stage >= 4]],
@@ -471,9 +471,8 @@ function recordSpecialProgress(sim, training) {
   const id = state.identity, p = specialProgress(id, awakening), stage = p.stage, stats = sim.stats;
   // A life or fight is credited only to the stage it started with.
   if (stage === 1 && (special.stage || 1) === 1) p.lands += stats.specialLands || 0;
-  if (stage === 2 && training) p.lives3++;
   if (stage === 3 && (special.stage || 1) >= 3) {
-    if (training) { p.lives4++; p.stableLives++; }
+    if (training) p.stableLives++;
     p.synthLands += stats.synthLands || 0;
     if (stats.belowFive && !stats.died && stats.result === 'clear') p.closeWins++;
   }
@@ -2136,7 +2135,7 @@ function boot() {
       state.loadout = pair; state.identity.pair = pair;
       state.identity.awaken = state.identity.awaken || TRAITS[0];
       Object.assign(state.identity, { stage: 4, lives: 15000 });
-      state.identity.progress[state.identity.awaken] = { ...newSpecialProgress(), stage: 4, lands: 10, lives3: 5000, lives4: 10000, synthLands: 30, stableLives: 200, closeWins: 3 };
+      state.identity.progress[state.identity.awaken] = { ...newSpecialProgress(), stage: 4, lands: 10, synthLands: 30, stableLives: 200, closeWins: 3 };
       state.identity.special = buildSpecial(state.identity, knownByUse());
     }
     saveStore();

@@ -73,10 +73,10 @@ state.identity.special = { stage: 1 };
 const fight = (stage, stats = {}) => ({ opts: { identity: { awaken: 'aggression', special: { stage } } }, stats: { result: 'clear', ...stats } });
 recordSpecialProgress(fight(1, { specialLands: 10 }), true);
 let prog = specialProgress(state.identity, 'aggression');
-assert.equal(prog.stage, 1); assert.equal(prog.lives3, 0);
+assert.equal(prog.stage, 1);
 state.campaign.seals.warlord = 1;
-recordSpecialProgress(fight(1), true); assert.equal(prog.stage, 2); assert.equal(prog.lives3, 0);
-prog.lives3 = 4999;
+recordSpecialProgress(fight(1), true); assert.equal(prog.stage, 2);
+state.livesTotal = 5000; // training lives are shared: every stage counts the fighter's total
 recordSpecialProgress(fight(2), true); assert.equal(prog.stage, 2, 'world required');
 state.campaign.order.push('frontier');
 recordSpecialProgress(fight(2), true); assert.equal(prog.stage, 2, 'third ability required');
@@ -85,8 +85,9 @@ assert.equal(thirdOf(state.identity), null, 'same-role or unused abilities are n
 state.identity.thirdChoice = 'zombie'; assert.equal(thirdOf(state.identity), 'zombie', 'a manual pick may be any learned ability');
 state.identity.thirdChoice = null; state.abStats.druid = { uses: 5 };
 assert.equal(thirdOf(state.identity), 'druid', 'automatic: most used, from a different role');
-recordSpecialProgress(fight(2), true); assert.equal(prog.stage, 3); assert.equal(prog.lives4, 0);
-prog.lives4 = 9999; prog.stableLives = 199; prog.synthLands = 29; prog.closeWins = 2;
+recordSpecialProgress(fight(2), true); assert.equal(prog.stage, 3);
+assert.ok(stageChecks(state.identity)[4][0][0].includes('5000/10000'), 'lives already lived carry over to Transcendence');
+state.livesTotal = 10000; prog.stableLives = 199; prog.synthLands = 29; prog.closeWins = 2;
 recordSpecialProgress(fight(3, { synthLands: 1, belowFive: true }), true);
 assert.equal(prog.stage, 4); assert.equal(prog.closeWins, 3);
 assert.equal(specialProgress(state.identity, 'versatility').stage, 1);

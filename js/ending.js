@@ -94,16 +94,6 @@ function cutDie(k, x, y, n, a = 1) {
 // where the characters stand (CUT_GROUND). Painted once.
 const CUT_LAND = {};
 const CUT_GROUND = {
-  peaks(k, rand) { // a sea of cloud below, and the snowy ledge they stand on
-    k.rect(0, 66, W, 30, k.vgrad(66, 96, ['#c4d4de', '#9fb3c8']));
-    for (const [y, n] of [[74, 6], [83, 6], [92, 5], [99, 4]]) for (let i = 0; i < n; i++) k.cloud(rand, rand() * (W + 40) - 20, y + rand() * 3, 40 + rand() * 46, 5 + (y - 66) / 7, ['#8a9eb4', '#c8d8e4', '#ffffff']);
-    k.rect(0, 66, W, 34, k.vgrad(66, 100, ['rgba(196,212,222,0.55)', 'rgba(196,212,222,0)'])); // haze lying on the cloud
-    const edge = [[-4, 99], [30, 96], [80, 94], [140, 93.4], [200, 95], [260, 98]];
-    k.poly([[-4, H + 2], ...edge, [260, H + 2]], k.vgrad(93, H, ['#f4f8fb', '#d6e2ec', '#a6b6c6']));
-    k.curve(edge, '#ffffff', 0.6);
-    for (const [x, y, r] of [[22, 118, 6], [56, 131, 4], [128, 124, 3], [210, 128, 5], [238, 108, 3]]) { k.oval(x, y, r * 1.4, r * 0.7, '#6a7a8a'); k.oval(x - 0.5, y - r * 0.45, r * 1.2, r * 0.32, '#f0f6fa'); }
-    for (let i = 0; i < 30; i++) { const x = rand() * W, y = 100 + rand() * 40; k.line(x, y, x + 4 + rand() * 6, y + 0.3, 'rgba(150,175,200,0.35)', 0.4); } // wind in the snow
-  },
   bottom(k, rand) { // the jar's floor: worn clay, bowl-shaped, lighter where the light from the lid falls
     const gr = k.g.createRadialGradient(128, 100, 6, 128, 112, 150);
     gr.addColorStop(0, '#7e563a'); gr.addColorStop(0.35, '#5e3e28'); gr.addColorStop(0.7, '#3a2416'); gr.addColorStop(1, '#1e120a');
@@ -204,113 +194,260 @@ function typeText(g, sched, t, { color = '#17110c', alpha = 1, y = 72, size = 7,
   g.restore();
 }
 
+// The painter's tools for a scene made at the picture's own size: one pixel at a time, colours mixed in steps.
+function paintTools(g, r) {
+  const hex = s => s[0] === '#' ? [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)] : s.match(/\d+/g).slice(0, 3).map(Number);
+  const mixc = (a, b, u) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * Math.max(0, Math.min(1, u)))).join(',')})`; };
+  const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+  // a ridge line, one height per column: peaks of every size, each a steep cone, roughened
+  const ridge = (base, rough, step) => {
+    const h = new Float32Array(W).fill(base + 4);
+    for (let c = -step; c < W + step; c += step * (0.5 + r() * 0.8)) {
+      const a = rough * (0.35 + r() * 0.65), sl = 0.55 + r() * 0.9, sr = 0.55 + r() * 0.9;
+      for (let x = 0; x < W; x++) h[x] = Math.min(h[x], base - a + (x < c ? (c - x) * sl : (x - c) * sr));
+    }
+    let j = 0; for (let x = 0; x < W; x++) { j = j * 0.6 + (r() - 0.5) * 1.6; h[x] += j; }
+    return h;
+  };
+  // a range of rock: faces toward the light (on the left) lit, the rest in shade, snow on the heights, strata, fog at its foot
+  const range = (h, bottom, tone, fog, fogAt = 0.65) => {
+    for (let x = 0; x < W; x++) {
+      const top = Math.round(h[x]), slope = h[Math.min(W - 1, x + 2)] - h[Math.max(0, x - 2)], high = h[x] <= Math.min(h[Math.max(0, x - 4)], h[Math.min(W - 1, x + 4)]) + 0.5;
+      const face = slope > 0.4 ? tone.lit : slope < -0.4 ? tone.dark : tone.mid;
+      for (let y = top; y < bottom; y++) {
+        let col = face;
+        if ((y - top < 2 && high) || (slope > 0.4 && y - top < 7 && r() < 0.28)) col = tone.snow;
+        else if ((x * 3 + y * 7) % 13 === 0 && r() < 0.6) col = tone.dark;
+        else if (r() < 0.05) col = tone.mid;
+        px(x, y, mixc(col, fog, (y - top) / Math.max(1, bottom - top) * fogAt + 0.08));
+      }
+    }
+  };
+  const mist = (y0, y1, a, col) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(0.55, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(0, y0, W, y1 - y0); };
+  const grain = (amount = 9) => { const img = g.getImageData(0, 0, W, H), a = img.data; for (let i = 0; i < a.length; i += 4) { const n = (r() - 0.5) * amount; a[i] += n; a[i + 1] += n; a[i + 2] += n; } g.putImageData(img, 0, 0); };
+  return { px, mixc, ridge, range, mist, grain };
+}
+
+// ---------- the Myriad Sword Peaks, painted for the films ----------
+// The sect among its peaks: a pale morning in the haze, a sword planted on every far crown and one great sword in
+// the near rock, halls and a pagoda on the ledges, a waterfall, the sea of mist below, and the stone terrace where
+// the lesson ended. Painted at the picture's own size, then drawn four times larger.
+let PEAKS_ART = null;
+function peaksPainting() {
+  if (PEAKS_ART) return PEAKS_ART;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), k = cutKit(g), r = mulberry32(1313), { px, mixc, ridge, range, mist, grain } = paintTools(g, r);
+  // the sky: pale morning, brightest where the sun comes through the haze, high above the left
+  for (let y = 0; y < 96; y++) for (let x = 0; x < W; x++) {
+    const sun = Math.max(0, 1 - Math.hypot(x - 52, (y - 10) * 1.5) / 130);
+    px(x, y, mixc(mixc('#6486b4', '#dce6ee', Math.min(1, y / 70)), '#fff4e2', sun * 0.6 + (r() - 0.5) * 0.04));
+  }
+  for (let i = 0; i < 30; i++) { // long thin streaks of high cloud
+    const y = 4 + r() * 46, x = r() * W - 20, len = 24 + r() * 70, a = 0.1 + r() * 0.14;
+    for (let j = 0; j < len; j++) { const f = Math.sin(Math.PI * j / len); px(Math.round(x + j), Math.round(y + Math.sin(j * 0.06) * 1.4), `rgba(255,255,255,${a * f})`); if (f > 0.6 && r() < 0.6) px(Math.round(x + j), Math.round(y + 1 + Math.sin(j * 0.06) * 1.4), `rgba(255,255,255,${a * f * 0.5})`); }
+  }
+  // the farthest peaks, almost lost in the haze; a sword stands on each crown
+  const far = ridge(44, 26, 15);
+  range(far, 74, { lit: '#bccada', mid: '#a8b8cc', dark: '#96a8be', snow: '#f2f6fa' }, '#d6e0ec', 0.9);
+  for (let x = 6; x < W - 6; x++) if (far[x] < far[x - 4] - 1.5 && far[x] < far[x + 4] - 1.5 && far[x] <= Math.min(...Array.from({ length: 9 }, (_, i) => far[x - 4 + i]))) {
+    const top = Math.round(far[x]); for (let y = top - 7; y < top; y++) px(x, y, '#7a8aa2'); px(x - 1, top - 5, '#8a7a5a'); px(x + 1, top - 5, '#8a7a5a'); px(x, top - 8, '#e8f4ff');
+  }
+  mist(38, 70, 0.6, '232,238,246');
+  // the nearer spires: granite, lit on their left, pines on their crowns
+  const spire = (cx, base, w, ht, tone) => {
+    for (let y = base - ht; y < base; y++) {
+      const t = (y - (base - ht)) / ht, half = w * (0.4 + 0.6 * Math.min(1, t * 2)) + (r() - 0.5) * 0.9;
+      for (let x = Math.round(cx - half); x <= Math.round(cx + half); x++) {
+        const edge = x === Math.round(cx - half), lit = x < cx - half * 0.15;
+        let col = edge ? tone.edge : lit ? tone.lit : tone.dark;
+        if ((y * 5 + x * 3) % 11 === 0 && r() < 0.55) col = tone.seam;
+        px(x, y, mixc(col, '#dfe8f0', t * 0.55));
+      }
+    }
+    for (let i = 0; i < w * 3; i++) { const x = Math.round(cx + (r() - 0.4) * w * 1.4), y = base - ht - Math.floor(r() * 3); px(x, y, r() < 0.4 ? '#5e7e58' : '#2e4a34'); }
+  };
+  const mid = { edge: '#d4dce4', lit: '#94a4b4', dark: '#64768c', seam: '#56667a' };
+  for (const [cx, w, ht] of [[70, 6, 40], [92, 4, 26], [128, 7, 46], [150, 5, 32], [176, 6, 38], [204, 5, 28], [226, 7, 44]]) spire(cx, 86, w, ht, mid);
+  for (let y = 54; y < 86; y++) { const x = 152 + (y % 3 === 0 ? 1 : 0); px(x, y, r() < 0.8 ? '#f6fafc' : '#c8d6e4'); px(x + 1, y, 'rgba(246,250,252,0.5)'); } // a waterfall off the crown of one
+  // the sect: halls on the ledges, a pagoda, stairs cut down the rock, a bridge between two spires, red lanterns
+  const hall = (x, y, w, tiers) => {
+    k.rect(x - w / 2, y - 5, w, 5, '#e8e2d4'); for (let i = 0; i <= w; i += 3) k.rect(x - w / 2 + i, y - 5, 1, 5, '#9a2a22'); k.rect(x - 1, y - 3, 2, 3, '#3a2a22');
+    for (let i = 0; i < tiers; i++) {
+      const ry = y - 5 - i * 5, rw = w + 4 - i * 4;
+      k.rect(x - rw / 2, ry - 2, rw, 2, '#2c3444'); k.rect(x - rw / 2 + 1, ry - 3, rw - 2, 1, '#4a5468');
+      px(Math.round(x - rw / 2 - 1), ry - 3, '#2c3444'); px(Math.round(x + rw / 2), ry - 3, '#2c3444'); px(Math.round(x), ry - 4, '#c9a24a'); // its eaves turn up; gold on the ridge
+      if (i < tiers - 1) k.rect(x - (w - i * 4) / 2 + 1, ry - 5, w - i * 4 - 2, 3, '#e8e2d4');
+    }
+  };
+  hall(128, 41, 14, 2); hall(176, 49, 10, 1); hall(226, 43, 12, 2);
+  for (let i = 0; i < 5; i++) { const w = 8 - i * 1.4, y = 54 - i * 4; k.rect(70 - w / 2, y - 3, w, 3, i % 2 ? '#e8e2d4' : '#9a2a22'); k.rect(70 - w / 2 - 1, y - 4, w + 2, 1, '#2c3444'); } px(70, 33, '#c9a24a'); // the pagoda
+  for (let i = 0; i < 18; i++) { const y = 42 + i * 2.4, x = 128 + (Math.floor(i / 3) % 2 ? 3 - (i % 3) : i % 3) * 2; k.rect(x, y, 3, 1, '#d8dce0'); k.rect(x, y + 1, 3, 0.6, '#7a8896'); } // stairs down the rock
+  k.curve([[150, 56], [163, 59], [176, 56]], '#6a5a4a', 0.8); for (const x of [154, 160, 166, 172]) k.rect(x, 54.5, 0.8, 2, '#6a5a4a'); // the bridge
+  for (const [x, y] of [[121, 38], [135, 38], [171, 46], [181, 46], [219, 40], [233, 40]]) { px(x, y, '#e04a2a'); px(x, y + 1, '#ffb070'); }
+  mist(62, 90, 0.55, '236,242,248');
+  // the sea of mist below the sect: soft banks with torn edges, lit from above, no hard shapes
+  for (let y = 70; y < 104; y++) for (let x = 0; x < W; x++) {
+    const n = Math.sin(x * 0.045 + y * 0.31) + Math.sin(x * 0.11 - y * 0.17) * 0.6 + (r() - 0.5) * 0.7, top = (y - 70) / 34;
+    const a = Math.max(0, Math.min(1, 0.35 + n * 0.28 + top * 0.5));
+    px(x, y, `rgba(${n > 0.5 ? '250,252,255' : n > -0.2 ? '226,234,244' : '196,210,226'},${a})`);
+  }
+  // the near rock on the left, a pine reaching out over the drop
+  const rock = new Path2D(); rock.moveTo(-2, 44); rock.lineTo(14, 52); rock.lineTo(22, 66); rock.lineTo(30, 80); rock.lineTo(26, 96); rock.lineTo(-2, 100); rock.closePath();
+  for (let y = 40; y < 100; y++) for (let x = 0; x < 32; x++) if (g.isPointInPath(rock, x + 0.5, y + 0.5)) {
+    const edge = !g.isPointInPath(rock, x + 1.5, y - 0.5); let col = edge ? '#a6b2bc' : mixc('#5a6876', '#2e3842', (32 - x) / 32 * 0.6 + (r() - 0.5) * 0.2);
+    if ((x * 5 + Math.floor(y / 2) * 3) % 13 === 0) col = '#242c36'; px(x, y, col);
+  }
+  // the great sword of the sect, driven into that rock, taller than any hall
+  for (let y = 12; y < 56; y++) { const w = y < 50 ? 2 : 1; px(12, y, '#f6fafc'); k.rect(13, y, w, 1, '#c8d4de'); px(13 + w, y, '#7c8a9c'); }
+  k.rect(6, 10, 13, 2, '#b8903a'); k.rect(6, 10, 13, 1, '#e0bc6a'); k.rect(12, 1, 3, 9, '#3a2a20'); for (let y = 2; y < 10; y += 2) k.rect(12, y, 3, 1, '#5a4030'); k.circle(13.5, 0, 1.6, '#b8903a');
+  for (let y = 12; y < 54; y += 2) px(11, y, 'rgba(220,240,255,0.45)');
+  for (let x = 6; x < 22; x++) if (r() < 0.6) px(x, 53 + Math.floor(r() * 2), '#242c36'); // the rock cracked around it
+  k.curve([[18, 60], [28, 50], [42, 44], [56, 42]], '#2a2018', 1.6); k.curve([[30, 49], [40, 54], [52, 55]], '#2a2018', 1);
+  for (const [cx, cy, w] of [[50, 40, 20], [62, 41, 12], [40, 46, 12], [50, 53, 14]]) {
+    for (let i = 0; i < w * 4; i++) { const x = cx + (r() - 0.5) * w, y = cy + (r() - 0.3) * 3.4 * (1 - Math.abs(x - cx) / w); k.circle(x, y, 0.8 + r() * 1.2, r() < 0.5 ? '#1e3826' : '#2e5236'); }
+    for (let i = 0; i < w * 2; i++) { const x = cx + (r() - 0.5) * w * 0.9, y = cy - 1.2 - r() * 1.3 * (1 - Math.abs(x - cx) / w); px(Math.round(x), Math.round(y), r() < 0.3 ? '#b4d098' : r() < 0.6 ? '#6e9658' : '#3e6440'); }
+  }
+  // the terrace: a stone balustrade at its edge, then flagstones, snow lying in their joints
+  for (let x = 0; x < W; x++) { px(x, 92, '#dcd8cc'); px(x, 93, '#b4b0a4'); px(x, 97, '#8a8678'); }
+  for (let x = 2; x < W; x += 12) { k.rect(x, 90, 3, 8, '#c8c4b8'); k.rect(x, 90, 3, 1, '#ecebe4'); k.rect(x + 2, 91, 1, 7, '#8a8678'); }
+  for (let x = 0; x < W; x += 4) k.rect(x + 1, 94, 1, 3, '#a8a498'); // its balusters
+  let y = 98, row = 0;
+  while (y < H) {
+    const h = Math.round(3 + row * 1.3), off = row % 2 ? 7 : 0, sw = 13 + row * 3;
+    for (let x = -off; x < W; x += sw) {
+      const tone = mixc('#a6a49c', '#7c7a74', r() * 0.7 + row * 0.05);
+      k.rect(x + 1, y + 1, sw - 1, h - 1, tone); k.rect(x + 1, y + 1, sw - 1, 1, mixc(tone, '#e4e2da', 0.5));
+      if (r() < 0.25) k.rect(x + 2 + r() * (sw - 6), y + 1 + r() * (h - 2), 2 + r() * 3, 1, 'rgba(240,244,248,0.85)'); // a little snow
+      if (r() < 0.15) px(Math.round(x + 2 + r() * (sw - 4)), Math.round(y + h - 1), '#5e7a4e'); // moss in a crack
+    }
+    for (let x = 0; x < W; x++) px(x, y, r() < 0.3 ? 'rgba(236,240,246,0.9)' : '#5c5a54'); // the joint, snow in it here and there
+    y += h; row++;
+  }
+  // and the near rock on the right, its edge in shade
+  for (let yy = 96; yy < H; yy++) { const w = 6 + (yy - 96) * 0.4; for (let x = Math.round(W - w); x < W; x++) px(x, yy, x === Math.round(W - w) ? '#7a8490' : (x + yy) % 5 ? '#2e3640' : '#3a444e'); }
+  grain(10);
+  return (PEAKS_ART = c);
+}
+const drawPeaksArt = g => { g.imageSmoothingEnabled = false; g.drawImage(peaksPainting(), 0, 0, W, H); };
+
 // ---------- the teacher's last draw: the Myriad Sword Peaks, when he yields ----------
 // One place, held still. He says enough; the world waits; one stroke of light, and the sky stays cut along it
 // (SKY_SCAR, the same wound the Summit's sky keeps). Nobody moves until it is over (main.js holds the fight).
 function teacherBeats() {
   const TX = 92, HX = 170, FY = 110, snow = cutClock();
-  const words1 = typeSchedule('So... you are the reincarnation of the Golden Cicada... sigh.');
-  const words2 = typeSchedule('When you finally understand the truth, I will see you on the summit.');
-  // a near pine and rocks: dark shapes in front of everything, so the peaks fall away behind them
-  const framing = (k, shift = 0) => {
-    const dark = '#070d18', snowy = 'rgba(214,228,240,0.6)', tx = 5 + shift;
-    k.rect(tx - 2.5, -4, 5, H + 8, dark);
-    for (let i = 0; i < 9; i++) { // tiers of branches drooping under snow, longer toward the ground
-      const y = 2 + i * 14, w = 12 + i * 2.2, sag = 4 + i * 0.4;
-      k.poly([[tx - w * 0.6, y + sag * 0.6], [tx, y - 2], [tx + w, y + sag], [tx + w * 0.7, y + sag + 2.4], [tx, y + 3], [tx - w * 0.5, y + sag + 1.6]], dark);
-      k.curve([[tx, y - 2], [tx + w * 0.5, y + sag * 0.3], [tx + w, y + sag]], snowy, 0.7);
-    }
-    k.poly([[-4, H], [-4, 117], [8, 111], [19, 114], [31, 121], [42, H]], dark); k.line(8, 111, 19, 114, snowy, 0.7);
-    k.poly([[W + 4, H], [W + 4, 120], [244, 116], [232, 124], [222, H]], dark); k.line(244, 116, 232, 124, snowy, 0.6);
-  };
+  const words = typeSchedule('When you finally understand the truth, I will see you on the summit.');
   // the sword held point-down at his side; a glint can run along it
   const lowSword = (k, glint = -1) => {
     k.line(TX + 6, FY - 16, TX + 9, FY - 2, '#dfe9f5', 0.7); k.rect(TX + 5, FY - 17, 3, 1, '#c9a65a');
     if (glint >= 0 && glint <= 1) { const x = TX + 6 + glint * 3, y = FY - 16 + glint * 14; k.glow(x, y, 4, '#ffffff', 0.9); k.px(x, y, '#ffffff'); }
   };
   // the cut: a lens of light along the scar, `w` its half-width at the middle, `open` how far from his side it reaches
-  const skyCut = (g, k, w, open = 1, glow = 1) => {
-    const x1 = -4 + 264 * open, mid = Math.min(x1, 128);
+  const skyCut = (g, k, w, open = 1, glow = 1, col = '#e8f6ff') => {
+    const x1 = -4 + 264 * open;
     k.with(() => {
       g.beginPath(); g.rect(-4, -4, x1 + 4, 60); g.clip();
       g.beginPath(); g.moveTo(-4, 30.7); g.quadraticCurveTo(128, 16.2 - w, 260, 5.6); g.lineTo(260, 9.6); g.quadraticCurveTo(128, 22.2 + w, -4, 32.7); g.closePath();
       g.fillStyle = 'rgba(4,10,24,0.45)'; g.fill(); // a dark edge, so the light reads against a pale sky
       g.shadowColor = '#9fd8ff'; g.shadowBlur = 12 * ARENA_S * glow;
       g.beginPath(); g.moveTo(-4, 31.7); g.quadraticCurveTo(128, 19.2 - w, 260, 7.6); g.quadraticCurveTo(128, 19.2 + w, -4, 31.7); g.closePath();
-      g.fillStyle = '#e8f6ff'; g.fill();
+      g.fillStyle = col; g.fill();
       g.shadowBlur = 0; g.beginPath(); g.moveTo(-4, 31.7); g.quadraticCurveTo(128, 19.2, 260, 7.6); g.lineWidth = 0.5; g.strokeStyle = '#ffffff'; g.stroke();
     });
     if (open < 1) k.glow(x1, SKY_SCAR(x1), 8, '#ffffff', 1);
-    return mid;
   };
-  // the whole place; o: { z, x0, y0, t, snowT, dim, teacher (alpha), turned, glint, cut, cutOpen, shift }
+  // the whole place; o: { z, x0, y0, snowT, dim, teacher (alpha), turned, glint, cut, cutOpen, cutGlow }
   const scene = (g, k, o) => {
-    k.rect(0, 0, W, H, '#000');
     cam(g, o.x0 || 0, o.y0 || 0, o.z || 1, () => {
-      drawLand(g, 'peaks');
+      drawPeaksArt(g);
       WORLD_SCENES.peaks.ambient(paintKit(g), o.snowT);
-      k.glow(TX, FY - 22, 22, '#cfe8ff', 0.18 * (o.teacher == null ? 1 : o.teacher)); // the cold light he stands in
       const ta = o.teacher == null ? 1 : o.teacher;
+      k.glow(TX, FY - 22, 22, '#cfe8ff', 0.18 * ta); // the cold light he stands in
       k.oval(TX, FY, 9, 1.6, `rgba(10,20,40,${0.35 * ta})`); k.oval(HX, FY, 8, 1.6, 'rgba(10,20,40,0.35)');
       if (ta > 0) { cutSprite(g, 'b_swordsaint', TX, FY, { alpha: ta, flip: !!o.turned }); if (!o.turned && ta >= 1) lowSword(k, o.glint); }
       cutSprite(g, 'hero', HX, FY, { flip: true });
     });
     cutWash(g, '#0a1426', o.dim || 0);
     if (o.cut) skyCut(g, k, o.cut, o.cutOpen == null ? 1 : o.cutOpen, o.cutGlow || 1); // over the dark: the one bright thing
-    if ((o.z || 1) === 1) framing(k, o.shift || 0);
     cutVignette(g, 0.5, '6,10,22');
   };
-  // falling sparks of the cut, drifting down from the line
+  // the picture thrown about: whole pixels, random each frame, `a` at most
+  const shaken = (g, k, a, fn) => { k.rect(0, 0, W, H, '#000'); g.save(); g.translate(Math.round((Math.random() - 0.5) * 2 * a), Math.round((Math.random() - 0.5) * 2 * a)); fn(); g.restore(); };
+  // an impact frame: the world gone to one flat colour, the two of them and the stroke in the other
+  const impact = (g, k, inverse) => {
+    const bg = inverse ? '#000000' : '#ffffff', fg = inverse ? 'brightness(0) invert(1)' : 'brightness(0)', ink = inverse ? '#ffffff' : '#000000';
+    k.rect(0, 0, W, H, bg);
+    for (let i = 0; i < 26; i++) { const a = i / 26 * Math.PI * 2 + 0.1, r0 = 30 + (i % 3) * 12; k.line(TX + Math.cos(a) * r0, FY - 12 + Math.sin(a) * r0 * 0.7, TX + Math.cos(a) * 300, FY - 12 + Math.sin(a) * 210, ink, 0.6 + (i % 4) * 0.4); } // lines bursting from him
+    g.beginPath(); g.moveTo(-4, 31.7); g.quadraticCurveTo(128, 15.2, 260, 7.6); g.quadraticCurveTo(128, 23.2, -4, 31.7); g.fillStyle = ink; g.fill();
+    cutSprite(g, 'b_swordsaint', TX, FY, { filter: fg, flip: true }); cutSprite(g, 'hero', HX, FY, { flip: true, filter: fg });
+  };
+  // after the stroke: rings of force from him, sparks thrown off the line, rays from it, snow blown flat
+  const aftermath = (g, k, t, power) => {
+    cutLight(g, () => {
+      for (const d of [0, 0.18, 0.4]) { const s = Math.max(0, t - d); if (s > 0 && s < 1.2) k.ring(TX, FY - 10, 8 + s * 260, `rgba(220,240,255,${(1 - s / 1.2) * 0.8 * power})`, 1.6 * (1 - s / 1.2) + 0.2, (8 + s * 260) * 0.45); }
+      for (let i = 0; i < 70; i++) { const x0 = (i * 37.7) % W, y0 = SKY_SCAR(x0), a = (i * 2.39) % 6.28, v = 40 + (i * 13) % 90, s = t - (i % 7) * 0.02; if (s <= 0 || s > 1.4) continue; const x = x0 + Math.cos(a) * v * s, y = y0 + Math.sin(a) * v * s + 30 * s * s; k.line(x, y, x - Math.cos(a) * 3, y - Math.sin(a) * 3, `rgba(${i % 3 ? '232,246,255' : '160,216,255'},${(1 - s / 1.4) * power})`, 0.6); }
+      for (let i = 0; i < 12; i++) { const x = 10 + i * 22, y = SKY_SCAR(x), a = Math.max(0, 1 - t / 1.5) * 0.25 * power; k.poly([[x - 1, y], [x + 1, y], [x + 10, y + 80], [x - 6, y + 80]], `rgba(220,240,255,${a})`); }
+    });
+    for (let i = 0; i < 40; i++) { const y = (i * 29) % H, x = ((i * 53) - t * 900) % (W + 60); if (t < 1.2) k.line(W + 30 + x, y, W + 30 + x + 14, y, `rgba(255,255,255,${0.5 * (1 - t / 1.2) * power})`, 0.5); } // the snow, blown flat
+  };
   const embers = (k, t, a) => { for (let i = 0; i < 36; i++) { const x = (i * 37.3) % W, age = t - i * 0.06; if (age < 0) continue; const y = SKY_SCAR(x) + age * (5 + (i % 5) * 2), f = Math.max(0, 1 - age / 3) * a; if (f > 0) k.px(x + Math.sin(age * 2 + i) * 2, y, `rgba(232,246,255,${f})`); } };
   const white = '#fbf8f2';
   return [
     { dur: 2.8, line: '', sound: 'wind', noFadeOut: true, // the fight is over: wide, still, the snow slowing
-      draw(g, k, t, u) { scene(g, k, { snowT: snow(t, 1 - u * 0.55), dim: u * 0.12, shift: -u * 2 }); } },
+      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); scene(g, k, { snowT: snow(t, 1 - u * 0.55), dim: u * 0.12 }); } },
     { dur: 3.8, line: '“Enough.”', noFade: true, // closer: him, in his own cold light
       draw(g, k, t, u) {
-        scene(g, k, { z: 2, x0: 40, y0: 52, snowT: snow(t, 0.45 - u * 0.3), dim: 0.12 + u * 0.08 });
+        k.rect(0, 0, W, H, '#000'); scene(g, k, { z: 2, x0: 40, y0: 52, snowT: snow(t, 0.45 - u * 0.3), dim: 0.12 + u * 0.08 });
         if (u > 0.08) cutOnce('word', () => sfx.play('gong'));
       } },
-    { dur: 2.6, line: '', noFade: true, // the pause: the snow stops in the air, the light drains toward his blade
+    { dur: 2.6, line: '', noFade: true, // the pause: the snow stops in the air, the light drains toward his blade, the world leans in
       draw(g, k, t, u) {
         const v = easeIn(u);
-        scene(g, k, { snowT: snow(t, Math.max(0, 0.15 * (1 - u * 3))), dim: 0.2 + v * 0.38, glint: span(u, 0.55, 0.9) || -1, shift: -2 });
-        cutLight(g, () => k.glow(TX + 7, FY - 9, 10 + v * 10, '#cfe8ff', 0.2 + v * 0.35));
+        shaken(g, k, u > 0.8 ? 0.6 : 0, () => scene(g, k, { snowT: snow(t, Math.max(0, 0.15 * (1 - u * 3))), dim: 0.2 + v * 0.42, glint: span(u, 0.55, 0.9) || -1 }));
+        cutLight(g, () => {
+          k.glow(TX + 7, FY - 9, 10 + v * 14, '#cfe8ff', 0.2 + v * 0.45);
+          const s = span(u, 0.6, 1); // lines drawn in toward him
+          if (s > 0) for (let i = 0; i < 30; i++) { const a = i / 30 * 6.283, r1 = 220 - s * 120 - (i % 4) * 14, r0 = r1 - 30 - (i % 3) * 10; k.line(TX + 7 + Math.cos(a) * r1, FY - 9 + Math.sin(a) * r1 * 0.6, TX + 7 + Math.cos(a) * r0, FY - 9 + Math.sin(a) * r0 * 0.6, `rgba(220,240,255,${0.35 * s})`, 0.5); }
+        });
         if (u > 0.55) cutOnce('ring', () => sfx.play('ring'));
+        if (u > 0.8) cutOnce('charge', () => sfx.play('charge'));
       } },
-    { dur: 1.1, line: '', noFade: true, // the draw: one stroke of light across the whole sky
+    { dur: 1.9, line: '', noFade: true, // the draw: impact frames, then the stroke across the whole sky, and the world thrown by it
       draw(g, k, t, u) {
         cutOnce('slash', () => { sfx.play('slash'); sfx.play('ultboom'); });
-        const open = easeOut(Math.min(1, t / 0.14));
-        scene(g, k, { snowT: snow(t, 0), dim: 0.58 - u * 0.08, turned: true, cut: 0.5, cutOpen: open, cutGlow: 2, shift: -2 });
-        cutWash(g, '#ffffff', t < 0.1 ? t / 0.1 : Math.max(0, 1 - (t - 0.1) / 0.75));
+        if (t > 0.12) cutOnce('thunder', () => { sfx.play('thunder'); sfx.play('boom'); });
+        if (t < 0.05) return k.rect(0, 0, W, H, '#ffffff');
+        if (t < 0.28) return impact(g, k, Math.floor((t - 0.05) / 0.058) % 2 === 0); // four frames, black and white in turn
+        const s = t - 0.28, shake = 7 * Math.max(0, 1 - s / 1.3);
+        shaken(g, k, shake, () => {
+          scene(g, k, { snowT: snow(t, 0), dim: 0.55, turned: true, cut: 0.5 + Math.max(0, 1 - s * 2) * 4, cutOpen: 1, cutGlow: 2 + Math.max(0, 1 - s) * 3 });
+          aftermath(g, k, s, 1);
+        });
+        cutWash(g, '#ffffff', Math.max(0, 0.85 - s * 1.4));
       } },
-    { dur: 4.8, line: '', noFade: true, // the line stays: time to see it, then the snow falls again
+    { dur: 4.6, line: '', noFade: true, // the line stays: the last shudders, time to see it, then the snow falls again
       draw(g, k, t, u) {
-        const go = span(t, 1.6, 3.2);
-        scene(g, k, { snowT: snow(t, go * 0.6), turned: true, dim: 0.5 - easeInOut(span(t, 1.2, 4.6)) * 0.3, cut: 0.5 + easeOut(span(t, 0, 2.4)) * 1.3, cutGlow: 1.4, shift: -2 });
-        cutLight(g, () => embers(k, t - 1.4, 1));
+        const go = span(t, 1.6, 3.2), shake = t < 0.9 ? 1.6 * (1 - t / 0.9) * (Math.sin(t * 40) > 0 ? 1 : 0.4) : 0;
+        shaken(g, k, shake, () => {
+          scene(g, k, { snowT: snow(t, go * 0.6), turned: true, dim: 0.5 - easeInOut(span(t, 1.2, 4.4)) * 0.3, cut: 0.5 + easeOut(span(t, 0, 2.4)) * 1.3, cutGlow: 1.4 });
+          aftermath(g, k, t + 1.62, 0.6);
+        });
+        cutLight(g, () => { embers(k, t - 0.6, 1); for (let i = 0; i < 8; i++) { const x = (i * 31 + t * 40) % W; if (Math.sin(t * 9 + i * 3) > 0.7) k.glow(x, SKY_SCAR(x), 3, '#ffffff', 0.9); } }); // light still crackling along it
         if (go > 0) cutOnce('wind', () => sfx.play('wind'));
       } },
     { dur: 3.4, line: '', sound: 'riser', noFade: true, // the light of it fills everything
       draw(g, k, t, u) {
-        scene(g, k, { snowT: snow(t, 0.6), turned: true, dim: 0.2 * (1 - u), cut: 1.8 + u * 2, cutGlow: 1.4 + u * 2, shift: -2 });
+        k.rect(0, 0, W, H, '#000'); scene(g, k, { snowT: snow(t, 0.6), turned: true, dim: 0.2 * (1 - u), cut: 1.8 + u * 2, cutGlow: 1.4 + u * 2 });
         cutLight(g, () => embers(k, t + 3.4, 1 - u));
         cutWash(g, white, easeIn(u));
       } },
-    { dur: words1.end + 3.0 + 1.0, line: '', noFade: true, // on the white, his voice, a letter at a time; then silence
-      draw(g, k, t) {
-        k.rect(0, 0, W, H, white);
-        typeText(g, words1, t - 0.4, { alpha: 1 - span(t, words1.end + 3.0, words1.end + 3.9) });
-      } },
-    { dur: 0.8 + words2.end + 4.0, line: '', noFade: true,
-      draw(g, k, t) { k.rect(0, 0, W, H, white); typeText(g, words2, t - 0.8); } },
+    { dur: 0.9 + words.end + 4.0, line: '', noFade: true, // on the white, his voice, a letter at a time
+      draw(g, k, t) { k.rect(0, 0, W, H, white); typeText(g, words, t - 0.9); } },
     { dur: 2.8, line: '', noFade: true, sound: 'chime', // the white gives the Peaks back: he is gone, the sky stays cut
       draw(g, k, t, u) {
-        scene(g, k, { snowT: snow(t, 1), teacher: 0, cut: 3.8, cutGlow: 1.6 });
+        k.rect(0, 0, W, H, '#000'); scene(g, k, { snowT: snow(t, 1), teacher: 0, cut: 3.8, cutGlow: 1.6 });
         cutLight(g, () => { for (let i = 0; i < 14; i++) { const v = ((t * 0.35 + i / 14) % 1), x = TX + Math.sin(i * 2.1 + t) * 4 * (1 + v * 3), y = FY - 6 - v * 60; k.px(x, y, `rgba(200,232,255,${(1 - v) * (1 - u * 0.5)})`); } });
         cutWash(g, white, 1 - easeOut(span(u, 0, 0.75)));
-        typeText(g, words2, 99, { alpha: 1 - span(u, 0, 0.25) });
+        typeText(g, words, 99, { alpha: 1 - span(u, 0, 0.25) });
       } },
   ];
 }
