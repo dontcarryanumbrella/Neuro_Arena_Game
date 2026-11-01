@@ -17,6 +17,7 @@ const REWARD_INFO = [
   ['fell', 'Fell off', -200, 0, 5],
   ['died', 'Died', -200, 0, 5],
   ['survival', 'Per second alive', -2, 5, 0.1],
+  ['reach', 'Per second within reach', -5, 10, 0.5],
 ];
 const PRESETS = {
   Balanced: { ...DEFAULT_REWARDS },

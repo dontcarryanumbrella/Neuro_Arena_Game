@@ -1687,7 +1687,7 @@ class Sim {
     this.stats = {
       dmgDealt: 0, dmgTaken: 0, kills: 0, ringOuts: 0, waves: 0, parries: 0, blocks: 0, postureBreaks: 0,
       stunned: 0, evades: 0, whiffs: 0, fell: 0, died: 0, time: 0, result: null,
-      abilUses: {}, abilDmg: {}, bounty: 0,
+      abilUses: {}, abilDmg: {}, bounty: 0, reach: 0,
       strikes: 0, heavies: 0, kicks: 0, rolls: 0, dist: 0, lowHpT: 0, guardT: 0, awakenings: 0, specials: 0, specialLands: 0, synthLands: 0, bossKills: {}, killsByType: {},
     };
     this.input = new Float32Array(N_INPUTS);
@@ -1963,6 +1963,8 @@ class Sim {
     if (h === this.p) {
       if (h.hp < h.maxHp * 0.35) this.stats.lowHpT += DT;
       if (h.guard) this.stats.guardT += DT;
+      const near = this.nearestEnemy(h); // seconds within striking range of the nearest foe
+      if (near && Math.hypot(near.x - h.x, near.y - h.y) - near.r - h.r < BASE_MOVES.strike.range + 2) this.stats.reach += DT;
     }
     if (h.awakeT > 0 && (h.awakeT -= DT) <= 0) { h.fxScale = 1; this.emit('awakenEnd', h.x, h.y); }
     this.heroTalents(h);
@@ -5466,6 +5468,7 @@ class Sim {
 const DEFAULT_REWARDS = {
   dmgDealt: 1, kills: 20, ringOuts: 10, dmgTaken: -1, parries: 6, blocks: 0.5, postureBreaks: 10,
   stunned: -10, evades: 1, whiffs: -0.3, fell: -20, died: -30, survival: 0,
+  reach: 1.5, // per second within striking range of the nearest foe: it learns that the fight is up close
 };
 
 function rewardScore(s, t, w) {
