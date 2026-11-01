@@ -66,28 +66,28 @@ const WORLDS = [
   {
     id: 'temple', name: 'Red Dust Temple', tier: 2, color: '#d9a441', bosses: ['abbot'],
     blurb: 'A mountain temple above the red dust, where every courtyard is a lesson in patience.',
-    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('druid', 2, 1)],
+    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('druid', 2, 1), p('staffmonk', 3, 4), p('arhat', 2, 1)],
   },
   {
     id: 'night', name: 'Night Country', tier: 2, color: '#9a2a3a', bosses: ['vampirelord', 'lich'],
     blurb: 'A country where the sun stopped rising. Its lords are still at court.',
-    pool: [p('zombie', 4, 4), p('werewolf', 2, 2), p('vampire', 2, 2), p('necromancer', 2, 1), p('spider', 2, 1)],
+    pool: [p('zombie', 4, 4), p('werewolf', 2, 2), p('vampire', 2, 2), p('necromancer', 2, 1), p('spider', 2, 1), p('gargoyle', 2, 1), p('ghoul', 3, 4)],
   },
   {
     id: 'peaks', name: 'Myriad Sword Peaks', tier: 3, color: '#9fd8ff', bosses: ['swordsaint'],
     blurb: 'Ten thousand peaks, a sword on every one. One old master still teaches here.', teacher: 'swordsaint',
-    pool: [p('cultivator', 4, 3), p('talisman', 3, 2), p('formation', 3, 2), p('spearmaster', 3, 2)],
+    pool: [p('cultivator', 4, 3), p('talisman', 3, 2), p('formation', 3, 2), p('spearmaster', 3, 2), p('disciple', 4, 4)],
   },
   {
     id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen'],
     blurb: 'The pit under every world, and the brood that eats its way up.',
-    pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2),
+    pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2), p('imp', 3, 4), p('hellhound', 3, 3),
       p('zergling', 4, 4, { hp: 2.5, dmg: 1.3 }), p('spitter', 2, 3, { hp: 2.5, dmg: 1.2 }), p('bloater', 2, 3, { hp: 2.5, dmg: 1.2 }), p('brute', 2, 2, { hp: 1.5, dmg: 1.1 })],
   },
   {
     id: 'isles', name: 'Eastern Isles', tier: 4, color: '#e86a8a', bosses: ['blind'],
     blurb: 'Islands of falling petals and old blades. Something with eight heads sleeps in the bay.',
-    pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1)],
+    pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1), p('yukionna', 2, 1), p('tengu', 2, 2)],
   },
   {
     id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor', 'wukong'],
@@ -97,12 +97,12 @@ const WORLDS = [
   {
     id: 'timestream', name: 'Timestream', tier: 5, color: '#5fe0e0', bosses: ['timeadmin'],
     blurb: 'A river of broken moments. The keeper of the jar lives here.',
-    pool: [p('cyborg', 3, 3), p('gravmage', 3, 2)],
+    pool: [p('cyborg', 3, 3), p('gravmage', 3, 2), p('swarmdrone', 4, 4), p('sentry', 3, 2), p('chronomancer', 2, 1), p('glitch', 2, 1), p('twin', 2, 2)],
   },
   {
     id: 'cursed', name: 'Cursed Domain', tier: 6, hidden: true, color: '#3a2a6a', bosses: ['gojo', 'mahoraga'],
     blurb: 'Curses breed where fear pools. Two powers older than the jar wait at its heart.',
-    pool: [],
+    pool: [p('flyhead', 4, 4), p('cspirit', 3, 4), p('ccorpse', 2, 1), p('strawdoll', 2, 1), p('cspeech', 2, 1), p('shikigami', 2, 2)],
   },
   {
     id: 'blacksea', name: 'Black Sea', tier: 6, hidden: true, color: '#1a1a1a', bosses: ['scholar'],
@@ -113,7 +113,7 @@ const WORLDS = [
   {
     id: 'pallid', name: 'The Pallid Kingdom', tier: 6, hidden: true, color: '#e8d24a', bosses: ['yellowking'],
     blurb: 'A court under twin suns by a lake of cloud. Bells ring. Everyone wears a mask.',
-    pool: [p('courtier', 4, 4, { hp: 3, dmg: 1.5 })],
+    pool: [p('courtier', 3, 4, { hp: 3, dmg: 1.5 }), p('cultist', 3, 2), p('byakhee', 2, 2), p('dancer', 2, 2), p('pknight', 2, 1), p('horror', 1, 1)],
   },
 ];
 const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));

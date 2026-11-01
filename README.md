@@ -14,7 +14,7 @@ then open http://localhost:8137. No build step and no dependencies: it is plain 
 
 **Host it for free:** the game is a static site, so it runs as-is on GitHub Pages. In the repository's **Settings → Pages**, set the source to the `main` branch and the root folder; it appears at `https://<your-name>.github.io/<repo>/`. That is also the easiest way to give friends the exact same version for online play.
 
-**Tests:** with Node.js installed, `node tests/newfoes.cjs`, `node tests/yellowking.cjs` and `node tests/campaign.cjs` run the regression checks (mechanics of every foe and boss, long random duels that must never break, the worlds' rooms, the story's coverage and the teacher). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
+**Tests:** with Node.js installed, `node tests/newfoes.cjs`, `node tests/yellowking.cjs`, `node tests/campaign.cjs` and `node tests/worldfoes.cjs` run the regression checks (mechanics of every foe and boss, long random duels that must never break, the worlds' rooms, the story's coverage and the teacher). The pages in `tests/` (open them through the local server) preview foes, bosses and effects.
 
 ## The Jar
 
@@ -45,7 +45,7 @@ The fighter wakes in a sealed jar with no memory. Small worlds are sealed in it 
 - **Promoted foes:** twelve creatures that used to appear only in a boss's retinue now hold worlds of their own, at full strength (boosted) and with their abilities: the Heavenly General in the Nine Heavens; the zergling, spitter, bloater and brute in the Netherworld Abyss; the Scholar's five heads (Chessboard Scholar, Lamp Bearer, Headsman Butcher, Coffin Bearer, Flutist) and the ink dragon as an elite in the Black Sea; the Faceless Courtier in the Pallid Kingdom. They count like any foe: met, felled, level and Codex.
 - **The teacher:** in the Myriad Sword Peaks the Sword Immortal is teaching, not killing. His swords are demonstrations: slower to draw, never true damage, never past every defence. His second form is a lesson (the Ninth to the Twelfth Swords, drawn smaller, no Unfinished Manual), and at a tenth of his health he yields: "Enough. That is all you can carry, for now." As he goes he draws one stroke into the sky, and the heavens split, to show what he was holding back. Everywhere else (the Pavilion, battles) he is the Sword Immortal at full strength.
 
-The Cursed Domain and the Pallid Kingdom still need more foes of their own (planned).
+Every world now has foes of its own, including 25 made for the worlds (see **The worlds' own foes** below).
 
 ## How it learns
 
@@ -83,11 +83,11 @@ Every move except guard costs energy (strike 10, heavy 22, kick 18, roll 20). En
 
 ## Levels
 
-The fighter's health, energy, energy regen and posture come from its **level**, not from settings. It starts at level 1 (100 health, 100 energy, 18 regen, 100 posture) and gains a level for every different foe or boss it fells **in the worlds** (summoned creatures don't count, apart from the twelve promoted to worlds of their own). Training, battles, sparring and trials don't count: they are only memories. There are 71 to fell, so level 72 reaches the caps: 300 health, 300 energy, 30 regen and 250 posture. The Fighter panel shows the level and current stats; new stats apply from the next life. The level is saved with the fighter and survives Forget everything. (Saves from before the worlds start at level 1.)
+The fighter's health, energy, energy regen and posture come from its **level**, not from settings. It starts at level 1 (100 health, 100 energy, 18 regen, 100 posture) and gains a level for every different foe or boss it fells **in the worlds** (summoned creatures don't count, apart from the twelve promoted to worlds of their own). Training, battles, sparring and trials don't count: they are only memories. There are 96 to fell, so level 97 reaches the caps: 300 health, 300 energy, 30 regen and 250 posture. The Fighter panel shows the level and current stats; new stats apply from the next life. The level is saved with the fighter and survives Forget everything. (Saves from before the worlds start at level 1.)
 
 ## Opponents
 
-40 foes in 7 combat roles. The role sets how they fight; each foe adds its own passive and active ability. Each role has a boss with a second phase at half health.
+65 foes in 7 combat roles (the 25 newest, made for the worlds, are listed under **The worlds' own foes**). The role sets how they fight; each foe adds its own passive and active ability. Each role has a boss with a second phase at half health.
 
 | Role | Habit | Foes | Boss |
 | --- | --- | --- | --- |
@@ -120,6 +120,40 @@ The eastern dragons (the Eastern Dragon, both forms of the Dragon Emperor, the S
 | Stone Golem | Hardens while it stands still (up to 5 layers, 12% less damage and posture each); moving sheds them, heavies and kicks crack them. Throws boulders that leave rubble; unblockable stomp. |
 | Hydra | Heads that bite, spit acid and breathe fire on their own. Every 14% of health lost severs a head; the stump grows back as two (up to 7) unless a heavy or fire seals it. With no heads it takes 50% more damage. |
 | Phoenix | Burns hotter the longer it fights (more feathers, wider fire, a sunburst at high heat, a burning aura at full heat). Falls as an egg: break it within 4s or it is reborn hotter, in blue and then white flame (twice). |
+
+### The worlds' own foes
+
+25 foes made for the worlds of the jar, each with its own ability to learn and a line in the Codex.
+
+| World | Foe | What makes it different |
+| --- | --- | --- |
+| Red Dust Temple | Staff Monk | Long reach; a wide sweeping form and a long thrust. Drills in lines of up to four. |
+| | Bronze Arhat | A golden-bell body (25% less damage, barely moves); a bell toll that throws everyone back, and an iron palm that breaks guard. |
+| Night Country | Gargoyle | Turns to stone, layer by layer, while it stands still; dives from afar. |
+| | Ghoul | Fast, in packs of four; when anything falls near it, it feeds and heals 40%. |
+| Myriad Sword Peaks | Outer Disciple | Weak alone, but disciples fly their swords together: when one looses its sword, the others near it follow. |
+| Netherworld Abyss | Imp | Tiny, quick, slips aside; flicks darts of fire. |
+| | Hellhound | Circles, then a burning bite; fire doesn't hurt it. |
+| Eastern Isles | Yuki-onna | A breath and a ring of ice that slow, and ice mirrors that look just like her. |
+| | Tengu | Blinks on the wind; a fan gust that throws you toward the edge, and feather darts. |
+| Timestream | Drone Swarm | Tiny drones in fours that dive in turns. |
+| | Sentry Drone | Hovers at range: a laser-sighted round that breaks guard, and a burst. |
+| | Chronomancer | Time mines that freeze, a field of slow time, haste for its allies, and once a fight it turns a fallen ally's clock back (half health). |
+| | Glitch | Casts the last ability you used, back at you. |
+| | Paradox Twins | Always two. When one falls the other brings it back three seconds later, unless both fall within those three seconds. |
+| Cursed Domain | Fly Head | The smallest curse, in fours. |
+| | Cursed Spirit | Packs; a lunge and a corroding spit. |
+| | Cursed Corpse | A puppet that gets back up once, unless its core is broken (a posture break or a ring-out). |
+| | Straw Doll Sorcerer | Its nails stay in you (up to six); then it strikes the doll and they all resonate, past any guard. |
+| | Cursed Speech Sorcerer | "Don't move" roots you; "Blast away" throws you across the stage. Nothing blocks a word, and each one costs it health. |
+| | Shikigami Hound | In pairs; leaps out of its shadow and breaks guard. |
+| The Pallid Kingdom | Hastur Cultist | The Yellow Sign burns under you and fills you with fear. |
+| | Byakhee | Circles on wings, then swoops. |
+| | Pallid Dancer | Sways out of blows; a pale kiss that draws you to her, and a spinning kick. |
+| | Pallid Knight | While its mask is intact its posture can't break; three heavies or kicks crack it off. |
+| | Lake Hali Horror | Barely moves; tentacles rise from the lake at the edge of the stage near you and drag toward the edge. |
+
+New conditions they bring: fear (the Yellow Sign), freezing (time mines), nails (the straw doll) and haste (for the Chronomancer's allies).
 
 Knockback from a crowd of summons doesn't stack: a burst of their blows pushes about as far as the strongest one. New conditions: poison, slow, polymorph, charm, cocoon, levitation, corrosion, webs and pincer grips. They work both ways (several are learnable), and bosses shrug off the controlling ones. ??? can now roll the newer foes' skills too, including the beasts', the kitsune's and the mutations'. A necromancer (or the Lich) that kills a summon raises it on its own side.
 
@@ -383,7 +417,7 @@ Open **Skins** in the dock to spend jade on new looks for your fighter: Shadow N
 
 ## Learned abilities
 
-After the hero has fought a foe for long enough (45 seconds across all lives by default), it learns that foe's ability. There are 40 in all (plus the twelve swords of the Sword Immortal's manual), and learned techniques hit 1.5x harder than the foe's version. Two can be equipped; each costs energy and has a cooldown, and the network has two extra actions to use them.
+After the hero has fought a foe for long enough (45 seconds across all lives by default), it learns that foe's ability. There are 65 in all (plus the twelve swords of the Sword Immortal's manual), and learned techniques hit 1.5x harder than the foe's version. Two can be equipped; each costs energy and has a cooldown, and the network has two extra actions to use them.
 
 - **Me:** pick both slots yourself.
 - **Auto:** every 3 lives (or when something new is learned) the hero scores each learned ability by how its lives went compared with the recent average, keeps the best, and tries ones it has not used yet.

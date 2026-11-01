@@ -481,6 +481,231 @@ const ENEMY_TYPES = {
   }),
 };
 
+// ---------- the worlds' own: foes for the worlds of the jar that had too few ----------
+Object.assign(ENEMY_TYPES, {
+  // Red Dust Temple
+  staffmonk: foe('duelist', {
+    name: 'Staff Monk', hp: 66, r: 5, speed: 48, mass: 1.1, postureMul: 0.9, parryP: 0.45, chainP: 0.5, maxChain: 2,
+    moves: moveSet({ strike: { dmg: 10, range: 24, wind: 0.18 }, heavy: { dmg: 20, range: 26 } }),
+    passive: ['Long Reach', 'A staff outreaches a fist: it strikes from further away than you can.'],
+    active: ['Sweeping Forms', 'A wide staff sweep that knocks you back, and a long thrust that crosses the gap.'],
+    specials: [
+      { id: 'staffsweep', kind: 'slam', radius: 26, wind: 0.45, recover: 0.6, dmg: 10, kb: 120, cd: 4, hitPosture: 14, parryPosture: 24, variant: 'staffquake' },
+      { id: 'staffthrust', kind: 'pounce', minRange: 22, maxRange: 70, wind: 0.4, recover: 0.5, dmg: 12, kb: 90, lunge: 260, lungeTime: 0.24, cd: 3.5, hitPosture: 16, parryPosture: 30 },
+    ],
+  }),
+  arhat: foe('guardian', {
+    name: 'Bronze Arhat', hp: 115, r: 6, speed: 34, mass: 3, postureMul: 0.4, dr: 0.25,
+    moves: moveSet({ strike: { dmg: 13, range: 16, wind: 0.3 }, heavy: { dmg: 26, range: 18, wind: 0.55 } }),
+    passive: ['Golden Bell', 'A body of bronze: takes 25% less damage and barely moves when struck.'],
+    active: ['Bell Toll', 'Strikes its chest like a temple bell; the toll throws everyone around it back. Also an iron palm that breaks guard.'],
+    specials: [
+      { id: 'belltoll', kind: 'slam', radius: 30, wind: 0.7, recover: 0.8, dmg: 12, kb: 200, cd: 6, unblockable: true, hitPosture: 22, variant: 'quake' },
+      { id: 'ironpalm', kind: 'melee', range: 16, wind: 0.5, recover: 0.6, dmg: 18, kb: 140, cd: 4, breaksGuard: true, hitPosture: 26, parryPosture: 40 },
+    ],
+  }),
+  // Night Country
+  gargoyle: foe('trickster', {
+    name: 'Gargoyle', hp: 78, r: 6, speed: 50, mass: 2, postureMul: 0.6, harden: true, humanoid: false,
+    moves: moveSet({ strike: { dmg: 13, range: 15, wind: 0.24 } }),
+    passive: ['Perched in Stone', 'Standing still it turns to stone, layer by layer: less damage and posture damage with each. Moving sheds them; heavies and kicks crack them.'],
+    active: ['Dive', 'Leaps high and dives onto you, cracking your guard.'],
+    specials: [{ id: 'gdive', kind: 'pounce', minRange: 30, maxRange: 110, wind: 0.6, recover: 0.6, dmg: 18, kb: 150, lunge: 320, lungeTime: 0.32, cd: 4, breaksGuard: true, hitPosture: 22, parryPosture: 34 }],
+  }),
+  ghoul: foe('bruiser', {
+    name: 'Ghoul', hp: 44, r: 5, speed: 60, mass: 0.9, postureMul: 1.1, humanoid: false, aggr: 0.9, corpseEater: true,
+    moves: moveSet({ strike: { dmg: 9, range: 13, wind: 0.14 } }),
+    passive: ['Corpse Eater', 'When anything falls nearby, it feeds: it heals 40% of its health.'],
+    active: ['Rend', 'A leaping rake of claws.'],
+    specials: [{ id: 'rend', kind: 'pounce', minRange: 15, maxRange: 60, wind: 0.3, recover: 0.5, dmg: 10, kb: 70, lunge: 280, lungeTime: 0.22, cd: 2.6, hitPosture: 12, parryPosture: 24 }],
+  }),
+  // Myriad Sword Peaks
+  disciple: foe('duelist', {
+    name: 'Outer Disciple', hp: 40, r: 5, speed: 46, mass: 1, postureMul: 1.1, parryP: 0.3,
+    moves: moveSet({ strike: { dmg: 9, range: 17 } }),
+    passive: ['Shared Formation', 'Disciples fly their swords together: when one looses its sword, the others near it follow.'],
+    active: ['Flying Sword', 'A single flying sword. Parryable.'],
+    specials: [{ id: 'dswords', kind: 'swords', minRange: 25, maxRange: 180, count: 1, wind: 0.5, recover: 0.4, dmg: 8, cd: 4.5, together: true }],
+  }),
+  // Netherworld Abyss
+  imp: foe('trickster', {
+    name: 'Imp', hp: 26, r: 3, speed: 66, mass: 0.6, postureMul: 1.4, humanoid: false, evasive: true,
+    moves: moveSet({ strike: { dmg: 6, range: 11, wind: 0.12 } }),
+    passive: ['Underfoot', 'Small and quick; it slips aside from blows.'],
+    active: ['Fire Darts', 'Flicks three little darts of fire.'],
+    specials: [{ id: 'firedart', kind: 'shoot', proj: 'magma', shots: 3, spread: 0.25, speed: 170, dmg: 5, minRange: 20, maxRange: 140, wind: 0.35, recover: 0.4, cd: 2.4, burn: true }],
+  }),
+  hellhound: foe('bruiser', {
+    name: 'Hellhound', hp: 54, r: 5, speed: 64, mass: 1.1, postureMul: 1, humanoid: false, aggr: 0.85, fireImmune: true, ai: 'circle', orbit: 30,
+    moves: moveSet({ strike: { dmg: 10, range: 13, wind: 0.16 } }),
+    passive: ['Born of Fire', 'Fire does not hurt it.'],
+    active: ['Burning Bite', 'A lunging bite that sets you burning.'],
+    specials: [{ id: 'burnbite', kind: 'pounce', minRange: 14, maxRange: 60, wind: 0.32, recover: 0.5, dmg: 11, kb: 60, lunge: 280, lungeTime: 0.24, cd: 2.8, poison: 4, poisonT: 3, hitPosture: 14, parryPosture: 26 }],
+  }),
+  // Eastern Isles
+  yukionna: foe('caster', {
+    name: 'Yuki-onna', hp: 60, r: 5, speed: 40, mass: 1, postureMul: 1,
+    moves: moveSet({ strike: { dmg: 9, wind: 0.16 } }),
+    passive: ['Winter Breath', 'Everything she touches slows.'],
+    active: ['Frost and Mirrors', 'A freezing breath, a ring of ice that bursts under you, and mirrors of ice that look just like her.'],
+    specials: [
+      { id: 'frostbreath', kind: 'cone', range: 40, angle: 0.6, wind: 0.5, recover: 0.5, dmg: 9, kb: 20, cd: 4, unblockable: true, variant: 'frost', slow: 1.6 },
+      { id: 'icering', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 160, wind: 0.5, recover: 0.4, dmg: 10, radius: 11, delay: 0.9, cd: 6, unblockable: true, variant: 'frost', slow: 1.4 },
+      { id: 'icemirror', kind: 'decoy', maxRange: 160, wind: 0.5, recover: 0.3, count: 2, cd: 10 },
+    ],
+  }),
+  tengu: foe('trickster', {
+    name: 'Tengu', hp: 64, r: 5, speed: 58, mass: 1, postureMul: 1, blinks: true, dodgeP: 0.3,
+    moves: moveSet({ strike: { dmg: 11, range: 15, wind: 0.14 } }),
+    passive: ['Mountain Wind', 'Blinks about on gusts of wind.'],
+    active: ['Fan Gust and Feathers', 'A great fan gust that throws you toward the edge, and a spread of feather darts.'],
+    specials: [
+      { id: 'fangust', kind: 'cone', range: 55, angle: 0.8, wind: 0.55, recover: 0.6, dmg: 3, kb: 300, hitPosture: 14, cd: 5, unblockable: true, variant: 'wind' },
+      { id: 'featherdarts', kind: 'shoot', proj: 'feather', shots: 4, spread: 0.18, speed: 190, dmg: 6, minRange: 25, maxRange: 160, wind: 0.35, recover: 0.4, cd: 2.8 },
+    ],
+  }),
+  // Timestream
+  swarmdrone: foe('beast', {
+    name: 'Drone Swarm', hp: 16, r: 3, speed: 70, mass: 0.4, postureMul: 2, humanoid: false, floating: true, ai: 'circle', orbit: 34,
+    moves: moveSet({ strike: { dmg: 5, range: 11, wind: 0.12 } }),
+    passive: ['Swarm', 'Tiny and fast; they come in fours and take turns.'],
+    active: ['Dive', 'Dives at you, then pulls away.'],
+    specials: [{ id: 'dronedive', kind: 'pounce', minRange: 20, maxRange: 80, wind: 0.35, recover: 0.6, dmg: 7, kb: 50, lunge: 320, lungeTime: 0.22, cd: 3, hitPosture: 8 }],
+  }),
+  sentry: foe('marksman', {
+    name: 'Sentry Drone', hp: 46, r: 4, speed: 38, mass: 0.8, postureMul: 1.2, humanoid: false, floating: true, near: 90, far: 140,
+    passive: ['Hover', 'Floats at range and keeps it.'],
+    active: ['Laser and Burst', 'Paints you with a laser sight, then fires a round that breaks guard; also a quick three-round burst.'],
+    specials: [
+      { id: 'sentrylaser', kind: 'shoot', proj: 'rail', minRange: 30, maxRange: 240, wind: 0.9, recover: 0.5, dmg: 20, shots: 1, speed: 330, laser: true, breaksGuard: true, cd: 3 },
+      { id: 'sentryburst', kind: 'shoot', proj: 'plasma', shots: 3, spread: 0.08, speed: 220, dmg: 6, minRange: 20, maxRange: 170, wind: 0.35, recover: 0.4, cd: 2.2 },
+    ],
+  }),
+  chronomancer: foe('caster', {
+    name: 'Chronomancer', hp: 58, r: 5, speed: 36, mass: 1, postureMul: 1, chronoRewind: true,
+    moves: moveSet({ strike: { dmg: 8, wind: 0.18 } }),
+    passive: ['Turn Back', 'Once a fight, when an ally falls near it, it turns the ally\'s clock back: the ally returns at half health.'],
+    active: ['Time Mines, Slow Time, Haste', 'Plants mines that freeze whoever steps on them, slows you in a field of slow time, and hastens its allies.'],
+    specials: [
+      { id: 'timemine', kind: 'mine', maxRange: 200, wind: 0.4, recover: 0.4, radius: 11, dmg: 8, arm: 0.6, life: 12, cd: 4.5, freeze: 1.2 },
+      { id: 'slowfield', kind: 'sigil', maxRange: 180, wind: 0.5, recover: 0.4, dmg: 4, radius: 22, delay: 0.8, cd: 6, unblockable: true, variant: 'gravity', slow: 2.4 },
+      { id: 'haste', kind: 'hasteallies', radius: 90, dur: 4, wind: 0.4, recover: 0.3, cd: 8 },
+    ],
+  }),
+  glitch: foe('trickster', {
+    name: 'Glitch', hp: 56, r: 5, speed: 56, mass: 1, postureMul: 1, blinks: true,
+    moves: moveSet({ strike: { dmg: 10, wind: 0.14 } }),
+    passive: ['Copy Error', 'It watches what you use.'],
+    active: ['Copied', 'Casts the last ability you used, back at you. With nothing to copy, it glitches forward and cuts.'],
+    specials: [
+      { id: 'glitchcopy', kind: 'copycat', maxRange: 160, wind: 0.5, recover: 0.5, cd: 5 },
+      { id: 'glitchcut', kind: 'pounce', minRange: 20, maxRange: 80, wind: 0.3, recover: 0.5, dmg: 12, kb: 60, lunge: 340, lungeTime: 0.2, cd: 3, hitPosture: 14, parryPosture: 26 },
+    ],
+  }),
+  twin: foe('duelist', {
+    name: 'Paradox Twin', hp: 60, r: 5, speed: 52, mass: 1, postureMul: 1, paradox: true, parryP: 0.4,
+    moves: moveSet({ strike: { dmg: 11, range: 16, wind: 0.15 } }),
+    passive: ['Paradox', 'Always two. When one falls, the other brings it back three seconds later, unless both fall within those three seconds.'],
+    active: ['Mirror Cut', 'A crossing dash-cut.'],
+    specials: [{ id: 'mirrorcut', kind: 'pounce', minRange: 20, maxRange: 75, wind: 0.4, recover: 0.5, dmg: 13, kb: 80, lunge: 300, lungeTime: 0.24, cd: 3.2, hitPosture: 16, parryPosture: 30 }],
+  }),
+  // Cursed Domain
+  flyhead: foe('beast', {
+    name: 'Fly Head', hp: 14, r: 3, speed: 68, mass: 0.4, postureMul: 2, humanoid: false, floating: true, ai: 'circle', orbit: 26,
+    moves: moveSet({ strike: { dmg: 5, range: 10, wind: 0.12 } }),
+    passive: ['Grade Four', 'The smallest curse: a buzzing head with wings. Never alone.'],
+    active: ['Bite', 'Darts in to bite.'],
+    specials: [{ id: 'flybite', kind: 'pounce', minRange: 14, maxRange: 60, wind: 0.25, recover: 0.5, dmg: 6, kb: 30, lunge: 300, lungeTime: 0.2, cd: 2.4, hitPosture: 6 }],
+  }),
+  cspirit: foe('bruiser', {
+    name: 'Cursed Spirit', hp: 48, r: 5, speed: 54, mass: 1, postureMul: 1, humanoid: false, aggr: 0.85,
+    moves: moveSet({ strike: { dmg: 10, range: 14, wind: 0.18 } }),
+    passive: ['Grade Three', 'A curse born of a crowd\'s fear. They come in packs.'],
+    active: ['Lunge and Spit', 'A lunging grab, and a gob of cursed acid from range that corrodes.'],
+    specials: [
+      { id: 'cslunge', kind: 'pounce', minRange: 16, maxRange: 65, wind: 0.35, recover: 0.5, dmg: 11, kb: 80, lunge: 260, lungeTime: 0.25, cd: 3, hitPosture: 14, parryPosture: 26 },
+      { id: 'csspit', kind: 'shoot', proj: 'acid', shots: 1, speed: 150, dmg: 8, minRange: 30, maxRange: 140, wind: 0.4, recover: 0.4, cd: 3.5, corrode: 2 },
+    ],
+  }),
+  ccorpse: foe('guardian', {
+    name: 'Cursed Corpse', hp: 88, r: 6, speed: 32, mass: 2, postureMul: 0.7, humanoid: false, undying: true,
+    moves: moveSet({ strike: { dmg: 13, range: 16, wind: 0.32 }, heavy: { dmg: 24, range: 17 } }),
+    passive: ['Cursed Core', 'A sorcerer\'s puppet: it gets back up once, unless its core is broken by a posture break or it is thrown off the stage.'],
+    active: ['Stitched Fists', 'A heavy two-fisted slam that breaks guard.'],
+    specials: [{ id: 'corpseslam', kind: 'slam', radius: 22, wind: 0.6, recover: 0.7, dmg: 16, kb: 140, cd: 4.5, breaksGuard: true, hitPosture: 22, parryPosture: 34, variant: 'quake' }],
+  }),
+  strawdoll: foe('marksman', {
+    name: 'Straw Doll Sorcerer', hp: 52, r: 5, speed: 42, mass: 1, postureMul: 1.1, near: 80, far: 130,
+    passive: ['Resonance', 'Every nail that lands stays in you (up to six).'],
+    active: ['Nails and Doll', 'Hammers nails at you; then strikes its straw doll, and every nail in you resonates. Nothing blocks it.'],
+    specials: [
+      { id: 'nails', kind: 'shoot', proj: 'spine', shots: 2, spread: 0.1, speed: 210, dmg: 5, minRange: 20, maxRange: 170, wind: 0.35, recover: 0.4, cd: 2, nail: 1 },
+      { id: 'resonance', kind: 'resonance', maxRange: 999, wind: 0.6, recover: 0.5, cd: 5, per: 6 },
+    ],
+  }),
+  cspeech: foe('caster', {
+    name: 'Cursed Speech Sorcerer', hp: 54, r: 5, speed: 40, mass: 1, postureMul: 1,
+    passive: ['Binding Words', 'Each command costs it health; weakened, it stops speaking.'],
+    active: ['"Don\'t move." "Blast away."', 'A spoken command roots you where you stand, or throws you across the stage. Nothing blocks a word.'],
+    specials: [
+      { id: 'dontmove', kind: 'speech', word: 'DON\'T MOVE', maxRange: 160, wind: 0.5, recover: 0.5, cd: 6, root: 1.3, cost: 0.05 },
+      { id: 'blastaway', kind: 'speech', word: 'BLAST AWAY', maxRange: 110, wind: 0.5, recover: 0.5, cd: 7, kb: 330, dmg: 6, cost: 0.06 },
+    ],
+  }),
+  shikigami: foe('beast', {
+    name: 'Shikigami Hound', hp: 58, r: 5, speed: 62, mass: 1.1, postureMul: 1, humanoid: false, ai: 'circle', orbit: 32, aggr: 0.85,
+    moves: moveSet({ strike: { dmg: 11, range: 13, wind: 0.15 } }),
+    passive: ['Ten Shadows', 'Comes in pairs, one light and one dark, and melts into its shadow to close in.'],
+    active: ['Shadow Pounce', 'Sinks into its shadow and leaps out at you, breaking guard.'],
+    specials: [{ id: 'shadowpounce', kind: 'pounce', minRange: 18, maxRange: 90, wind: 0.4, recover: 0.5, dmg: 14, kb: 90, lunge: 320, lungeTime: 0.25, cd: 3, breaksGuard: true, hitPosture: 18, parryPosture: 30 }],
+  }),
+  // The Pallid Kingdom
+  cultist: foe('caster', {
+    name: 'Hastur Cultist', hp: 56, r: 5, speed: 38, mass: 1, postureMul: 1,
+    moves: moveSet({ strike: { dmg: 8, wind: 0.18 } }),
+    passive: ['Unspeakable', 'It speaks the name, and madness spreads from where it stands.'],
+    active: ['The Yellow Sign', 'A sign that burns under you and fills you with fear, and a whispered bolt.'],
+    specials: [
+      { id: 'yellowsign', kind: 'sigil', maxRange: 170, wind: 0.6, recover: 0.4, dmg: 8, radius: 16, delay: 1.0, cd: 6, unblockable: true, variant: 'seal', fear: 1.3 },
+      { id: 'whisper', kind: 'shoot', proj: 'hex', shots: 1, speed: 150, dmg: 9, minRange: 25, maxRange: 160, wind: 0.4, recover: 0.4, cd: 2.6 },
+    ],
+  }),
+  byakhee: foe('bruiser', {
+    name: 'Byakhee', hp: 82, r: 7, speed: 54, mass: 1.6, postureMul: 0.8, humanoid: false, floating: true, ai: 'circle', orbit: 48, aggr: 0.75,
+    moves: moveSet({ strike: { dmg: 12, range: 16, wind: 0.2 } }),
+    passive: ['Between the Stars', 'A winged thing that flies the void; it circles before it strikes.'],
+    active: ['Swoop', 'A long swooping dive with claws out.'],
+    specials: [{ id: 'swoop', kind: 'pounce', minRange: 30, maxRange: 120, wind: 0.5, recover: 0.6, dmg: 16, kb: 160, lunge: 340, lungeTime: 0.3, cd: 3.5, hitPosture: 20, parryPosture: 32 }],
+  }),
+  dancer: foe('trickster', {
+    name: 'Pallid Dancer', hp: 58, r: 5, speed: 60, mass: 0.9, postureMul: 1, sway: true, blinks: true, dodgeP: 0.35,
+    moves: moveSet({ strike: { dmg: 10, wind: 0.13 } }),
+    passive: ['Hypnotic Step', 'Sways out of the way of blows.'],
+    active: ['Pale Kiss and Turn', 'A pale kiss that draws you helplessly toward her, and a spinning double kick.'],
+    specials: [
+      { id: 'palekiss', kind: 'shoot', proj: 'heart', shots: 1, speed: 140, dmg: 2, minRange: 20, maxRange: 140, wind: 0.45, recover: 0.4, cd: 7, charm: 1.4, radius: 3 },
+      { id: 'spinkick', kind: 'slam', radius: 20, wind: 0.35, recover: 0.5, dmg: 10, kb: 120, hits: 2, interval: 0.2, cd: 3.5, hitPosture: 14 },
+    ],
+  }),
+  pknight: foe('guardian', {
+    name: 'Pallid Knight', hp: 100, r: 6, speed: 36, mass: 2.4, postureMul: 0, masked: 3,
+    moves: moveSet({ strike: { dmg: 13, range: 18, wind: 0.3 }, heavy: { dmg: 26, range: 20 } }),
+    passive: ['The Pallid Mask', 'While its mask is intact its posture can\'t be broken. Three heavies or kicks that land crack it off.'],
+    active: ['Tarnished Blade', 'A wide two-handed cleave, twice, that breaks guard.'],
+    specials: [{ id: 'tarnished', kind: 'flurry', reach: 20, range: 20, arc: 1.1, hits: 2, interval: 0.4, step: 30, wind: 0.5, recover: 0.7, dmg: 13, kb: 90, cd: 5, breaksGuard: true, hitPosture: 16, parryPosture: 30 }],
+  }),
+  horror: foe('colossus', {
+    name: 'Lake Hali Horror', hp: 170, r: 10, scale: 1.2, speed: 14, mass: 8, postureMul: 0.35,
+    moves: moveSet({ strike: { dmg: 16, range: 20, wind: 0.55, kb: 140 } }),
+    passive: ['From the Lake', 'Most of it is under the cloud-lake: it barely moves.'],
+    active: ['Tentacles', 'Tentacles rise from the lake at the edge of the stage, near you, and drag whatever they catch toward the edge. Up close, a crushing slam.'],
+    specials: [
+      { id: 'edgetentacles', kind: 'edgetentacles', maxRange: 999, wind: 0.6, recover: 0.5, count: 3, dmg: 14, radius: 12, delay: 0.9, cd: 4.5 },
+      { id: 'horrorslam', kind: 'slam', radius: 28, wind: 0.8, recover: 0.9, dmg: 20, kb: 180, cd: 5, unblockable: true, hitPosture: 24, variant: 'quake' },
+    ],
+  }),
+});
+
 // ---------- what the newer foes are made of ----------
 // The Shapeshifter's beasts: enhanced forms with their own bodies and moves.
 const SHIFT_FORMS = {
@@ -545,7 +770,7 @@ const FLASKS = {
 
 const HEAD_KINDS = ['bite', 'spit', 'flame'];
 // lingering conditions an attack can carry onto whoever it hits
-const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab'];
+const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab', 'fear', 'freeze', 'nail'];
 const statusOf = o => { const s = {}; for (const k of STATUS_KEYS) if (o[k]) s[k] = o[k]; return s; };
 
 // ---------- bosses: one per role, with a second phase at half health ----------
@@ -1313,6 +1538,34 @@ const HERO_ABILITIES = {
   hydra:       { tags: 'r',  cost: 18, cd: 4,   name: 'Acid Spit', desc: 'Three globs of venom that poison.', atk: { id: 'acidspit', kind: 'shoot', proj: 'acid', shots: 3, spread: 0.18, speed: 170, dmg: 5, wind: 0.3, recover: 0.3, poison: 4, poisonT: 3 } },
   phoenix:     { tags: 'a',  cost: 22, cd: 6,   name: 'Flare', desc: 'A wing of fire.', atk: { id: 'flare', kind: 'cone', range: 38, angle: 0.65, wind: 0.3, recover: 0.4, dmg: 14, kb: 60, hitPosture: 10, unblockable: true, variant: 'fire', fire: true } },
 };
+// the worlds' own foes teach too
+Object.assign(HERO_ABILITIES, {
+  staffmonk:    { tags: 'a',  cost: 20, cd: 5,   name: 'Staff Sweep', desc: 'A wide sweep that knocks everything around you back.', atk: { id: 'staffsweep', kind: 'slam', radius: 26, wind: 0.3, recover: 0.4, dmg: 10, kb: 130, hitPosture: 14, parryPosture: 24, variant: 'staffquake' } },
+  arhat:        { tags: 'as', cost: 26, cd: 7,   name: 'Bell Toll', desc: 'An unblockable toll that throws everyone around you away.', atk: { id: 'belltoll', kind: 'slam', radius: 30, wind: 0.45, recover: 0.5, dmg: 12, kb: 210, unblockable: true, hitPosture: 22, variant: 'quake' } },
+  gargoyle:     { tags: 'm',  cost: 22, cd: 5,   name: 'Dive', desc: 'A long dive that breaks guard.', atk: { id: 'gdive', kind: 'pounce', wind: 0.4, recover: 0.45, dmg: 18, kb: 150, lunge: 320, lungeTime: 0.32, breaksGuard: true, hitPosture: 22, parryPosture: 34 } },
+  ghoul:        { tags: 'm',  cost: 14, cd: 3,   name: 'Rend', desc: 'A leaping rake of claws.', atk: { id: 'rend', kind: 'pounce', wind: 0.22, recover: 0.4, dmg: 10, kb: 70, lunge: 280, lungeTime: 0.22, hitPosture: 12, parryPosture: 24 } },
+  disciple:     { tags: 'r',  cost: 12, cd: 3,   name: 'Flying Sword', desc: 'A single flying sword.', atk: { id: 'dswords', kind: 'swords', count: 1, wind: 0.3, recover: 0.3, dmg: 8 } },
+  imp:          { tags: 'r',  cost: 14, cd: 3,   name: 'Fire Darts', desc: 'Three little darts of fire.', atk: { id: 'firedart', kind: 'shoot', proj: 'magma', shots: 3, spread: 0.25, speed: 170, dmg: 5, wind: 0.25, recover: 0.3, burn: true } },
+  hellhound:    { tags: 'm',  cost: 18, cd: 4,   name: 'Burning Bite', desc: 'A lunging bite that sets the target burning.', atk: { id: 'burnbite', kind: 'pounce', wind: 0.25, recover: 0.4, dmg: 11, kb: 60, lunge: 280, lungeTime: 0.24, poison: 4, poisonT: 3, hitPosture: 14, parryPosture: 26 } },
+  yukionna:     { tags: 'a',  cost: 20, cd: 5,   name: 'Frost Breath', desc: 'A freezing cone that slows.', atk: { id: 'frostbreath', kind: 'cone', range: 40, angle: 0.6, wind: 0.35, recover: 0.4, dmg: 9, kb: 20, unblockable: true, variant: 'frost', slow: 1.6 } },
+  tengu:        { tags: 'a',  cost: 22, cd: 6,   name: 'Fan Gust', desc: 'A great gust that throws foes toward the edge.', atk: { id: 'fangust', kind: 'cone', range: 55, angle: 0.8, wind: 0.4, recover: 0.5, dmg: 3, kb: 300, hitPosture: 14, unblockable: true, variant: 'wind' } },
+  swarmdrone:   { tags: 'm',  cost: 10, cd: 2.5, name: 'Dive', desc: 'A quick diving strike.', atk: { id: 'dronedive', kind: 'pounce', wind: 0.22, recover: 0.4, dmg: 7, kb: 50, lunge: 320, lungeTime: 0.22, hitPosture: 8 } },
+  sentry:       { tags: 'r',  cost: 20, cd: 4,   name: 'Laser Shot', desc: 'A laser-sighted round that breaks guard.', atk: { id: 'sentrylaser', kind: 'shoot', proj: 'rail', wind: 0.6, recover: 0.4, dmg: 20, shots: 1, speed: 330, laser: true, breaksGuard: true } },
+  chronomancer: { tags: 'ra', cost: 20, cd: 6,   name: 'Slow Time', desc: 'A field of slow time that bursts under the target.', atk: { id: 'slowfield', kind: 'sigil', wind: 0.35, recover: 0.3, dmg: 4, radius: 22, delay: 0.8, unblockable: true, variant: 'gravity', slow: 2.4 } },
+  glitch:       { tags: 'm',  cost: 16, cd: 3.5, name: 'Glitch Cut', desc: 'A skip forward and a cut.', atk: { id: 'glitchcut', kind: 'pounce', wind: 0.2, recover: 0.4, dmg: 12, kb: 60, lunge: 340, lungeTime: 0.2, hitPosture: 14, parryPosture: 26 } },
+  twin:         { tags: 'm',  cost: 18, cd: 4,   name: 'Mirror Cut', desc: 'A crossing dash-cut.', atk: { id: 'mirrorcut', kind: 'pounce', wind: 0.28, recover: 0.4, dmg: 13, kb: 80, lunge: 300, lungeTime: 0.24, hitPosture: 16, parryPosture: 30 } },
+  flyhead:      { tags: 'm',  cost: 10, cd: 2.5, name: 'Bite', desc: 'A darting bite.', atk: { id: 'flybite', kind: 'pounce', wind: 0.18, recover: 0.4, dmg: 6, kb: 30, lunge: 300, lungeTime: 0.2, hitPosture: 6 } },
+  cspirit:      { tags: 'r',  cost: 14, cd: 3.5, name: 'Cursed Spit', desc: 'A gob of acid that corrodes.', atk: { id: 'csspit', kind: 'shoot', proj: 'acid', shots: 1, speed: 150, dmg: 8, wind: 0.3, recover: 0.3, corrode: 2 } },
+  ccorpse:      { tags: 'a',  cost: 22, cd: 5,   name: 'Stitched Fists', desc: 'A two-fisted slam that breaks guard.', atk: { id: 'corpseslam', kind: 'slam', radius: 22, wind: 0.4, recover: 0.5, dmg: 16, kb: 140, breaksGuard: true, hitPosture: 22, parryPosture: 34, variant: 'quake' } },
+  strawdoll:    { tags: 'r',  cost: 12, cd: 2.5, name: 'Nails', desc: 'Two nails that stay in the target.', atk: { id: 'nails', kind: 'shoot', proj: 'spine', shots: 2, spread: 0.1, speed: 210, dmg: 5, wind: 0.25, recover: 0.3, nail: 1 } },
+  cspeech:      { tags: 'r',  cost: 26, cd: 8,   name: 'Blast Away', desc: 'A spoken command that throws the target across the stage.', atk: { id: 'blastaway', kind: 'speech', word: 'BLAST AWAY', maxRange: 110, wind: 0.35, recover: 0.4, kb: 330, dmg: 6 } },
+  shikigami:    { tags: 'm',  cost: 20, cd: 4,   name: 'Shadow Pounce', desc: 'A leap out of your own shadow that breaks guard.', atk: { id: 'shadowpounce', kind: 'pounce', wind: 0.28, recover: 0.4, dmg: 14, kb: 90, lunge: 320, lungeTime: 0.25, breaksGuard: true, hitPosture: 18, parryPosture: 30 } },
+  cultist:      { tags: 'ra', cost: 22, cd: 6,   name: 'The Yellow Sign', desc: 'A sign that burns under the target and fills it with fear.', atk: { id: 'yellowsign', kind: 'sigil', wind: 0.4, recover: 0.3, dmg: 8, radius: 16, delay: 1.0, unblockable: true, variant: 'seal', fear: 1.3 } },
+  byakhee:      { tags: 'm',  cost: 20, cd: 4.5, name: 'Swoop', desc: 'A long swooping dive.', atk: { id: 'swoop', kind: 'pounce', wind: 0.35, recover: 0.45, dmg: 16, kb: 160, lunge: 340, lungeTime: 0.3, hitPosture: 20, parryPosture: 32 } },
+  dancer:       { tags: 'a',  cost: 16, cd: 4,   name: 'Spin Kick', desc: 'A spinning double kick.', atk: { id: 'spinkick', kind: 'slam', radius: 20, wind: 0.25, recover: 0.4, dmg: 10, kb: 120, hits: 2, interval: 0.2, hitPosture: 14 } },
+  pknight:      { tags: 'a',  cost: 24, cd: 6,   name: 'Tarnished Blade', desc: 'Two wide cleaves that break guard.', atk: { id: 'tarnished', kind: 'flurry', reach: 20, range: 20, arc: 1.1, hits: 2, interval: 0.35, step: 30, wind: 0.35, recover: 0.5, dmg: 13, kb: 90, breaksGuard: true, hitPosture: 16, parryPosture: 30 } },
+  horror:       { tags: 'ra', cost: 26, cd: 6,   name: 'Tentacles', desc: 'Tentacles rise at the edge of the stage near the target and drag it toward the edge.', atk: { id: 'edgetentacles', kind: 'edgetentacles', count: 3, dmg: 14, radius: 12, delay: 0.9, wind: 0.4, recover: 0.4 } },
+});
 const MANUAL_TAGS = { 1: '', 2: 'm', 3: 'ra', 4: 'r', 5: 'r', 6: 'a', 7: 'a', 8: 'a', 9: 'ra', 10: 'r', 11: 'r', 12: 'm' };
 for (let n = 1; n <= 12; n++) {
   const { adv, cd, ...atk } = swordOf(n);
@@ -1399,6 +1652,7 @@ class Sim {
     this.heroes = [];     // bare-fisted fighters driven by a brain or the keyboard
     this.enemies = [];    // fighters driven by foe AI (on any team, summons included)
     this.revives = [];    // minions rising again for their summoner
+    this.rewinds = [];    // foes whose clocks are being turned back (the Chronomancer's ally, a Paradox Twin)
     this.exposure = {};   // seconds spent fighting each foe type (how the hero learns their abilities)
     this.proj = [];
     this.hazards = [];
@@ -1665,6 +1919,7 @@ class Sim {
     this.separate();
     this.resolveFalls();
     this.updateRevives();
+    this.updateRewinds();
     if (this.done) return;
 
     if (this.battle) this.checkBattleOver();
@@ -2021,6 +2276,8 @@ class Sim {
     const poof = f.def && (f.def.decoy || f.def.hairClone);
     this.emit(poof ? 'poof' : fell ? 'fall' : 'death', f.x, f.y, { etype: f.type, hero: f.isPlayer, team: f.team, decoy: !!(f.def && f.def.decoy), hair: !!(f.def && f.def.hairClone) });
     if (f.def && f.def.burstOnDeath && !f.burst) this.bloaterBurst(f);
+    if (!f.isPlayer && !fell) this.feedGhouls(f);
+    if (!f.isPlayer) this.turnBack(f);
     if (f.def && f.def.volatile && !fell) { // the belt of flasks breaks open
       const keys = Object.keys(FLASKS);
       for (let i = 0; i < 3; i++) {
@@ -2040,6 +2297,40 @@ class Sim {
     if (f.isPlayer && this.battle) this.emit('eliminated', f.x, f.y, { label: f.label, team: f.team });
     if (!fell && !f.isPlayer && this.claimFallen(f, by)) return;
     if (!fell && !f.isPlayer && !this.reviveMinion(f)) this.raiseDead(f);
+  }
+
+  // Ghouls feed on whatever falls near them.
+  feedGhouls(f) {
+    for (const o of this.enemies) {
+      if (o === f || o.dead || !o.def.corpseEater || o.hp >= o.maxHp || Math.hypot(o.x - f.x, o.y - f.y) > 70) continue;
+      const n = Math.min(o.maxHp - o.hp, o.maxHp * 0.4);
+      o.hp += n; this.emit('heal', o.x, o.y, { n: Math.round(n) }); this.emit('feast', f.x, f.y, { tx: o.x, ty: o.y });
+    }
+  }
+
+  // Clocks turned back: a Paradox Twin returns three seconds after it falls, unless its other falls first; once a
+  // fight, a Chronomancer returns an ally that falls near it, at half health.
+  turnBack(f) {
+    const keep = r => ({ type: f.type, x: f.x, y: f.y, team: f.team, maxHp: f.maxHp, tuneDmg: f.tuneDmg, elite: f.elite });
+    if (f.def.paradox) {
+      this.rewinds = this.rewinds.filter(r => r.partner !== f); // its other was waiting on it: too late now
+      if (f.partner && !f.partner.dead) { this.rewinds.push({ ...keep(), t: 3, hp: 1, partner: f.partner }); this.emit('paradox', f.x, f.y); return; }
+    }
+    if (f.summoner != null || (f.def && f.def.boss)) return;
+    const chrono = this.enemies.find(o => !o.dead && o !== f && o.team === f.team && o.def.chronoRewind && !o.rewound && Math.hypot(o.x - f.x, o.y - f.y) < 130);
+    if (chrono) { chrono.rewound = true; this.rewinds.push({ ...keep(), t: 1.2, hp: 0.5 }); this.emit('rewindally', f.x, f.y, { tx: chrono.x, ty: chrono.y }); }
+  }
+
+  updateRewinds() {
+    for (const r of this.rewinds) {
+      if ((r.t -= DT) > 0) continue;
+      if (r.partner && r.partner.dead) continue;
+      const e = this.spawnEnemy(r.type, r.x, r.y, r.team);
+      e.maxHp = r.maxHp; e.hp = Math.max(1, Math.round(r.maxHp * r.hp)); e.tuneDmg = r.tuneDmg; e.elite = r.elite; e.st = 0.4;
+      if (r.partner) { e.partner = r.partner; r.partner.partner = e; }
+      this.emit('rewind', r.x, r.y, { tx: r.x, ty: r.y });
+    }
+    this.rewinds = this.rewinds.filter(r => r.t > 0 && !(r.partner && r.partner.dead));
   }
 
   // A summon felled by a necromancer rises again on the necromancer's side.
@@ -2168,6 +2459,7 @@ class Sim {
     if (!ab || f.abCd[slot] > 0 || !this.spend(f, this.T(f, 'abilityFree') ? 0 : ab.cost)) return false;
     f.abCd[slot] = ab.cd * (1 + this.T(f, 'abilityCd'));
     if (f === this.p) { const u = this.stats.abilUses; u[ab.from] = (u[ab.from] || 0) + 1; }
+    f.lastAbility = ab; // (the Glitch is watching)
     this.startAttack(f, ab.atk);
     return true;
   }
@@ -2617,6 +2909,7 @@ class Sim {
     if (abId && !this.battle && !this.friendlyToHero(t)) this.stats.abilDmg[abId] = (this.stats.abilDmg[abId] || 0) + dealt;
     if (atk.id && !BASE_MOVES[atk.id]) this.emit('impact', t.x, t.y, { id: atk.id });
     if (atk.root && !(t.def && t.def.statusImmune) && !this.resists(t)) t.rootT = Math.max(t.rootT, atk.root);
+    if (t.maskHp > 0 && a && (atk.id === 'heavy' || atk.id === 'kick') && --t.maskHp === 0) { t.postureMul = 1.1; this.emit('maskbreak', t.x, t.y); } // the Pallid Knight's mask cracks off
     this.applyStatus(t, atk, by);
     if (a && dealt > 0 && atk.id === 'strike' && this.T(a, 'venomStrike')) this.applyStatus(t, { poison: 4, poisonT: 3 }, a); // the serpent's fangs
     if (t.heads && dealt > 0) this.hydraWound(t, atk, dealt);
@@ -2792,6 +3085,7 @@ class Sim {
       if (m) m.st = 0.6;
     });
     if (e.def.focusGain) e.focus = 0;
+    if (e.def.masked) e.maskHp = e.def.masked;
     this.enemies.push(e);
     this.emit('spawn', x, y);
     return e;
@@ -2879,7 +3173,7 @@ class Sim {
   }
 
   updateWaves() {
-    if (this.enemies.some(e => !this.friendlyToHero(e))) return;
+    if (this.enemies.some(e => !this.friendlyToHero(e)) || this.rewinds.length) return;
     if (this.waveDelay > 0) { this.waveDelay -= DT; return; }
     const sc = this.sc;
     const wave = sc.custom ? sc.wave(this.waveIdx, this.opts, this.rand) : (sc.waves || this.opts.waves || [])[this.waveIdx];
@@ -2889,14 +3183,27 @@ class Sim {
       this.stats.timeBonus = this.timeLimit - this.t;
       return this.finish('clear');
     }
+    const twins = [];
     for (const w of wave) {
       const [x, y] = this.edgePoint(70), e = this.spawnEnemy(typeof w === 'string' ? w : w.type, x, y, 1);
       if (typeof w === 'object') this.tune(e, w);
+      if (e.def.paradox) twins.push([e, w]);
     }
+    // Paradox Twins are always two: a lone one brings its other, and each is bound to its pair
+    if (twins.length % 2) { const [o, w] = twins[twins.length - 1], e = this.spawnEnemy(o.type, -o.x, -o.y, 1); if (typeof w === 'object') this.tune(e, w); twins.push([e, w]); }
+    for (let i = 0; i + 1 < twins.length; i += 2) { twins[i][0].partner = twins[i + 1][0]; twins[i + 1][0].partner = twins[i][0]; }
     this.waveIdx++;
     this.waveDelay = 0.8;
     const b = wave.map(w => typeof w === 'string' ? w : w.type).find(t => ENEMY_TYPES[t].boss);
     this.emit('wave', 0, 0, { n: this.waveIdx, boss: b ? ENEMY_TYPES[b].name : null });
+  }
+
+  // The Glitch casts the last ability its target used, a little weaker and a little slower to come out.
+  copyAbility(e, s, p) {
+    const ab = p && p.lastAbility;
+    if (!ab) return null;
+    this.emit('glitchcopy', e.x, e.y, { name: ab.name });
+    return { ...ab.atk, id: 'glitchcopy', dmg: ab.atk.dmg && Math.round(ab.atk.dmg * 0.6), wind: Math.max(ab.atk.wind || 0.3, 0.45), cd: s.cd };
   }
 
   canUseSpecial(e, s, d, gap, p) {
@@ -2931,6 +3238,11 @@ class Sim {
       case 'cone': return gap < s.range * 0.8;
       case 'pounce': return gap < s.maxRange && gap > s.minRange;
       case 'multicast': return true;
+      case 'copycat': return !!(p && p.lastAbility) && d < s.maxRange;
+      case 'resonance': return (p.nails || 0) >= 2;
+      case 'speech': return d < s.maxRange && e.hp > e.maxHp * 0.15;
+      case 'edgetentacles': return true;
+      case 'hasteallies': return this.enemies.some(o => o !== e && !o.dead && o.team === e.team && !(o.hasteT > 0) && Math.hypot(o.x - e.x, o.y - e.y) < s.radius);
       case 'arsenal': return !e.arsenal || e.arsenal.length > 0;
       case 'pastecho': return !!(p.trail && p.trail.length >= 12);
       case 'rewindfoe': { const past = p.trail && p.trail[0]; return !!past && p.trail.length >= 12 && Math.hypot(past.x - p.x, past.y - p.y) > 30; }
@@ -3061,7 +3373,7 @@ class Sim {
     // special moves
     for (const s of e.specials) {
       if (this.canUseSpecial(e, s, d, gap, p)) {
-        const use = s.kind === 'multicast' ? this.rollMulticast(e, d, gap) : s.kind === 'arsenal' ? this.drawWeapon(e) : this.empower(e, s);
+        const use = s.kind === 'multicast' ? this.rollMulticast(e, d, gap) : s.kind === 'arsenal' ? this.drawWeapon(e) : s.kind === 'copycat' ? this.copyAbility(e, s, p) : this.empower(e, s);
         if (!use) continue;
         const mc = e.phase === 2 && s.cd2 ? s.cd2 : s.cd; // ???: she casts faster as she weakens, down to every half second
         e.cds[s.id] = s.kind === 'multicast' ? mc - (mc - 0.5) * Math.max(0, 1 - e.hp / e.maxHp) : s.cd * e.cdMul * (1 - 0.015 * (e.focus || 0));
@@ -3770,8 +4082,42 @@ class Sim {
     if (atk.copy) tgt = { ...tgt, x: tgt.x + Math.cos(atk.copy * 2.1) * 16, y: tgt.y + Math.sin(atk.copy * 2.1) * 16 };
     const dx = tgt.x - e.x, dy = tgt.y - e.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
     this.emit('release', e.x, e.y, { id: atk.id, fx: e.fx, fy: e.fy, hero: e.isPlayer, range: atk.range || atk.radius || 0, angle: atk.angle || 0, scale: e.fxScale || 1 });
+    if (atk.together && !atk.echo) { // the Outer Disciples fly their swords together
+      for (const o of this.enemies) {
+        if (o === e || o.dead || o.type !== e.type || o.team !== e.team || o.state !== 'idle' || Math.hypot(o.x - e.x, o.y - e.y) > 90) continue;
+        const s = o.specials.find(x => x.id === atk.id);
+        if (s && !(o.cds[s.id] > 0)) { o.cds[s.id] = s.cd; this.startAttack(o, { ...s, echo: true, wind: 0.15 }); }
+      }
+    }
     switch (atk.kind) {
       case 'silkflight': this.silkFlight(e, tgt); break;
+      case 'resonance': // the doll is struck, and every nail in its target answers
+        for (const v of this.hostiles(e)) {
+          if (!(v.nails > 0)) continue;
+          const n = v.nails; v.nails = 0;
+          this.emit('resonance', v.x, v.y, { n });
+          this.receiveHit(v, null, { dmg: (atk.per || 6) * n, unblockable: true, kb: 20, hitPosture: 6 * n, src: e, abilityId: atk.abilityId }, 0, 0, true);
+        }
+        break;
+      case 'speech': { // a cursed word: nothing blocks it, and every word costs the speaker
+        const v = this.targetOf(e) || (e.isPlayer ? this.nearestEnemy(e) : null);
+        if (!v) break;
+        this.emit('speech', e.x, e.y, { word: atk.word });
+        this.receiveHit(v, null, { dmg: atk.dmg || 0, unblockable: true, root: atk.root, kb: atk.kb || 0, hitPosture: 10, src: e, abilityId: atk.abilityId }, ux, uy, true);
+        if (atk.cost) e.hp = Math.max(1, e.hp - e.maxHp * atk.cost);
+        break;
+      }
+      case 'edgetentacles': { // tentacles rise from the lake at the rim, near the target, and drag toward it
+        const a0 = Math.atan2(tgt.y, tgt.x), n = atk.count || 3;
+        for (let i = 0; i < n; i++) {
+          const a = a0 + (i - (n - 1) / 2) * 0.32, x = Math.cos(a) * (R - 8), y = Math.sin(a) * (R - 8);
+          this.hazards.push({ kind: 'sigil', variant: 'tentacle', x, y, r: atk.radius || 12, t: atk.delay || 0.9, delay: atk.delay || 0.9, dmg: atk.dmg, kb: -150, team: e.team, src: e, abilityId: atk.abilityId });
+        }
+        break;
+      }
+      case 'hasteallies': // the Chronomancer speeds its allies' clocks
+        for (const o of this.enemies) if (o !== e && !o.dead && o.team === e.team && Math.hypot(o.x - e.x, o.y - e.y) < atk.radius) { o.hasteT = atk.dur; this.emit('haste', o.x, o.y); }
+        break;
       case 'cosmiceye':
         this.cosmicFields.push({ kind: 'eye', owner: e, age: 0, life: 1.4 });
         for (const v of this.hostiles(e)) { this.cosmicHit(e, v, v.maxHp * 0.12); this.inflictFear(v, e, 1.6); }
@@ -3896,7 +4242,7 @@ class Sim {
         if (atk.slowmo) { this.slowmo = { t: atk.slowmo, team: e.team }; this.emit('slowmo', e.x, e.y, { dur: atk.slowmo }); } // the world slows to half, so you can see how fast he is
         break;
       case 'mine':
-        this.hazards.push({ kind: 'mine', team: e.team, src: e, x: tgt.x + (this.rand() - 0.5) * 30, y: tgt.y + (this.rand() - 0.5) * 30, r: atk.radius, arm: atk.arm, life: atk.life, dmg: atk.dmg, t: 1, delay: 1 });
+        this.hazards.push({ kind: 'mine', team: e.team, src: e, x: tgt.x + (this.rand() - 0.5) * 30, y: tgt.y + (this.rand() - 0.5) * 30, r: atk.radius, arm: atk.arm, life: atk.life, dmg: atk.dmg, t: 1, delay: 1, ...statusOf(atk) });
         break;
       case 'vortex':
         this.hazards.push({ kind: 'vortex', variant: atk.variant, team: e.team, src: e, x: tgt.x, y: tgt.y, r: atk.radius, t: atk.duration, delay: atk.duration, pull: atk.pull, dmg: atk.dmg, abilityId: atk.abilityId });
@@ -4093,7 +4439,7 @@ class Sim {
 
   castSigil(e, atk, ux, uy, tgt) {
     const p = tgt, base = { kind: 'sigil', variant: atk.variant || 'sigil', r: atk.radius, dmg: atk.dmg, root: atk.root, kb: atk.kb, lift: atk.lift, liftDmg: atk.liftDmg, trueDmg: atk.trueDmg,
-      team: e.team, src: e, abilityId: atk.abilityId, follow: atk.follow ? tgt : null, burnAfter: atk.burnAfter };
+      team: e.team, src: e, abilityId: atk.abilityId, follow: atk.follow ? tgt : null, burnAfter: atk.burnAfter, ...statusOf(atk) };
     if (atk.pattern === 'line') {
       for (let i = 0; i < atk.count; i++) {
         const dist = 12 + i * atk.spacing, delay = atk.delay + i * atk.step;
@@ -4296,7 +4642,7 @@ class Sim {
           h.life = 0;
           this.emit('sigilburst', h.x, h.y, { r: h.r * 1.5, variant: 'mine' });
           const [ux, uy] = dir(v);
-          this.receiveHit(v, null, { dmg: h.dmg, unblockable: true, kb: 90, hitPosture: 15, src: h.src }, ux, uy, true);
+          this.receiveHit(v, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: 90, hitPosture: 15, src: h.src }, ux, uy, true);
         }
         continue;
       }
@@ -4334,7 +4680,7 @@ class Sim {
       for (const f of foes) {
         if (dist(f) > h.r + f.r) continue;
         const [ux, uy] = dir(f);
-        this.receiveHit(f, null, { dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
+        this.receiveHit(f, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
         if (f === this.p) heroHit = true;
       }
       if (threatensHero && !heroHit) this.stats.evades++;
@@ -4608,6 +4954,7 @@ class Sim {
 
   updateStatus(f) {
     if (f.inkShieldT > 0) f.inkShieldT -= DT;
+    if (f.hasteT > 0) f.hasteT -= DT;
     if (f.poisonT > 0) {
       f.poisonT -= DT;
       if ((f.poisonTick = (f.poisonTick || 0) - DT) <= 0) { f.poisonTick = 0.5; this.dot(f, f.poisonDps * 0.5, f.poisonBy, 'poison'); }
@@ -4641,8 +4988,11 @@ class Sim {
     const immune = t.def && t.def.statusImmune && !exposed;
     if (atk.poison) { t.poisonT = Math.max(t.poisonT || 0, atk.poisonT || 3); t.poisonDps = Math.max(t.poisonDps || 0, atk.poison); t.poisonBy = by; }
     if (atk.corrode) t.corrodeT = Math.max(t.corrodeT || 0, atk.corrode);
+    if (atk.nail) t.nails = Math.min(6, (t.nails || 0) + 1); // a nail stays in you, for the doll to find
     if (immune) return;
     if (atk.slow) t.slowT = Math.max(t.slowT || 0, atk.slow);
+    if (atk.fear && by && !(t.def && t.def.boss)) this.inflictFear(t, by, atk.fear);
+    if (atk.freeze && !(t.def && t.def.boss) && !this.resists(t)) { t.frozenT = Math.max(t.frozenT || 0, atk.freeze); this.emit('freeze', t.x, t.y); }
     // the controls below don't take on bosses, and ??? shrugs off half of them
     if (!(atk.poly || atk.charm || atk.cocoon || atk.lift || atk.grab) || t.dead || (t.def && t.def.boss) || t.state === 'egg' || (!exposed && this.resists(t))) return;
     t.guard = false;
@@ -4680,6 +5030,7 @@ class Sim {
   speedFactor(f) {
     let k = 1;
     if (f.slowT > 0) k *= 0.55;
+    if (f.hasteT > 0) k *= 1.35;
     if (f.gravT > 0) k *= 0.5;
     if (f.armorT > 0) k *= 1 + (f.armorHaste || 0);
     if (f.momentum) k *= 1 + f.momentum * 0.03;
