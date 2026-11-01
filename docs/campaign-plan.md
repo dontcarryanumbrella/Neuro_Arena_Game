@@ -96,7 +96,7 @@ On top of that:
 |---|---|
 | 1 | The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. Between the gate and that dead sky, you remember a moment with no ground beneath you. |
 | 2 | The champions you fell leave something behind, and it settles in you. You are stronger. You did not train for it. |
-| 3 | The tally marks on the wall are as high as your hand. You count them. The number is your Lives. |
+| 3 | The tally marks on the wall reach as high as your hand. Beside them, someone has written: one mark for a thousand lives. |
 | 4 | Under your tallies are older ones, in a different hand. Then another, and another. All crossed out. |
 | 5 | A word is carved by the oldest marks: 蛊. A jar. Poisons sealed together until one remains. |
 | 6 | The worlds did not fall into this place. They were taken from somewhere, as food. Each time the gate opens, a line of light crosses the dark between them. Something chooses where it ends. |

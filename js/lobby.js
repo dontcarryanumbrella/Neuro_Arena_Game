@@ -292,9 +292,9 @@ class Lobby {
     }
   }
 
-  // the tally marks: one for every twenty lives, in fives (four strokes and a slash)
+  // the tally marks: one for every thousand completed lives, in fives (four strokes and a slash)
   drawTallies(g, lives) {
-    const marks = Math.min(120, Math.ceil(lives / 20));
+    const marks = Math.min(120, Math.floor(lives / 1000));
     g.fillStyle = '#c9b48a';
     for (let i = 0; i < marks; i++) {
       const grp = Math.floor(i / 5), inGrp = i % 5, row = Math.floor(grp / 4), col = grp % 4;

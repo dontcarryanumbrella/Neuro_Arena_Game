@@ -1903,7 +1903,7 @@ function renderMemories() {
 function renderTally() {
   renderMemories();
   const lives = state.livesTotal || 0;
-  $('tallyNote').textContent = lives ? `${lives.toLocaleString()} lives scratched into the clay, one mark for every twenty. Level ${state.level || 1}.` : 'The clay is still smooth. Every life your fighter lives in the Pavilion leaves a mark here.';
+  $('tallyNote').textContent = lives ? `${lives.toLocaleString()} lives scratched into the clay, one mark for every 1,000 lives. Level ${state.level || 1}.` : 'The clay is still smooth. A tally appears for every 1,000 lives.';
 }
 
 // one line for each older self you meet at the bottom, in order: it was always going to end like this

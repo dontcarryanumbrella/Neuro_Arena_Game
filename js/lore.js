@@ -6,7 +6,7 @@
 const FRAGMENTS = {
   o1: 'The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. On the way there, the gate opened onto dark water for a moment before the road appeared.',
   o2: 'The champions you fell leave something behind, and it settles in you. You are stronger. You did not train for it.',
-  o3: 'The tally marks on the wall reach as high as your hand. You count them. The number is your Lives.',
+  o3: 'The tally marks on the wall reach as high as your hand. Beside them, someone has written: one mark for a thousand lives.',
   o4: 'Under your tallies there are older ones, in a different hand. And under those, others. All of them crossed out.',
   o5: 'A word is carved beside the oldest marks: 蛊. A jar. Poisons sealed in together until one remains.',
   o6: 'The worlds were taken from somewhere else. In an old drawing scratched beside the gate, a line runs across dark water from one circle to another. Someone has marked the circles with names.',
