@@ -1,6 +1,7 @@
 // App wiring: one learning fighter, views, settings, chart, trials and saving.
 
-const STORE_KEY = location.pathname.endsWith('/demo-finale.html') ? 'neuroArena.demo' : 'neuroArena.v6';
+const MAXED_PROFILE = new URLSearchParams(location.search).get('profile') === 'maxed';
+const STORE_KEY = MAXED_PROFILE ? 'neuroArena.maxed' : location.pathname.endsWith('/demo-finale.html') ? 'neuroArena.demo' : 'neuroArena.v6';
 const $ = id => document.getElementById(id);
 
 const REWARD_INFO = [
@@ -17,7 +18,7 @@ const REWARD_INFO = [
   ['fell', 'Fell off', -200, 0, 5],
   ['died', 'Died', -200, 0, 5],
   ['survival', 'Per second alive', -2, 5, 0.1],
-  ['reach', 'Per second within reach', -5, 10, 0.5],
+  ['reach', 'Close distance and stay within reach', -5, 10, 0.5],
 ];
 const PRESETS = {
   Balanced: { ...DEFAULT_REWARDS },
@@ -243,7 +244,7 @@ function trainingRoster() {
 
 function makeTrainingSim() {
   const c = state.cfg;
-  return new Sim('custom', simSeed++, { visual: showingTraining(), timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped });
+  return new Sim('custom', simSeed++, { visual: showingTraining(), healBetweenWaves: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout: pickLoadout(), talents: state.talents.equipped, race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped });
 }
 
 // ---------- learning foes' abilities ----------
@@ -594,7 +595,7 @@ function newViewSim() {
     v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   }
   else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
-  else v.sim = new Sim('custom', seed, { visual: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
+  else v.sim = new Sim('custom', seed, { visual: true, healBetweenWaves: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   v.acc = 0; v.ticks = 0; v.action = null; v.endT = 0; v.overlay = null; v.recorded = false; v.paid = false; v.roomResult = null;
   v.introT = v.mode === 'campaign' && curRoom() && !['iteration', 'echo'].includes(curRoom().kind) ? meetFoes(curRoom()) : 0;
   renderer.reset();
@@ -1945,7 +1946,11 @@ function bindPanels() {
 }
 
 function boot() {
-  const saved = loadStore();
+  let saved = loadStore();
+  const createMaxed = MAXED_PROFILE && !saved;
+  if (createMaxed) {
+    try { saved = JSON.parse(localStorage.getItem('neuroArena.v6') || 'null'); } catch (e) { /* start with a fresh fighter */ }
+  }
   let agent = null;
   if (saved) {
     Object.assign(state.cfg, saved.cfg || {});
@@ -1964,6 +1969,41 @@ function boot() {
     if (validAgentJSON(saved.agent)) { agent = PPOAgent.fromJSON(saved.agent); Object.assign(agent.cfg, state.cfg.learning); }
   }
   setAgent(agent || new PPOAgent(state.cfg.learning, Math.floor(Math.random() * 1e9)));
+  if (createMaxed) {
+    const all = ids => Object.fromEntries(ids.map(id => [id, 1]));
+    const c = state.campaign;
+    c.met = all(Object.keys(ENEMY_TYPES).filter(isFoeType));
+    c.kills = all(LEVEL_TYPES);
+    state.killCounts = { ...all(Object.keys(ENEMY_TYPES)), ...state.killCounts };
+    c.seals = all(ALL_SEALS); c.finales = [...ALL_SEALS]; c.finaleChoice = c.finales[c.finales.length - 1];
+    c.worlds = Object.fromEntries(WORLDS.map(w => [w.id, { runs: 1, rooms: all(roomPlan(w).map((_, i) => i)) }]));
+    c.order = WORLDS.map(w => w.id);
+    const outer = WORLDS.filter(w => !w.hidden && w.id !== 'timestream');
+    const hidden = WORLDS.filter(w => w.hidden);
+    c.fragments = [
+      ...FRAGMENT_TRACKS.outer.map((key, i) => ({ key, world: outer[i % outer.length].id })),
+      { key: 't', world: 'timestream' },
+      ...FRAGMENT_TRACKS.hidden.map((key, i) => ({ key, world: hidden[i % hidden.length].id })),
+    ];
+    c.blackSeaArrivalSeen = true; c.fourteenthPage = true; c.swordUpgrade = true; c.endingReady = true;
+    state.race.owned = all(RACES.map(r => r.id));
+    state.talents.owned = all(TALENTS.map(t => t.id));
+    state.skins.owned = all(HERO_SKINS.map(s => s.id));
+    state.jade = Math.max(state.jade, 1000000);
+    for (const [id, ability] of Object.entries(HERO_ABILITIES)) {
+      state.mastery[id] = Math.max(state.mastery[id] || 0, 100000);
+      if (ability.foe) state.mastery[ability.foe] = Math.max(state.mastery[ability.foe] || 0, 100000);
+      state.abStats[id] = { ...(state.abStats[id] || {}), n: 10, adv: 0, dmg: 0, uses: 10 };
+    }
+    const pair = learned().slice(0, 2);
+    if (pair.length === 2) {
+      state.loadout = pair; state.identity.pair = pair;
+      state.identity.awaken = state.identity.awaken || TRAITS[0];
+      Object.assign(state.identity, { stage: 4, lives: 400, lands: 10, synthLands: 25, stableLives: 150 });
+      state.identity.special = buildSpecial(state.identity, knownByUse());
+    }
+    saveStore();
+  }
   refreshLevel(false);
   catchUpSnapshot();
 

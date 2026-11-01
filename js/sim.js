@@ -1964,8 +1964,16 @@ class Sim {
     if (h === this.p) {
       if (h.hp < h.maxHp * 0.35) this.stats.lowHpT += DT;
       if (h.guard) this.stats.guardT += DT;
-      const near = this.nearestEnemy(h); // seconds within striking range of the nearest foe
-      if (near && Math.hypot(near.x - h.x, near.y - h.y) - near.r - h.r < BASE_MOVES.strike.range + 2) this.stats.reach += DT;
+      const near = this.nearestEnemy(h);
+      if (near) {
+        const gap = Math.max(0, Math.hypot(near.x - h.x, near.y - h.y) - near.r - h.r);
+        if (gap < BASE_MOVES.strike.range + 2) this.stats.reach += DT;
+        // Pay for closing the gap too; reversing direction gives the progress back.
+        // Reset on a target change so a newly spawned or nearer foe isn't a free reward.
+        const distance = Math.min(200, gap);
+        if (this.reachTarget === near) this.stats.reach += (this.reachDistance - distance) / 80;
+        this.reachTarget = near; this.reachDistance = distance;
+      } else this.reachTarget = null;
     }
     if (h.awakeT > 0 && (h.awakeT -= DT) <= 0) { h.fxScale = 1; this.emit('awakenEnd', h.x, h.y); }
     this.heroTalents(h);
@@ -3261,6 +3269,9 @@ class Sim {
       // credit the remaining time so finishing fast is never worse than stalling
       this.stats.timeBonus = this.timeLimit - this.t;
       return this.finish('clear');
+    }
+    if (sc.custom && this.opts.healBetweenWaves && this.waveIdx > 0 && this.p && !this.p.dead) {
+      this.p.hp = this.p.maxHp;
     }
     const twins = [];
     for (const w of wave) {
@@ -5481,7 +5492,7 @@ class Sim {
 const DEFAULT_REWARDS = {
   dmgDealt: 1, kills: 20, ringOuts: 10, dmgTaken: -1, parries: 6, blocks: 0.5, postureBreaks: 10,
   stunned: -10, evades: 1, whiffs: -0.3, fell: -20, died: -30, survival: 0,
-  reach: 1.5, // per second within striking range of the nearest foe: it learns that the fight is up close
+  reach: 1.5, // closing distance and time within striking range of the nearest foe
 };
 
 function rewardScore(s, t, w) {

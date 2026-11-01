@@ -65,7 +65,7 @@ New Game+ keeps the fighter's brain, learned abilities, identity, talents, skins
 
 ## How it learns
 
-The fighter is a single neural network trained with PPO (reinforcement learning). Every 1/15 s it reads 52 senses and picks a direction and an action. The reward weights score each moment, including **Per second within reach** (+1.5 by default): time spent within striking range of the nearest foe, so it learns that the fight is up close instead of swinging at the air from afar. Nothing punishes keeping distance; set it to 0 (or below) for a ranged build. After every batch of decisions (1024 by default) it updates its network toward the choices that went better than expected.
+The fighter is a single neural network trained with PPO (reinforcement learning). Every 1/15 s it reads 52 senses and picks a direction and an action. The **Close distance and stay within reach** reward (+1.5 by default) pays for approaching the nearest foe and for time spent within striking range. Moving away reverses the approach reward. Set it to 0 (or below) for a ranged build. After every batch of decisions (1024 by default) it updates its network toward the choices that went better than expected.
 
 Training happens in the Memory Pavilion's Training Hall (it keeps going while you walk the lobby). Speeds: 1x, 4x and 16x show the arena while it learns. **Max** hides the arena and shows the learning chart, roughly 2,000 decisions a second.
 
