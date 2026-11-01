@@ -149,6 +149,9 @@ assert.equal(refreshes, 3);
 refreshUnlocks = realRefresh;
 console.log('Progression, persistence, panel locks, lobby hit targets, observations, special stages, finale order and snapshot catch-up passed.');
 `, ctx);
+// boot() runs where it is called, so nothing after that call may be a const/let/class it would reach too early.
+const mainSrc = fs.readFileSync(`${root}/js/main.js`, 'utf8');
+assert.ok(!/^(const|let|class)\s/m.test(mainSrc.slice(mainSrc.search(/^boot\(\);/m))), 'top-level const/let/class after boot()');
 for (const file of ['index.html','demo-finale.html']) {
   const html = fs.readFileSync(`${root}/${file}`, 'utf8');
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);

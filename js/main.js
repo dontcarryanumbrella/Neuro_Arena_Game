@@ -2280,10 +2280,10 @@ function refreshUnlocks() {
   }
 }
 // Training checks every tenth life, and stops once every station is open.
-let unlockTick = 0;
 function refreshUnlocksSoon() {
   const u = state.campaign.unlocks || {};
-  if (['pavilion', 'hearth', 'altar', 'mirror'].every(k => u[k]) || ++unlockTick % 10) return;
+  refreshUnlocksSoon.tick = (refreshUnlocksSoon.tick || 0) + 1;
+  if (['pavilion', 'hearth', 'altar', 'mirror'].every(k => u[k]) || refreshUnlocksSoon.tick % 10) return;
   refreshUnlocks();
 }
 function recordDeath(sim) {
@@ -2303,9 +2303,9 @@ function recordObservation(sim, mode) {
   renderCoachNotes();
 }
 // Training adds an entry every life: keep only its latest ten (enough for a five-versus-five comparison) beside the other fights.
-const TRAIN_OBSERVATIONS = 10;
+// (Everything below boot() is a function: boot runs before any const or let down here would exist.)
 function keepObservations(list) {
-  let train = list.filter(x => x.mode === 'train').length - TRAIN_OBSERVATIONS;
+  let train = list.filter(x => x.mode === 'train').length - 10;
   return list.filter(x => x.mode !== 'train' || train-- <= 0).slice(-60);
 }
 function renderCoachNotes() {
