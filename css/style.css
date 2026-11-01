@@ -420,3 +420,13 @@ details.note p, .right p { color: #d8ccb6; }
   .hud-top .dock { display: none; } /* the lobby's stations are in the scene itself */
   button { font-size: 8px; padding: 5px 7px; }
 }
+
+/* Panels open as a window in the middle of the screen, over a dimmed arena. The arena never changes size. */
+.layout.panel-open .right {
+  position: absolute; left: 50%; top: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%);
+  width: min(640px, 94%); height: auto; max-height: 88%; border-radius: 6px; animation: panel-in 0.14s ease-out;
+}
+@keyframes panel-in { from { transform: translate(-50%, -48%); } to { transform: translate(-50%, -50%); } }
+.layout.panel-open .stage::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 7; pointer-events: none; }
+.layout, .layout.panel-open { grid-template-columns: none; }
+.hub.small button b { font-size: 9px; }

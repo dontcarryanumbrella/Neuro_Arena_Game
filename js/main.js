@@ -517,7 +517,7 @@ function setAgent(agent) {
 }
 
 function setTraining(on) {
-  if (on && state.view.mode === 'campaign') return; // not while inside a world
+  if (on && (state.view.mode === 'campaign' || state.view.mode === 'lobby')) return; // training is started in the Memory Pavilion, not in a world or the lobby
   if (on && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first: open the Portal.'); return; }
   state.training = on;
   const b = $('trainBtn');
@@ -1230,7 +1230,7 @@ function refreshScreen() {
   // the lobby is a place, not a fight: no speeds, no pause, no chart
   const fighting = mode === 'campaign' && state.view.sim && !state.view.sim.done; // inside a world's room, mid-fight
   $('lobbyBtn').hidden = mode === 'lobby' || mode === 'campaign';
-  $('trainBtn').hidden = mode === 'campaign';
+  $('trainBtn').hidden = mode === 'campaign' || mode === 'lobby'; // training is the Memory Pavilion's
   $('dock').hidden = mode === 'campaign';
   if (mode === 'campaign') { const cur = document.querySelector('#drawer .panel:not([hidden])'); if (cur && fighting) openPanel(cur.id); }
   $('speedGroup').hidden = mode === 'lobby';
