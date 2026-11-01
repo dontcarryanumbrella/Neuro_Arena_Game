@@ -1470,6 +1470,7 @@ const SWORD_CYCLE = [10, 11, 12, 13, 9];
 const LESSON_CYCLE = [9, 10, 11, 12];
 const LESSON = { 9: { count: 16, radius: 64 }, 10: { count: 14 }, 11: { lines: 3 }, 12: { cuts: 6 } };
 const TEACHER_WIND = 1.35;
+const YIELD_T = 4.2, YIELD_DRAW = 1.9; // after he yields: how long until he goes, and when (before that) he draws into the sky
 ENEMY_TYPES.swordsaint = boss('cultivator', {
   name: 'Sword Immortal', hp: 260, r: 6, mass: 2, speed: 92, postureMul: 0.45, trueDamage: true, floating: true, manual: true, swordRider: true, iaido: false, riposte: true,
   sprite: 'b_swordsaint', sprite2: 'b_swordsaint2', form2: 'Perfect Sword Intent', color: '#9fd8ff', lore: 'THE SWORD NEEDS NO HAND',
@@ -2961,11 +2962,12 @@ class Sim {
   }
 
   dealDamage(t, dmg, a, ux, uy, kb) {
-    if (dmg <= 0) return 0;
+    if (dmg <= 0 || t.yieldT > 0) return 0; // (a teacher who has yielded is past being struck)
     if (t.def && t.def.conceptual) dmg = 1; // untouchable on a conceptual level: whatever it was, it was one
-    if (t.teacher && !t.yielded && t.hp - dmg <= t.maxHp * 0.1) { // the teacher yields: the lesson is over, and one stroke into the sky shows what he held back
-      t.yielded = true; dmg = t.hp;
-      this.skySplit = { t: 3.6, a: -1.15, x: t.x, y: t.y - 30 };
+    if (t.teacher && !t.yielded && t.hp - dmg <= t.maxHp * 0.1) { // the teacher yields: the lesson is over (see updateYield)
+      t.yielded = true; t.yieldT = YIELD_T; dmg = Math.max(0, t.hp - t.maxHp * 0.1);
+      t.state = 'idle'; t.atk = null; t.ult = null; t.invulnT = YIELD_T + 1;
+      this.hazards = this.hazards.filter(h => h.src !== t); this.proj = this.proj.filter(pr => pr.src !== t); // every sword he had drawn is put away
       this.emit('teacheryield', t.x, t.y);
     }
     if (t.def && t.def.manual && t.phase === 2 && !t.manualDone && !t.teacher && t.hp - dmg < 1) { // the manual is not finished: he will not fall until the Thirteenth Sword is drawn
@@ -3528,6 +3530,7 @@ class Sim {
   }
 
   updateEnemy(e) {
+    if (e.yieldT > 0) return this.updateYield(e);
     if (e.def.statusImmune) { e.frozenT = e.rootT = e.fearT = e.posture = 0; e.kvx = e.kvy = 0; }
     if (e.frozenT > 0) { e.frozenT -= DT; return; } // caught in stopped time
     if (e.state === 'gamble') return this.updateGamble(e);
@@ -3578,6 +3581,16 @@ class Sim {
     }
     this.updateFighter(e, it, def.speed * e.speedMul);
     e.stillT = e.state === 'idle' && !e.mvx && !e.mvy ? e.stillT + DT : 0;
+  }
+
+  // The teacher has yielded: he lowers his sword and stands a moment, then draws the one stroke he held back, into
+  // the sky and never at you, and goes. The sky stays cut along it (the Summit's split is the same line).
+  updateYield(e) {
+    const was = e.yieldT;
+    e.yieldT -= DT; e.state = 'idle'; e.mvx = e.mvy = e.kvx = e.kvy = 0; e.guard = false; e.invulnT = Math.max(e.invulnT || 0, 1);
+    if (this.p && !this.p.dead) { const d = Math.hypot(this.p.x - e.x, this.p.y - e.y) || 1; e.fx = (this.p.x - e.x) / d; e.fy = (this.p.y - e.y) / d; }
+    if (was > YIELD_DRAW && e.yieldT <= YIELD_DRAW) { this.skySplit = { t: 60, sky: true }; this.emit('teacherdraw', e.x, e.y); }
+    if (e.yieldT <= 0) { e.lastHitBy = this.p; e.hp = 0; this.emit('teacherleave', e.x, e.y); this.kill(e); }
   }
 
   // Always-on abilities: regen, auras, blessings, boss phases.
@@ -3723,7 +3736,7 @@ class Sim {
     if (e.ultT >= u.dur && !(e.dashT > 0)) {
       e.state = 'recover'; e.st = 0.7; e.batForm = false; e.swordForm = false; e.ult = null;
       if (e.exhaustT) { e.state = 'stun'; e.st = e.exhaustT; e.exhaustT = 0; } // spent by the forbidden sword
-      if (e.deathBound && e.def.manual) { e.deathBound = false; e.manualDone = true; e.hp = 0; this.emit('manualend', e.x, e.y); } // the last sword is drawn; now he may fall
+      if (e.deathBound && e.def.manual) { e.deathBound = false; e.manualDone = true; e.hp = 0; this.emit('manualend', e.x, e.y, { survived: !!(this.p && !this.p.dead) }); } // the last sword is drawn; now he may fall
       if (e.lastStand) { e.lastStand = false; e.ultMulti = 0; e.hp = 0; } // the gamble is spent
     }
   }

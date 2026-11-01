@@ -7,59 +7,49 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20261101d">
 </head>
 <body>
-<header class="top">
-  <h1>Neuro Arena</h1>
-  <span class="sub">one fighter, learning to duel by dying a lot</span>
-</header>
 
 <main class="layout">
-  <section class="left">
-    <div class="toolbar">
-      <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
-      <span class="where" id="whereLbl">The Jar</span>
-      <button class="primary" id="trainBtn">Start training</button>
-      <div class="group" role="group" aria-label="Speed" id="speedGroup">
-        <span class="lbl">Speed</span>
-        <div class="seg" id="speedSeg">
-          <button data-speed="1" class="on">1x</button>
-          <button data-speed="4">4x</button>
-          <button data-speed="16">16x</button>
-          <button data-speed="max" title="No arena, just the chart">Max</button>
-        </div>
-      </div>
-      <button id="pauseBtn" title="Pause the view (P)">Pause</button>
-      <button id="soundBtn" title="Sound effects">Sound on</button>
-      <button id="musicBtn" title="Ambient music">Music on</button>
-      <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
-    </div>
-    <nav class="dock" id="dock" aria-label="Stations of the jar">
-      <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
-      <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
-      <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
-      <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
-      <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
-      <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
-      <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
-      <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
-      <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
-    </nav>
 
-    <div class="screen">
+  <div class="screen" id="screen">
+    <div class="hud hud-top">
+    <div class="toolbar">
+        <button id="lobbyBtn" title="Back to the lobby">◂ Lobby</button>
+        <span class="where" id="whereLbl">The Jar</span>
+        <button class="primary" id="trainBtn">Start training</button>
+        <div class="group" role="group" aria-label="Speed" id="speedGroup">
+          <span class="lbl">Speed</span>
+          <div class="seg" id="speedSeg">
+            <button data-speed="1" class="on">1x</button>
+            <button data-speed="4">4x</button>
+            <button data-speed="16">16x</button>
+            <button data-speed="max" title="No arena, just the chart">Max</button>
+          </div>
+        </div>
+        <button id="pauseBtn" title="Pause the view (P)">Pause</button>
+        <button id="soundBtn" title="Sound effects">Sound on</button>
+        <button id="musicBtn" title="Ambient music">Music on</button>
+        <button class="jade" id="jadeBal" title="Jade: earned by defeating foes, spent on talent spins">◆ 0</button>
+      </div>
+      <nav class="dock" id="dock" aria-label="Stations of the jar">
+        <button data-station="portal" data-panel="portalPanel"><span class="ic">门</span>Portal</button>
+        <button data-station="pavilion" data-panel="pavilionPanel"><span class="ic">忆</span>Memory Pavilion</button>
+        <button data-station="hearth" data-panel="raceSection"><span class="ic">火</span>Hearth</button>
+        <button data-station="altar" data-panel="talentSection"><span class="ic">玉</span>Talent Altar</button>
+        <button data-station="mirror" data-panel="skinSection"><span class="ic">镜</span>Mirror</button>
+        <button data-station="tally" data-panel="tallyPanel"><span class="ic">刻</span>Tally Wall</button>
+        <button data-station="urns" data-panel="savePanel"><span class="ic">瓮</span>Memory Urns</button>
+        <button data-station="stone" data-panel="onlineSection"><span class="ic">联</span>Resonance Stone</button>
+        <button data-panel="helpPanel"><span class="ic">？</span>Help</button>
+      </nav>
+    </div>
+    <div class="stage" id="stage">
       <canvas id="game" width="256" height="144"></canvas>
       <div class="encounter" id="encounter" hidden aria-live="polite"></div>
       <div class="max-view" id="maxView" hidden>
         <div class="max-head">Max speed: arena hidden. <span id="maxRate"></span></div>
-        <canvas id="bigChart"></canvas>
-      </div>
-    </div>
-    <p class="hint" id="viewHint"></p>
-    <div class="board" id="battleBoard" hidden></div>
-    <div class="statline" id="statLine"></div>
-
-    <div class="chart-box" id="chartBox">
       <div class="chart-head">
         <label for="metric">Chart</label>
         <select id="metric">
@@ -73,11 +63,10 @@
         </select>
         <span class="legend"><i class="dot"></i>each life <i class="line"></i>average of last 25</span>
       </div>
-      <canvas id="chart"></canvas>
-    </div>
-  </section>
-
-  <aside class="right" id="drawer" aria-live="polite">
+        <canvas id="bigChart"></canvas>
+      </div>
+    <div class="room-end" id="roomEnd" hidden></div>
+    <aside class="right" id="drawer" aria-live="polite">
     <section class="panel" id="portalPanel" hidden>
       <div class="panel-head"><h2>Portal</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
       <p class="mini">Worlds reached through the gate. Any visible destination can be entered; some are far deadlier than others. Your fighter fights every room; between rooms you coach it.</p>
@@ -212,7 +201,7 @@
     </section>
 
     <section class="panel" id="raceSection" hidden>
-      <div class="panel-head"><h2>Ancestral Hearth</h2><button data-close aria-label="Close">×</button></div>
+      <div class="panel-head"><h2>Ancestral Hearth</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
       <p class="mini">The fire reveals lineages from the worlds in the jar. Each gives your fighter a different way to fight. One race can be equipped at a time; changes take effect in the next fight.</p>
       <div id="raceCurrent" class="id-card"></div>
       <div class="row spin-row"><button class="primary" id="raceSpin">Spin race · ◆ 100</button><span id="racePity" class="mini"></span></div>
@@ -303,7 +292,14 @@
       <p><b>Guard</b> blocks but fills posture. Full posture = stunned. Guard right as a hit lands = <b>parry</b>. <b>Heavy</b> breaks blocks but can be parried. <b>Kick</b> goes through guard. <b>Roll</b> repositions (no invincibility). Hits in a row add up to +15% damage.</p>
       <p><b>Enemy tells:</b> yellow ! strike, orange ! heavy, green ! kick, red !! unblockable.</p>
     </section>
-  </aside>
+    </aside>
+    </div>
+    <div class="hud hud-bottom">
+    <p class="hint" id="viewHint"></p>
+    <div class="board" id="battleBoard" hidden></div>
+    <div class="statline" id="statLine"></div>
+    </div>
+  </div>
 </main>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -319,20 +315,29 @@
   </div>
 </div>
 
-<script src="js/sfx.js"></script>
-<script src="js/agent.js"></script>
-<script src="js/sim.js"></script>
-<script src="js/campaign.js"></script>
-<script src="js/lore.js"></script>
-<script src="js/render.js"></script>
-<script src="js/arenas.js"></script>
-<script src="js/swordfx.js"></script>
-<script src="js/lobby.js"></script>
-<script src="js/main.js"></script>
+<div class="cutscene" id="cutscene" hidden role="dialog" aria-modal="true" aria-label="Ending">
+  <canvas id="cutCanvas" width="1024" height="576"></canvas>
+  <p class="cut-line" id="cutLine"></p>
+  <div class="cut-acts" id="cutActs"></div>
+  <button class="cut-skip" id="cutSkip">Skip ›</button>
+</div>
+
+<script src="js/sfx.js?v=20261101d"></script>
+<script src="js/agent.js?v=20261101d"></script>
+<script src="js/sim.js?v=20261101d"></script>
+<script src="js/campaign.js?v=20261101d"></script>
+<script src="js/lore.js?v=20261101d"></script>
+<script src="js/render.js?v=20261101d"></script>
+<script src="js/arenas.js?v=20261101d"></script>
+<script src="js/swordfx.js?v=20261101d"></script>
+<script src="js/finale-arenas.js?v=20261101d"></script>
+<script src="js/ending.js?v=20261101d"></script>
+<script src="js/lobby.js?v=20261101d"></script>
+<script src="js/main.js?v=20261101d"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="js/online-config.js"></script>
-<script src="js/online.js"></script>
-<div id="demoControls" style="position:fixed;z-index:9999;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;min-width:70%;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><button id="demoJade">Demo jade</button><button id="demoRaces">Preview races</button><label>Map <select id="demoWorld"><option value="">Choose map</option><option value="frontier">Last Frontier</option><option value="temple">Red Dust Temple</option><option value="night">Night Country</option><option value="peaks">Myriad Sword Peaks</option><option value="abyss">Netherworld Abyss</option><option value="isles">Eastern Isles</option><option value="heavens">Nine Heavens</option><option value="timestream">Timestream</option><option value="cursed">Cursed Domain</option><option value="blacksea">Black Sea</option><option value="pallid">Pallid Kingdom</option><option value="bottom">Bottom of the Jar</option><option value="summit">Heaven's End</option></select></label><button id="demoPhase">Next form</button><button id="demoUlt">Play ultimate</button><button id="demoFinish">Finish fight</button><button id="demoEnding">Door ending</button><span id="demoStatus">Immortal dummy · use controls to advance forms</span></div>
+<script src="js/online-config.js?v=20261101d"></script>
+<script src="js/online.js?v=20261101d"></script>
+<div id="demoControls" style="position:fixed;z-index:55;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;min-width:70%;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><button id="demoJade">Demo jade</button><button id="demoRaces">Preview races</button><label>Map <select id="demoWorld"><option value="">Choose map</option><option value="frontier">Last Frontier</option><option value="temple">Red Dust Temple</option><option value="night">Night Country</option><option value="peaks">Myriad Sword Peaks</option><option value="abyss">Netherworld Abyss</option><option value="isles">Eastern Isles</option><option value="heavens">Nine Heavens</option><option value="timestream">Timestream</option><option value="cursed">Cursed Domain</option><option value="blacksea">Black Sea</option><option value="pallid">Pallid Kingdom</option><option value="bottom">Bottom of the Jar</option><option value="summit">Heaven's End</option></select></label><button id="demoPhase">Next form</button><button id="demoUlt">Play ultimate</button><button id="demoFinish">Finish fight</button><button id="demoEnding">Final scene</button><button id="demoPage">Fourteenth Page</button><button id="demoTeacher">Teacher</button><button id="demoYield">Teacher yields</button><button id="demoEchoScene">Past-self scene</button><span id="demoStatus">Immortal dummy · use controls to advance forms</span></div>
 <script>
 (() => {
    function hideDemoPanels() {
@@ -396,12 +401,29 @@
      hideDemoPanels(); document.getElementById('memory').hidden = true;
      state.campaign.seals.timeadmin = 1; state.campaign.run = buildRun(id, 481, 0); startRoom(); installDummy();
    };
-   document.getElementById('demoEnding').onclick = () => { hideDemoPanels(); showDoorEnding(); };
+   function readyFinale(echo) {
+     hideDemoPanels(); document.getElementById('memory').hidden = true;
+     state.campaign.endingReady = true; state.campaign.fourteenthPage = true;
+     if (echo && !state.campaign.previousSelf) state.campaign.previousSelf = fighterSnapshot();
+     showDoorEnding(true, echo);
+   }
+   document.getElementById('demoEnding').onclick = () => readyFinale(false);
+   document.getElementById('demoEchoScene').onclick = () => readyFinale(true);
+   document.getElementById('demoPage').onclick = () => { hideDemoPanels(); playCutscene(pageBeats()); };
+   document.getElementById('demoTeacher').onclick = () => {
+     hideDemoPanels(); document.getElementById('memory').hidden = true;
+     state.campaign.run = { world:'peaks', idx:0, cleared:[], rooms:[{kind:'boss', boss:'swordsaint', foes:[{type:'swordsaint', teacher:true}], time:240}] };
+     startRoom(); installDummy(); status('Wait for the teacher, then press Teacher yields');
+   };
+   document.getElementById('demoYield').onclick = () => {
+     const boss = bossNow(); if (!boss || !boss.teacher) { status('Start Teacher and wait for him to arrive'); return; }
+     state.view.sim.dealDamage(boss, boss.hp, state.view.sim.p, 0, 0, 0); status('The teacher has yielded');
+   };
    document.getElementById('demoRaces').onclick = () => { document.getElementById('memory').hidden = true; state.view.paused = false; state.race.owned = Object.fromEntries(RACES.map(r => [r.id, 1])); setMode('lobby'); openPanel('raceSection', true); };
    document.getElementById('demoJade').onclick = () => { state.jade += 1000; refreshJade(); saveStore(); };
    document.getElementById('demoEcho').onclick = () => { document.getElementById('memory').hidden = true; const c = state.campaign; c.previousSelf = c.previousSelf || JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })); c.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'echo',foes:[],time:240}] }; startRoom(); };
    document.getElementById('demoChoice').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); state.campaign.endingReady = true; state.campaign.fourteenthPage = true; setMode('lobby'); openPanel('portalPanel', true); renderPortal(); };
-   document.getElementById('demoSummit').click();
+   document.getElementById('demoEnding').click();
  })();
 </script>
 </body>

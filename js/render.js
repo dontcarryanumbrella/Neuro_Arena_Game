@@ -2414,7 +2414,12 @@ class Renderer {
       const P = bd.cv.width / W;
       if (!this.amb) { this.amb = document.createElement('canvas'); this.amb.width = W * P; this.amb.height = H * P; this.ag = this.amb.getContext('2d'); }
       const ag = this.ag; ag.setTransform(1, 0, 0, 1, 0, 0); ag.drawImage(bd.cv, 0, 0);
-      ag.setTransform(P, 0, 0, P, 0, 0); drawWorldAmbient(ag, bd.id, this.ambT);
+      const B = typeof WORLD_BG_PX !== 'undefined' ? WORLD_BG_PX : P;
+      if (!this.ambientPixels) { this.ambientPixels = document.createElement('canvas'); this.ambientPixels.width = W * B; this.ambientPixels.height = H * B; }
+      const ambient = this.ambientPixels.getContext('2d');
+      ambient.setTransform(1, 0, 0, 1, 0, 0); ambient.clearRect(0, 0, this.ambientPixels.width, this.ambientPixels.height);
+      ambient.setTransform(B, 0, 0, B, 0, 0); drawWorldAmbient(ambient, bd.id, this.ambT);
+      ag.imageSmoothingEnabled = false; ag.drawImage(this.ambientPixels, 0, 0, W * P, H * P);
       sg.imageSmoothingEnabled = false; sg.drawImage(this.amb, bd.ox * S, bd.oy * S, W * S, H * S);
     }
     sg.imageSmoothingEnabled = false;
@@ -3369,7 +3374,7 @@ class Renderer {
 
   draw(sim, dt, extra = {}) {
     const g = this.g;
-    this.tick = sim.t;
+    this.tick = sim.t; this.lastDt = dt;
     const painted = sim.enemies.some(e => e.painting && !e.dead);
     this.soundOn = !!extra.sound && dt > 0 && !painted; // inside the painting, nothing makes a sound
     if (sim.fx) this.ingest(sim);
@@ -4482,6 +4487,7 @@ class Renderer {
 
   // Severing the Heavens: the sky split in two along the cut, and a crack across space itself.
   drawSkySplit(sim) {
+    if (sim.skySplit.sky) return this.drawSkyScar(sim);
     const S = sim.skySplit, g = this.g, k = Math.min(1, S.t / 0.6);
     const cx = S.x !== undefined ? sx(S.x) : CX, cy = S.y !== undefined ? sy(S.y) - 6 : 60, dx = Math.cos(S.a), dy = Math.sin(S.a) * SQ;
     g.globalAlpha = 0.55 * k; g.fillStyle = '#000000';
@@ -4490,6 +4496,19 @@ class Renderer {
     for (let i = -40; i <= 40; i++) { const jag = Math.sin(i * 1.7 + sim.t * 40) * 1.5; this.pix(cx + dx * i * 5 + jag, cy + dy * i * 5, i % 3 ? '#ffffff' : '#ffb7d5'); }
     g.globalAlpha = 1;
     if (Math.random() < 0.5) { const u = (Math.random() - .5) * 300; this.spark(cx + dx * u, cy + dy * u, ['#ffffff', '#ffb7d5', '#141414'], 0, 0.5, 4); }
+  }
+
+  // The teacher's one stroke into the sky: it opens along the same line as the Summit's split, from his side
+  // outward, and stays open (SKY_SCAR in arenas.js).
+  drawSkyScar(sim) {
+    const S = sim.skySplit, g = this.g, age = (S.age = (S.age || 0) + (this.lastDt || 0)), open = Math.min(1, age / 0.35), wide = Math.min(1, age / 1.5);
+    for (let x = 0; x < W; x++) {
+      if (Math.abs(x - 128) / 128 > open) continue;
+      const y = SKY_SCAR(x), hw = Math.round(wide * 3 * Math.sin(Math.PI * x / W));
+      g.globalAlpha = 0.6; g.fillStyle = '#000'; g.fillRect(x, Math.round(y) - hw - 2, 1, hw * 2 + 5);
+      g.globalAlpha = 1; g.fillStyle = hw > 1 ? '#e8f4ff' : '#ffffff'; g.fillRect(x, Math.round(y) - hw, 1, hw * 2 + 1);
+    }
+    if (age < 1.2 && Math.random() < 0.8) { const x = Math.random() * W; this.spark(x, SKY_SCAR(x), ['#ffffff', '#9fd8ff'], 0, 0.6, 6); }
   }
 
   // auras the fighter's talents put on it

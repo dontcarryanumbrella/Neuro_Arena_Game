@@ -16,7 +16,11 @@
 //   XII  Man and Sword as One     the world slows to half; four streaks of light; then a vast half-moon left burning on the stage
 //   XIII Heaven and Earth         the world stills and dims, light rises, one finger, one line, and it all comes apart
 
-const SWORD_CN = ['拔剑', '追风', '落雨', '扫月', '归燕', '百影', '断江', '贯天', '万剑归一', '无形剑', '斩因果', '人剑合一', '天地一剑'];
+// The line the teacher cuts across the sky when he yields (screen y at x): the same curve as the split the Summit's
+// sky keeps open, so the Peaks and the Summit share one wound.
+const SKY_SCAR = x => { const u = (x + 4) / 264; return 31.7 * (1 - u) * (1 - u) + 38.4 * u * (1 - u) + 7.6 * u * u; };
+
+const SWORD_CN =['拔剑', '追风', '落雨', '扫月', '归燕', '百影', '断江', '贯天', '万剑归一', '无形剑', '斩因果', '人剑合一', '天地一剑'];
 const SWORD_EN = ['DRAWING THE SWORD', 'CHASING THE WIND', 'FALLING RAIN', 'SWEEPING THE MOON', 'RETURNING SWALLOW', 'HUNDRED SHADOWS', 'SEVERING THE RIVER',
   'PIERCING THE HEAVENS', 'TEN THOUSAND SWORDS RETURN', 'A SWORD WITHOUT FORM', 'SEVERING CAUSE AND EFFECT', 'MAN AND SWORD AS ONE', 'HEAVEN AND EARTH, ONE SWORD'];
 const SWORD_ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII'];
@@ -206,13 +210,26 @@ Object.assign(Renderer.prototype, {
         this.flash('rgba(255,255,255,0.5)', 0.12); this.shake = Math.max(this.shake, 6); this.snd('gong');
         for (let i = 0; i < 24; i++) { const a = r() * 6.28, v = 40 + r() * 80; P.push({ kind: 'px', x: sx(ev.x), y: sy(ev.y) - 8, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, life: 0.6, max: 0.6, color: i % 2 ? SW.red : SW.white }); }
         break;
-      case 'teacheryield': // the teacher lowers his sword, and draws one stroke into the sky to show what he held back
-        this.banner = { kicker: 'THAT IS ALL YOU CAN CARRY, FOR NOW', text: 'ENOUGH.', color: SW.pale, life: 3.2 };
-        this.flash('rgba(255,255,255,0.7)', 0.25); this.shake = Math.max(this.shake, 5); this.snd('ultboom');
-        for (let i = 0; i < 40; i++) P.push({ kind: 'px', x: sx(ev.x) + (r() - .5) * 8, y: sy(ev.y) - 10 - r() * 20, vx: (r() - .5) * 30, vy: -30 - r() * 50, life: 1.4, max: 1.4, color: r() < 0.5 ? SW.white : SW.blue });
+      case 'teacheryield': // the teacher lowers his sword: the lesson is over, and the air goes still
+        this.banner = { kicker: 'THE LESSON IS OVER', text: 'ENOUGH.', color: SW.pale, life: 2.3 };
+        this.flash('rgba(255,255,255,0.3)', 0.12); this.snd('gong');
+        this.swordFx('lowered', { x: ev.x, y: ev.y, life: YIELD_T - YIELD_DRAW });
+        for (let i = 0; i < 16; i++) P.push({ kind: 'px', x: sx(ev.x) + (r() - .5) * 8, y: sy(ev.y) - 6 - r() * 10, vx: (r() - .5) * 20, vy: -10 - r() * 20, life: 1.2, max: 1.2, color: r() < 0.5 ? SW.white : SW.blue });
+        break;
+      case 'teacherdraw': { // one stroke, straight up into the sky, never at you: what he held back
+        this.banner = { kicker: 'THE THIRTEENTH SWORD', text: 'WHAT I HELD BACK', color: SW.white, life: 2.0, small: true };
+        this.flash('rgba(255,255,255,0.75)', 0.25); this.shake = Math.max(this.shake, 7); this.snd('ultboom');
+        this.swordFx('skystroke', { x: ev.x, y: ev.y, life: 0.7 });
+        for (let i = 0; i < 30; i++) { const x = r() * W; P.push({ kind: 'px', x, y: SKY_SCAR(x), vx: (r() - .5) * 30, vy: 10 + r() * 30, life: 1.2, max: 1.2, color: r() < 0.5 ? SW.white : SW.blue }); }
+        break;
+      }
+      case 'teacherleave': // he turns, and goes up the stroke he left in the sky
+        for (let i = 0; i < 40; i++) P.push({ kind: 'px', x: sx(ev.x) + (r() - .5) * 8, y: sy(ev.y) - 4 - r() * 14, vx: (r() - .5) * 16, vy: -40 - r() * 60, life: 1.6, max: 1.6, color: r() < 0.5 ? SW.white : SW.blue });
+        this.snd('chime');
         break;
       case 'manualend': // the Thirteenth Sword drawn at last: every sword he carried breaks into light, and he goes with them
-        this.banner = { kicker: 'THE THIRTEEN SWORDS', text: 'COMPLETE', color: SW.pale, life: 2.4 };
+        this.banner = ev.survived ? { kicker: 'YOU ARE STILL STANDING', text: 'THE MANUAL IS COMPLETE', color: SW.pale, life: 3.0, small: true } : { kicker: 'THE THIRTEEN SWORDS', text: 'COMPLETE', color: SW.pale, life: 2.4 };
+        if (ev.survived) this.swordFx('slowmo', { life: 1.2 });
         this.flash('rgba(255,255,255,0.8)', 0.3); this.snd('ultboom');
         for (let i = 0; i < 60; i++) P.push({ kind: 'px', x: sx(ev.x) + (r() - .5) * 10, y: sy(ev.y) - 8 + (r() - .5) * 8, vx: (r() - .5) * 60, vy: -20 - r() * 60, life: 1.6, max: 1.6, color: r() < 0.5 ? SW.white : SW.blue });
         break;
@@ -394,6 +411,16 @@ Object.assign(Renderer.prototype, {
     this.lit(g => { g.globalAlpha = (1 - u) * 0.8; g.strokeStyle = c; g.lineWidth = 1; g.beginPath(); g.ellipse(X, Y + 4, rr, rr * 0.45, 0, 0, Math.PI * 2); g.stroke();
       for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + u; g.beginPath(); g.moveTo(X + Math.cos(a) * rr, Y + 4 + Math.sin(a) * rr * 0.45); g.lineTo(X + Math.cos(a) * (rr + 3), Y + 4 + Math.sin(a) * (rr + 3) * 0.45); g.stroke(); } });
     this.lightLine(X, Y - 10 - 8 * u, X, Y - 4, 0.6, c, (1 - u) * 0.8);
+  },
+  sw_lowered(f) { // the teacher's sword held point-down at his side, its light going out
+    const [X, Y] = this.fxPos(f), u = f.age / f.life, F = this.sim && this.sim.p && this.sim.p.x < f.x ? -1 : 1;
+    this.lightLine(X + F * 4, Y + 1, X + F * 9, Y + 10, 0.6, SW.blue, 0.8 * (1 - u * 0.6));
+    if (Math.random() < 0.15) this.parts.push({ kind: 'px', x: X + F * (5 + Math.random() * 4), y: Y + 2 + Math.random() * 8, vx: 0, vy: -12, life: 0.8, max: 0.8, color: SW.pale });
+  },
+  sw_skystroke(f) { // one line from his hand straight up to the sky he is cutting
+    const [X, Y] = this.fxPos(f), u = f.age / f.life, top = SKY_SCAR(X), reach = Math.min(1, f.age / 0.12);
+    this.lightLine(X, Y - 6, X, Y - 6 + (top - Y + 6) * reach, 1.6 * (1 - u * 0.5), SW.blue, 1 - u);
+    this.glow(X, Y - 8, 14, 'rgba(200,235,255,1)', 0.6 * (1 - u));
   },
   sw_iaido(f) { // I: drawn and cut in the same instant; the sheath clicks shut after
     const [X, Y] = this.fxPos(f), u = f.age / f.life, sweep = Math.min(1, f.age / 0.06), alpha = f.age < 0.12 ? 1 : Math.max(0, 1 - (f.age - 0.12) / 0.3);

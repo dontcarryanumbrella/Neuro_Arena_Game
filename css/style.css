@@ -318,6 +318,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 #endingArt { display: block; width: 100%; height: auto; image-rendering: pixelated; margin: 8px 0; border-radius: 5px; }
 #endingArt[hidden] { display: none; }
 
+/* The endings, animated: the picture fills the screen, one line of text under it */
+.cutscene { position: fixed; inset: 0; z-index: 60; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
+.cutscene[hidden] { display: none; }
+#cutCanvas { width: min(100%, calc((100vh - 140px) * 16 / 9)); height: auto; image-rendering: pixelated; }
+.cut-line { min-height: 3em; max-width: 640px; margin: 0; color: #ece4d2; font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 17px; line-height: 1.5; text-align: center; opacity: 0; }
+.cut-line.in { animation: cutIn 0.9s ease forwards; }
+@keyframes cutIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.cut-acts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.cut-acts:empty { display: none; }
+.cut-skip { position: absolute; right: 16px; bottom: 16px; background: transparent; color: #8a8070; border: 1px solid #3a3226; }
+.cut-skip[hidden] { display: none; }
+
 /* ==========================================================================
    The game fills the window. The arena is the screen; the bar above it, the line below it and every panel sit on it,
    in the game's own colours: dark wood, rice paper, gold, the pixel font for anything that is pressed or named.
@@ -442,3 +454,7 @@ details.note p, .right p { color: #d8ccb6; }
 #worldList .wc-foot { margin-top: 2px; }
 #worldList .wc-foot .mini { font-size: 11px; }
 #portalPanel > .mini { margin: 4px 0; }
+
+/* The station bar is hidden during a campaign run. */
+.hud-top .dock[hidden], #game[hidden] { display: none; }
+.max-view .chart-head { padding: 0 12px; margin: 0; }

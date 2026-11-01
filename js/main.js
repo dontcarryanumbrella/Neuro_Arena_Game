@@ -575,6 +575,7 @@ const keys = new Set();
 function newViewSim() {
   const v = state.view, c = state.cfg;
   v.worldId = v.mode === 'campaign' && state.campaign.run ? state.campaign.run.world : null;
+  ARENA_MARKS.peaksScar = !!state.campaign.seals.swordsaint; // once he has yielded, the Peaks' sky stays cut
   const seed = Math.floor(Math.random() * 1e9);
   const loadout = state.loadout, talents = state.talents.equipped, identity = identityOpts();
   if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
@@ -597,6 +598,10 @@ function newViewSim() {
   v.acc = 0; v.ticks = 0; v.action = null; v.endT = 0; v.overlay = null; v.recorded = false; v.paid = false; v.roomResult = null;
   v.introT = v.mode === 'campaign' && curRoom() && !['iteration', 'echo'].includes(curRoom().kind) ? meetFoes(curRoom()) : 0;
   renderer.reset();
+  if (v.mode === 'campaign' && curRoom() && curRoom().kind === 'iteration') { // what you were, once: its life, and how far it had come
+    const room = curRoom(), n = state.campaign.run.rooms.filter(r => r.kind === 'iteration').indexOf(room);
+    renderer.banner = { kicker: 'A DISCARDED ITERATION', text: `LIFE ${state.campaign.snapshots[room.snapshot].lives}`, lore: ITERATION_LINES[Math.min(n, ITERATION_LINES.length - 1)], color: '#b8b4ae', life: 3.4 };
+  }
 }
 
 // [moveX, moveY, strike, heavy, guard, kick, roll, ability1, ability2]
@@ -848,10 +853,7 @@ function chooseStay() {
   next.met = { ...old.met }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
   state.campaign = next; state.codexDirty = true;
   refreshLevel(false); saveStore(); setMode('lobby'); renderPortal();
-  showEndingArt('stay'); $('memKicker').textContent = 'The Sheathed Sword'; $('memTitle').textContent = 'Another hand';
-  $('memVignette').textContent = 'He puts the sword down. Yun Xi leaves her coat beside him. Later, when the gate opens, someone else steps through.';
-  $('memFragment').textContent = `New Game+ ${next.cycle}. A new set of marks begins on the wall.`;
-  $('memory').hidden = false; state.view.paused = true; refreshPauseBtn(); $('memClose').focus();
+  playCutscene(stayBeats(next.cycle));
 }
 
 // Ending illustrations are separate from the arena; they are shown only for the two choices.
@@ -876,14 +878,18 @@ function showEndingArt(kind) {
   }
 }
 
-function showDoorEnding() {
-  showEndingArt('door');
-  $('memKicker').textContent = 'The Door';
-  $('memTitle').textContent = 'The lid lifts';
-  $('memVignette').textContent = 'Yun Xi picks up her die. For a while she turns it between her fingers, looking at the open lid. Then she puts it down. The core rises from his chest. Beyond the rim, lights move across black water.';
-  $('memFragment').textContent = 'His face flickers. For an instant, the hands of a clock move where his eyes were.';
-  $('memory').hidden = false; state.view.paused = true; refreshPauseBtn();
-  state.campaign.endingSeen = true; saveStore(); $('memClose').focus();
+// At the door: straight after the last fight her last words come first; from the Portal, only the choice.
+function showDoorEnding(lastWords = false, echo = !!state.campaign.previousSelf) {
+  const beats = finaleBeats(echo, !!state.campaign.fourteenthPage);
+  state.view.paused = true; refreshPauseBtn();
+  playCutscene(lastWords ? beats : beats.slice(-1), () => { state.view.paused = false; refreshPauseBtn(); });
+}
+
+// the Door has been opened: back to the jar, where nothing has changed
+function afterDoor() {
+  state.campaign.endingSeen = true; saveStore();
+  state.view.paused = false; refreshPauseBtn();
+  if (state.view.mode === 'campaign') returnToJar();
 }
 
 function startRoom() {
@@ -969,15 +975,15 @@ function finishRoom(sim) {
       r.cleared[r.idx] = true; c.fourteenthPage = true; c.swordUpgrade = true;
       if (!rec.runs) { state.jade += Math.round(3000 * (1 + c.cycle * 0.25)); rec.runs = 1; }
       if (state.identity.special) state.identity.special.swordUpgrade = true;
-      c.run = null; v.roomResult.worldDone = true;
-      toast('The Fourteenth Page. Sword finale upgraded.'); refreshJade();
+      c.run = null; v.roomResult.worldDone = true; v.roomResult.scene = 'page';
+      refreshJade();
     }
     saveStore(); renderPortal(); refreshWhere(); return;
   }
   if (r.world === 'bottom') {
     if (cleared) {
       r.cleared[r.idx] = true;
-      if (v.roomResult.last) { c.endingReady = true; v.roomResult.worldDone = true; c.run = null; }
+      if (v.roomResult.last) { c.endingReady = true; v.roomResult.worldDone = true; v.roomResult.scene = room.kind === 'echo' ? 'echo' : 'door'; c.run = null; }
     }
     saveStore(); renderPortal(); refreshWhere(); return;
   }
@@ -1045,13 +1051,12 @@ function renderPortal() {
   list.innerHTML = '';
   if (broken === ALL_SEALS.length) {
     const el = document.createElement('div'); el.className = 'world-card';
-    el.innerHTML = `<div class="wc-head"><b>The Bottom of the Jar</b></div><div class="wc-blurb">The last seal has burned away. The door is within reach.</div><div class="wc-foot"><span class="mini">${c.endingReady ? (c.previousSelf ? 'The one in the coat has fallen.' : 'Yun Xi has fallen.') : c.snapshots.length ? 'The clay holds earlier versions of your fighter.' : 'No earlier lives were preserved. The keeper waits below.'}</span><button>${c.endingReady ? 'Open the door' : 'Enter'}</button></div>`;
+    el.innerHTML = `<div class="wc-head"><b>The Bottom of the Jar</b></div><div class="wc-blurb">The last seal has burned away. The door is within reach.</div><div class="wc-foot"><span class="mini">${c.endingReady ? (c.previousSelf ? 'The one in the coat has fallen.' : 'Yun Xi has fallen.') : c.snapshots.length ? 'The clay holds earlier versions of your fighter.' : 'No earlier lives were preserved. The keeper waits below.'}</span><button>${c.endingReady ? 'Stand at the door' : 'Enter'}</button></div>`;
     el.querySelector('button').onclick = () => c.endingReady ? showDoorEnding() : enterBottom();
     list.appendChild(el);
     const peak = document.createElement('div'); peak.className = 'world-card';
     peak.innerHTML = `<div class="wc-head"><b>Heaven's End Summit</b></div><div class="wc-blurb">The Sword Immortal waits above the broken sky.</div><div class="wc-foot"><span class="mini">${c.fourteenthPage ? 'The Fourteenth Page is yours.' : 'An optional duel.'}</span><button>Challenge</button></div>`;
     peak.querySelector('button').onclick = enterSummit; list.appendChild(peak);
-    if (c.endingReady && c.fourteenthPage) { const stay = document.createElement('button'); stay.textContent = 'Sheathe the sword'; stay.className = 'primary'; stay.onclick = chooseStay; el.querySelector('.wc-foot').appendChild(stay); }
   }
   for (const w of WORLDS.filter(o => worldVisible(c, o))) {
     const rec = c.worlds[w.id] || { rooms: {}, runs: 0 }, plan = campaignPlan(w, c.cycle);
@@ -1150,6 +1155,12 @@ function updateView(dt) {
     }
     v.endT += dt;
     if (v.mode === 'watch' && v.endT > 2) newViewSim();
+    const rr = v.roomResult; // a finale's last fight: a moment to see it end, then its scene
+    if (rr && rr.scene && v.endT > 2.2) {
+      const scene = rr.scene; rr.scene = null;
+      if (scene === 'page') { v.paused = true; playCutscene(pageBeats(), () => { v.paused = false; toast('The Fourteenth Page. Sword finale upgraded.'); }); }
+      else showDoorEnding(true, scene === 'echo');
+    }
     return;
   }
   if (v.paused) return;
@@ -1235,7 +1246,6 @@ function refreshScreen() {
   if (mode === 'campaign') { const cur = document.querySelector('#drawer .panel:not([hidden])'); if (cur && fighting) openPanel(cur.id); }
   $('speedGroup').hidden = mode === 'lobby';
   $('pauseBtn').hidden = mode === 'lobby';
-  $('chartBox').hidden = (mode !== 'train' && mode !== 'watch') || max; // at Max the big chart takes the arena's place
   if (mode !== 'lobby') { lobby.hover = null; $('game').style.cursor = ''; }
   // effects are only collected while someone is watching the training fighter
   const sim = state.trainer.sim;
@@ -1615,6 +1625,7 @@ function buildVault() {
 // ---------- input ----------
 window.addEventListener('keydown', e => {
   if (e.target instanceof Element && e.target.matches('input, select, textarea')) return;
+  if (!$('cutscene').hidden) return; // an ending is playing: only its own buttons answer
   const mode = state.view.mode;
   if ((mode === 'play' || mode === 'battle') && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.code === 'KeyR' && mode !== 'train' && mode !== 'watch' && (mode !== 'campaign' || curRoom())) { if (mode === 'campaign' && !(state.view.sim && state.view.sim.done)) return; $('roomEnd').hidden = true; newViewSim(); refreshHint(); refreshScreen(); }
@@ -1895,7 +1906,11 @@ function renderTally() {
   $('tallyNote').textContent = lives ? `${lives.toLocaleString()} lives scratched into the clay, one mark for every twenty. Level ${state.level || 1}.` : 'The clay is still smooth. Every life your fighter lives in the Pavilion leaves a mark here.';
 }
 
+// one line for each older self you meet at the bottom, in order: it was always going to end like this
+const ITERATION_LINES = ['IT HAD ONLY JUST LEARNED TO STAND', 'IT HAD LEARNED TO GUARD, AND NOTHING ELSE', 'IT THOUGHT IT WAS NEARLY DONE', 'IT WAS GOOD. IT WAS NOT ENOUGH', 'IT REMEMBERS YOUR OPENINGS. THEY WERE ITS OWN', 'IT IS ALMOST YOU'];
+
 function bindMemory() {
+  bindCutscene();
   const close = () => { $('endingArt').hidden = true; $('memory').hidden = true; state.view.paused = false; refreshPauseBtn(); };
   $('memClose').addEventListener('click', close);
   $('memory').addEventListener('keydown', e => { if (e.code === 'Escape') { e.stopPropagation(); close(); } });
@@ -1909,6 +1924,7 @@ function bindPanels() {
   document.querySelectorAll('.hub button[data-go]').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.go !== 'train' && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first.'); return; }
     setMode(b.dataset.go);
+    if (b.dataset.go === 'train') openPanel('pavilionPanel'); // reveal the training arena and chart
   }));
   for (const [child, parent] of Object.entries(PANEL_PARENT)) {
     const head = document.querySelector(`#${child} .panel-head`), back = document.createElement('button');
@@ -2030,8 +2046,8 @@ function boot() {
         const label = state.trainer.updating ? 'LEARNING' : 'LIFE ' + ((state.livesTotal || 0) + 1);
         renderer.draw(sim, state.training && !v.paused ? dt : 0, { label, labelColor: state.trainer.updating ? '#e8c34a' : '#ece4d2', paused: v.paused, sound: state.speed <= 4 });
         renderer.present();
-      } else if (now - lastBig > 300) {
-        lastBig = now; drawChart($('bigChart'));
+      } else if (state.chartDirty || now - lastBig > 300) {
+        lastBig = now; drawChart($('bigChart')); state.chartDirty = false;
       }
     } else {
       updateView(dt);
@@ -2050,7 +2066,6 @@ function boot() {
       if (!$('identitySection').hidden) renderIdentity();
       if (!$('killsSection').hidden) renderKills();
       if (!$('codexPanel').hidden) renderCodex();
-      if (state.chartDirty) { drawChart($('chart')); state.chartDirty = false; }
     }
   }
   // a frame that throws must not stop the game for good: report it (once per kind of error) and carry on

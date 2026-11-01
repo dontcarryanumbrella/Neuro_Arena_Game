@@ -7,7 +7,8 @@
 // canvas transform does the scaling.
 
 const ARENA_S = 4; // the screen: four of its pixels to every pixel of the fight
-const ARENA_PX = 2; // the backdrop's pixels: twice as fine as the fight's, so it keeps its detail and still reads as pixel art
+const ARENA_PX = 1.5; // platform pixels: a little coarser than the original painted floor
+const WORLD_BG_PX = 0.75; // scenery and ambience: larger pixels than the platform
 const rgbOf = c => { if (c.length === 4) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3]; return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; };
 const hexOf = ([r, g, b]) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 const mixRgb = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -296,7 +297,7 @@ const WORLD_SCENES = {
   peaks: {
     ground: ['#b8c8d4', '#e4ecf2'],
     floor: { top: '#a2b0b4', rim: '#b0dcea', side: '#495e69', art: (k, rand) => { floorArt.flags(k, rand, 13, ['#a2b0b4', '#98a6ac', '#adbabd'], '#7a8a92', 0.5); floorArt.cracks(k, rand, 8, 'rgba(70,90,100,0.5)', 0.35); floorArt.speckle(k, rand, 90, ['rgba(255,255,255,0.7)', 'rgba(230,240,248,0.6)'], 0.8); } },
-    bake(k, rand) { // snow peaks above a sea of cloud, a sword on every summit
+    bake(k, rand) { // snow peaks above a sea of cloud; swords are planted in drifting cloud banks
       k.sky(0, 62, ['#16243e', '#2e4a6a', '#6a8aa8', '#c4d4de']);
       k.glow(128, 0, 120, '#eef6ff', 0.25, 40);
       k.mountain(rand, 50, 60, 90, 44, '#7088a0', '#a4b8c8', '#eef4f8', -1);
@@ -305,7 +306,17 @@ const WORLD_SCENES = {
       k.mountain(rand, 120, 62, 70, 46, '#4a627a', '#8aa2b6', '#e8f0f6', -1);
       k.mountain(rand, 18, 64, 60, 36, '#3e5470', '#7890a8', '#e0eaf2', -1);
       k.mountain(rand, 236, 64, 64, 40, '#3e5470', '#7890a8', '#e0eaf2', -1);
-      for (const [x, y, s] of [[120, 16, 1], [18, 28, 0.8], [236, 24, 0.8]]) { k.glow(x, y - 7 * s, 8, '#9fd8ff', 0.5); k.line(x, y, x, y - 13 * s, '#e8f4ff', 0.9 * s); k.rect(x - 2.4 * s, y - 4 * s, 4.8 * s, 0.9 * s, '#c8a050'); k.line(x, y - 4 * s, x, y + 1, '#5a3a20', 0.8 * s); }
+      // Floating cloud banks hold the swords; the blades point downward and disappear into the mist.
+      for (const [x, y, s] of [[30, 38, 0.9], [75, 32, 0.8], [225, 37, 0.9]]) {
+        k.cloud(rand, x, y + 2 * s, 21 * s, 6 * s, ['#9fb3c8', '#dce9f1', '#ffffff']);
+        k.glow(x, y - 5 * s, 7 * s, '#9fd8ff', 0.35);
+        k.poly([[x - 1.4*s, y - 10*s], [x + 1.4*s, y - 10*s], [x + 0.8*s, y], [x, y + 3*s], [x - 0.8*s, y]], '#e8f4ff');
+        k.line(x, y - 10*s, x, y + 1*s, '#a6c3d5', 0.5*s);
+        k.rect(x - 3*s, y - 11*s, 6*s, 1.3*s, '#c8a050');
+        k.rect(x - 0.8*s, y - 15*s, 1.6*s, 4*s, '#5a3a20');
+        k.circle(x, y - 15*s, 0.9*s, '#e0bd75');
+        k.oval(x, y + 2*s, 7*s, 1.4*s, 'rgba(244,250,255,0.9)');
+      }
       for (let i = 0; i < 18; i++) k.cloud(rand, rand() * W, 64 + rand() * 4, 26 + rand() * 30, 6 + rand() * 4, ['#b8c8d8', '#e0e8f0', '#ffffff']);
       // a pine on a crag, near
       k.poly([[-4, 100], [-4, 66], [10, 62], [22, 70], [26, 100]], '#3a4a5a'); k.poly([[10, 62], [22, 70], [16, 70]], '#6a7e90'); k.oval(9, 62.6, 5, 1, '#f0f6fa');
@@ -692,10 +703,21 @@ function bakeWorldArena(id) {
     k.with(() => { g.globalCompositeOperation = 'screen'; for (const l of L.lights) k.glow(l.x, l.y, l.reach, l.c, l.power); });
     const vg = g.createRadialGradient(W / 2, H / 2, W * 0.32, W / 2, H / 2, W * 0.62); vg.addColorStop(0, 'rgba(6,4,3,0)'); vg.addColorStop(1, `rgba(6,4,3,${L.shade})`); k.rect(0, 0, W, H, vg);
   }
-  // back into pixels: painted fine, then shrunk to the backdrop's grid and its colours stepped down to a small
-  // palette, so it sits with the sprites in front of it
-  const P = ARENA_PX, p = document.createElement('canvas'); p.width = W * P; p.height = H * P;
-  const pg = p.getContext('2d', { willReadFrequently: true }); pg.imageSmoothingQuality = 'high'; pg.drawImage(c, 0, 0, W * P, H * P);
+  // Sample the distant scene on a coarser grid, then restore the stage from a finer grid.
+  // Both samples come from the same finished painting, so their lighting and shadows agree.
+  const P = ARENA_PX, B = WORLD_BG_PX, p = document.createElement('canvas'); p.width = W * P; p.height = H * P;
+  const coarse = document.createElement('canvas'); coarse.width = W * B; coarse.height = H * B;
+  const cg = coarse.getContext('2d'); cg.imageSmoothingEnabled = true; cg.imageSmoothingQuality = 'high';
+  cg.drawImage(c, 0, 0, coarse.width, coarse.height);
+  const pg = p.getContext('2d', { willReadFrequently: true });
+  pg.imageSmoothingEnabled = false; pg.drawImage(coarse, 0, 0, p.width, p.height);
+  // The two ellipses cover the top and front wall of the actual fighting platform.
+  pg.save(); pg.setTransform(P, 0, 0, P, 0, 0); pg.beginPath();
+  pg.ellipse(CX, CY, R, RY, 0, 0, Math.PI * 2);
+  pg.moveTo(CX + R, CY + 7); pg.ellipse(CX, CY + 7, R, RY, 0, 0, Math.PI * 2);
+  pg.clip(); pg.setTransform(1, 0, 0, 1, 0, 0);
+  pg.imageSmoothingEnabled = true; pg.imageSmoothingQuality = 'high'; pg.drawImage(c, 0, 0, p.width, p.height);
+  pg.restore();
   const img = pg.getImageData(0, 0, W * P, H * P), d = img.data, q = 14;
   for (let i = 0; i < d.length; i += 4) { // brightness in bands, hue kept (stepping each channel alone tints the bands)
     const l = (d[i] + d[i + 1] + d[i + 2]) / 3 + 0.01, k = Math.max(q / 2, Math.round(l / q) * q) / l;

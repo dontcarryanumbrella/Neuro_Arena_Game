@@ -50,10 +50,6 @@
       <div class="encounter" id="encounter" hidden aria-live="polite"></div>
       <div class="max-view" id="maxView" hidden>
         <div class="max-head">Max speed: arena hidden. <span id="maxRate"></span></div>
-        <canvas id="bigChart"></canvas>
-      </div>
-    <div class="room-end" id="roomEnd" hidden></div>
-    <div class="chart-box" id="chartBox">
       <div class="chart-head">
         <label for="metric">Chart</label>
         <select id="metric">
@@ -67,8 +63,9 @@
         </select>
         <span class="legend"><i class="dot"></i>each life <i class="line"></i>average of last 25</span>
       </div>
-      <canvas id="chart"></canvas>
-    </div>
+        <canvas id="bigChart"></canvas>
+      </div>
+    <div class="room-end" id="roomEnd" hidden></div>
     <aside class="right" id="drawer" aria-live="polite">
     <section class="panel" id="portalPanel" hidden>
       <div class="panel-head"><h2>Portal</h2><button class="x" data-close title="Close (Esc)" aria-label="Close">✕</button></div>
@@ -318,6 +315,13 @@
   </div>
 </div>
 
+<div class="cutscene" id="cutscene" hidden role="dialog" aria-modal="true" aria-label="Ending">
+  <canvas id="cutCanvas" width="1024" height="576"></canvas>
+  <p class="cut-line" id="cutLine"></p>
+  <div class="cut-acts" id="cutActs"></div>
+  <button class="cut-skip" id="cutSkip">Skip ›</button>
+</div>
+
 <script src="js/sfx.js?v=20261101d"></script>
 <script src="js/agent.js?v=20261101d"></script>
 <script src="js/sim.js?v=20261101d"></script>
@@ -326,6 +330,8 @@
 <script src="js/render.js?v=20261101d"></script>
 <script src="js/arenas.js?v=20261101d"></script>
 <script src="js/swordfx.js?v=20261101d"></script>
+<script src="js/finale-arenas.js?v=20261101d"></script>
+<script src="js/ending.js?v=20261101d"></script>
 <script src="js/lobby.js?v=20261101d"></script>
 <script src="js/main.js?v=20261101d"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
