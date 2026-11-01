@@ -134,7 +134,7 @@ function renderKills() {
 
 function freshIdentity() {
   return { traits: Object.fromEntries(TRAITS.map(t => [t, 0])), lives: 0, awaken: null, special: null,
-    stage: 1, lands: 0, synthLands: 0, stableLives: 0, bossKills: {}, decay: 0, pair: null };
+    stage: 1, progress: {}, thirdChoice: null, lands: 0, synthLands: 0, stableLives: 0, bossKills: {}, decay: 0, pair: null };
 }
 
 // everything about the fighter besides its brain: what it has learned, its loadout, identity, talents, jade and skins
@@ -154,6 +154,8 @@ function applyProfile(saved) {
   state.race = { owned: raceOwned, equipped: raceOwned[raceSave.equipped] ? raceSave.equipped : 'unformed', pity: Math.max(0, Math.min(29, Number(raceSave.pity) || 0)), spins: Math.max(0, Number(raceSave.spins) || 0) };
   state.killCounts = Object.fromEntries(Object.entries(saved.killCounts || {}).filter(([t, n]) => ENEMY_TYPES[t] && n > 0));
   state.campaign = loadCampaign(saved.campaign, state.killCounts);
+  // Older saves have no lifetime death counter; recover only deaths present in their saved life history.
+  if (!saved.campaign || saved.campaign.deaths == null) state.campaign.deaths = (saved.lives || []).reduce((n, life) => n + (Array.isArray(life) && life[6] ? 1 : 0), 0);
   state.codexDirty = true;
   refreshLevel(false); // a different fighter: its level comes from its own record
   state.identity = freshIdentity();
@@ -162,7 +164,7 @@ function applyProfile(saved) {
     state.identity = { traits: Object.fromEntries(TRAITS.map(t => [t, +si.traits[t] || 0])), lives: si.lives || 0,
       awaken: AWAKENINGS[si.awaken] ? si.awaken : null, special: si.special && HERO_ABILITIES[si.special.primary] && HERO_ABILITIES[si.special.secondary] ? si.special : null,
       stage: Math.min(4, Math.max(1, si.stage || 1)), lands: si.lands || 0, synthLands: si.synthLands || 0, stableLives: si.stableLives || 0,
-      bossKills: si.bossKills || {}, decay: si.decay || 0, pair: si.pair && si.pair.every(t => HERO_ABILITIES[t]) ? si.pair : null, lastAwaken: si.lastAwaken || null };
+      progress: si.progress && typeof si.progress === "object" ? si.progress : {}, thirdChoice: HERO_ABILITIES[si.thirdChoice] ? si.thirdChoice : null, bossKills: si.bossKills || {}, decay: si.decay || 0, pair: si.pair && si.pair.every(t => HERO_ABILITIES[t]) ? si.pair : null, lastAwaken: si.lastAwaken || null };
   }
   if (state.identity.special && state.identity.special.stage >= 4) { state.identity.special.finale = chosenFinale(); state.identity.special.swordUpgrade = !!state.campaign.swordUpgrade; } // finales now come from the worlds
   const sk = saved.skins || {};
@@ -172,6 +174,12 @@ function applyProfile(saved) {
     owned: Object.fromEntries(Object.keys(st.owned || {}).filter(id => TALENT_BY_ID[id]).map(id => [id, 1])),
     equipped: (st.equipped || []).filter(id => TALENT_BY_ID[id]).reduce((eq, id) => (fitsSlots(id, eq) ? eq.concat(id) : eq), []), pity: st.pity || 0, spins: st.spins || 0,
   };
+  if (state.identity.special && state.identity.pair && state.identity.awaken) {
+    const id = state.identity;
+    if (!saved.identity.progress) id.progress[id.awaken] = { ...newSpecialProgress(), stage: id.stage };
+    id.stage = specialProgress(id, id.awaken).stage;
+    id.special = buildSpecial(id, knownByUse());
+  }
 }
 const packLife = l => [l.ret, l.kills, l.parries, l.breaks, l.dmgTaken, l.t, l.died].map(x => Math.round(x * 10) / 10);
 const unpackLife = a => ({ ret: a[0], kills: a[1], parries: a[2], breaks: a[3], dmgTaken: a[4], t: a[5], died: a[6] });
@@ -201,19 +209,24 @@ function validAgentJSON(o) {
 
 // The fighter as it is now, kept to be fought later (an earlier life, or the self that chose to stay): only what it
 // needs to fight, its brain in compact 16-bit form.
-const LIFE_MILESTONES = [50, 200, 500, 1000, 2000, 5000];
+const WORLD_MILESTONES = [1, 3, 5];
 function fighterSnapshot() {
   return JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON({ small: true, actorOnly: true }), fighter: state.cfg.fighter, loadout: state.loadout,
     talents: state.talents.equipped, race: state.race.equipped, identity: identityOpts(), skin: state.skins.equipped }));
 }
-function keepSnapshot() {
-  state.campaign.snapshots.push(fighterSnapshot());
-  state.campaign.snapshots = state.campaign.snapshots.slice(-6);
+// Worlds conquered before world snapshots existed: keep the fighter as it is now for the highest milestone passed.
+// Lower milestones it passed back then stay empty; a finale already under way keeps its opponents.
+function catchUpWorldSnapshot() {
+  const c = state.campaign, passed = WORLD_MILESTONES.filter(m => m <= c.order.length), top = passed[passed.length - 1];
+  if (!top || (c.run && c.run.world === 'bottom') || c.snapshots.some(s => s.worldMilestone === top)) return;
+  keepWorldSnapshot(c.order[top - 1], top);
+  c.snapshots.sort((a, b) => (a.worldMilestone || 0) - (b.worldMilestone || 0));
+  saveStore();
 }
-// A save that already passed a milestone without a snapshot of it (older saves) keeps one of the fighter as it is now.
-function catchUpSnapshot() {
-  const passed = LIFE_MILESTONES.filter(m => m <= (state.livesTotal || 0)), last = passed[passed.length - 1];
-  if (last && !state.campaign.snapshots.some(sn => sn.lives >= last)) { keepSnapshot(); saveStore(); }
+function keepWorldSnapshot(world, milestone) {
+  const c = state.campaign;
+  if (!WORLD_MILESTONES.includes(milestone) || c.snapshots.some(s => s.worldMilestone === milestone)) return;
+  c.snapshots.push({ ...fighterSnapshot(), worldMilestone: milestone, world });
 }
 // a brain saved in an older, larger form, made compact
 function compactBrain(agent) {
@@ -240,6 +253,14 @@ const metFoes = () => Object.keys(state.campaign.met).filter(isFoeType);
 function trainingRoster() {
   const picked = state.cfg.roster.filter(isMet);
   return picked.length ? picked : metFoes().filter(t => !ENEMY_TYPES[t].boss);
+}
+
+// Apply selection changes to the next wave of an ongoing fight.
+function refreshTrainingOpponents() {
+  const roster = trainingRoster();
+  for (const sim of [state.trainer && state.trainer.sim, ['watch', 'play'].includes(state.view.mode) && state.view.sim]) {
+    if (sim && sim.sc && sim.sc.custom) { sim.opts.roster = roster; sim.opts.atOnce = state.cfg.atOnce; }
+  }
 }
 
 function makeTrainingSim() {
@@ -333,18 +354,23 @@ function onLife(sim, ret) {
   const s = sim.stats;
   addExposure(sim, PAVILION_LEARN);
   scoreLoadout(sim, ret);
+  recordObservation(sim, 'train');
+  recordDeath(sim);
   state.lives.push({ ret, kills: s.kills, parries: s.parries, breaks: s.postureBreaks, dmgTaken: s.dmgTaken, t: sim.t, died: s.died });
   if (state.lives.length > 5000) state.lives.splice(0, state.lives.length - 5000);
   state.livesTotal = (state.livesTotal || 0) + 1;
   state.chartDirty = true;
   state.jade += s.bounty * TRAIN_JADE;
   countKills(sim);
+  recordSpecialProgress(sim, true);
+  const wasAwake = !!state.identity.awaken;
   updateIdentity(sim);
-  if (LIFE_MILESTONES.includes(state.livesTotal)) { keepSnapshot(); saveStore(); }
+  if (!wasAwake && state.identity.awaken) { refreshUnlocks(); toast("Identity unlocked at the Fireplace."); }
+  else refreshUnlocksSoon();
 }
 
 // ---------- identity: traits drift with every life; an awakening and a special grow out of them ----------
-const AWAKEN_AFTER = 20;
+const AWAKEN_AFTER = 2000;
 const clamp100 = v => Math.max(0, Math.min(100, v));
 
 function lifeTraits(s) {
@@ -365,28 +391,19 @@ function updateIdentity(sim) {
   id.lives++;
   const a = Math.max(0.04, 1 / id.lives); // settles slowly: a few odd lives can't change who it is
   for (const k of TRAITS) id.traits[k] += (now[k] - id.traits[k]) * a;
-  if (id.lives < AWAKEN_AFTER) return;
+  if (id.lives < AWAKEN_AFTER && !id.awaken) return; // fighters that awakened under the old threshold keep their identity
   // awakening: the strongest trait, unless the current one is still close
   const top = TRAITS.reduce((b, k) => (id.traits[k] > id.traits[b] ? k : b), TRAITS[0]);
   if (!id.awaken) { id.awaken = top; toast(`Awakening unlocked: ${AWAKENINGS[top].name}`); }
-  else if (top !== id.awaken && id.traits[top] > id.traits[id.awaken] + 8) { id.awaken = top; toast(`Its fighting changed. New awakening: ${AWAKENINGS[top].name}`); }
-  // special: its two most-used learned abilities (kept unless they fall out of its top three)
-  const s = sim.stats;
-  id.lands += s.specialLands || 0; id.synthLands += s.synthLands || 0;
-  for (const [b, n] of Object.entries(s.bossKills || {})) id.bossKills[b] = (id.bossKills[b] || 0) + n;
-  id.stableLives = id.lastAwaken === id.awaken ? id.stableLives + 1 : 0; id.lastAwaken = id.awaken;
+  else if (top !== id.awaken && id.traits[top] > id.traits[id.awaken] + 8) { if (specialProgress(id, id.awaken).stage === 3) specialProgress(id, id.awaken).stableLives = 0; id.awaken = top; toast(`Your fighting changed. New awakening: ${AWAKENINGS[top].name}`); }
   const known = knownByUse(), equipped = equippedPair();
   if (!equipped && known.length < 2) return;
   const had = id.special;
-  id.pair = equipped || (id.pair && known.slice(0, 3).includes(id.pair[0]) && known.slice(0, 3).includes(id.pair[1]) ? id.pair : [known[0], known[1]]); // the two it carries; its favourites only when it carries fewer
-  // its stage: climbs one step at a time, and slips back only after a long while out of shape
-  const want = stageReach(id, known);
-  if (want > id.stage) { id.stage++; id.decay = 0; toast(`Ultimate evolved: ${STAGE_NAMES[id.stage - 1]}`); }
-  else if (want < id.stage) { if (++id.decay >= 50) { id.stage--; id.decay = 0; toast(`Ultimate fell back to ${STAGE_NAMES[id.stage - 1]}`); } }
-  else id.decay = 0;
+  id.pair = equipped || (id.pair && known.slice(0, 3).includes(id.pair[0]) && known.slice(0, 3).includes(id.pair[1]) ? id.pair : [known[0], known[1]]);
+  id.stage = specialProgress(id, id.awaken).stage;
   id.special = buildSpecial(id, known);
   if (!had) toast('Ultimate Special forged: ' + id.special.name);
-  else if (had.name !== id.special.name && had.stage === id.special.stage) toast('Its special changed: ' + id.special.name);
+  else if (had.name !== id.special.name && had.stage === id.special.stage) toast('Your special changed: ' + id.special.name);
 }
 
 // its learned abilities, most used first
@@ -401,38 +418,74 @@ function reforgeSpecial() {
   const id = state.identity, pair = equippedPair();
   if (!id.awaken || !id.special || !pair || (id.pair && pair[0] === id.pair[0] && pair[1] === id.pair[1])) return;
   id.pair = pair; id.special = buildSpecial(id, knownByUse());
-  toast('Its special changed: ' + id.special.name);
+  toast('Your special changed: ' + id.special.name);
 }
 
 // ---------- the special's four stages ----------
 const STAGE_NAMES = ['Manifestation', 'Specialization', 'Synthesis', 'Transcendence'];
-const STAGE_RULES = { lands2: 10, lives3: 150, lives4: 400, stable4: 150, synth4: 25 };
+const STAGE_RULES = { lands2: 10, lives3: 5000, lives4: 10000, stable4: 200, synth4: 30, wins4: 3 };
 const roleOf = t => abFoe(t) && abFoe(t).role;
 
 // a third tradition: its most-used learned ability from a role the other two don't share
-function thirdOf(id, known) {
+function thirdCandidates(id) {
+  if (!id.pair || id.pair.length !== 2) return [];
   const [a, b] = id.pair;
-  if (roleOf(a) === roleOf(b)) return null;
-  return known.find(t => t !== a && t !== b && (state.abStats[t] || {}).uses >= 5 && roleOf(t) !== roleOf(a) && roleOf(t) !== roleOf(b)) || null;
+  return learned().filter(t => t !== a && t !== b);
+}
+// the player's pick, or else its most-used learned ability from a role neither of the first two shares
+function thirdOf(id, known = knownByUse()) {
+  const candidates = thirdCandidates(id);
+  if (candidates.includes(id.thirdChoice)) return id.thirdChoice;
+  const [a, b] = id.pair || [];
+  return known.find(t => candidates.includes(t) && roleOf(t) !== roleOf(a) && roleOf(t) !== roleOf(b)) || null;
 }
 
-function stageChecks(id, known) {
-  const third = thirdOf(id, known);
+// Progress belongs to an awakening, not the currently equipped ability pair.
+function newSpecialProgress() { return { stage: 1, lands: 0, lives3: 0, lives4: 0, synthLands: 0, stableLives: 0, closeWins: 0 }; }
+function specialProgress(id, awakening) {
+  id.progress ||= {};
+  const p = id.progress[awakening] || (id.progress[awakening] = newSpecialProgress());
+  for (const [k, v] of Object.entries(newSpecialProgress())) if (!Number.isFinite(p[k]) || p[k] < 0) p[k] = v;
+  p.stage = Math.min(4, Math.max(1, Math.floor(p.stage)));
+  return p;
+}
+function stageChecks(id, known = knownByUse()) {
+  const p = specialProgress(id, id.awaken), third = thirdOf(id, known), seals = Object.keys(state.campaign.seals || {}).length, worlds = (state.campaign.order || []).length;
   return {
-    2: [[`Special landed ${Math.min(id.lands, STAGE_RULES.lands2)}/${STAGE_RULES.lands2} times`, id.lands >= STAGE_RULES.lands2]],
-    3: [[`${Math.min(id.lives, STAGE_RULES.lives3)}/${STAGE_RULES.lives3} lives`, id.lives >= STAGE_RULES.lives3],
-        [third ? `Third tradition: ${abFoe(third).name}` : 'A third learned ability from a different role (5+ uses), and its two favourites from different roles', !!third]],
-    4: [[`${Math.min(id.lives, STAGE_RULES.lives4)}/${STAGE_RULES.lives4} lives`, id.lives >= STAGE_RULES.lives4],
-        [`Same awakening for ${Math.min(id.stableLives, STAGE_RULES.stable4)}/${STAGE_RULES.stable4} lives`, id.stableLives >= STAGE_RULES.stable4],
-        [`Synthesized special landed ${Math.min(id.synthLands, STAGE_RULES.synth4)}/${STAGE_RULES.synth4} times`, id.synthLands >= STAGE_RULES.synth4]],
+    2: [['Defeat a world boss', seals > 0 || p.stage >= 2], [`Special landed ${Math.min(p.lands, 10)}/10 times`, p.lands >= 10 || p.stage >= 2]],
+    3: [['Conquer a world', worlds > 0 || p.stage >= 3], [`Training lives since Specialization: ${Math.min(p.lives3, 5000)}/5000`, p.lives3 >= 5000 || p.stage >= 3],
+        [third ? `Third ability: ${abFoe(third).name}` : 'Choose a third ability, or use one (3+ uses) from a different role than the first two', !!third || p.stage >= 3]],
+    4: [[`Training lives since Synthesis: ${Math.min(p.lives4, 10000)}/10000`, p.lives4 >= 10000 || p.stage >= 4],
+        [`Same awakening for ${Math.min(p.stableLives, 200)}/200 consecutive training lives`, p.stableLives >= 200 || p.stage >= 4],
+        [`Synthesis special landed ${Math.min(p.synthLands, 30)}/30 times`, p.synthLands >= 30 || p.stage >= 4],
+        [`Wins after falling below 5% health: ${Math.min(p.closeWins, 3)}/3`, p.closeWins >= 3 || p.stage >= 4]],
   };
 }
-
-function stageReach(id, known) {
-  const c = stageChecks(id, known);
-  let n = 1;
-  for (const k of [2, 3, 4]) { if (c[k].every(x => x[1])) n = k; else break; }
-  return n;
+function stageReach(id) { return specialProgress(id, id.awaken).stage; }
+function recordSpecialProgress(sim, training) {
+  if (sim.specialProgressRecorded) return;
+  sim.specialProgressRecorded = true;
+  const awakening = sim.opts.identity && sim.opts.identity.awaken;
+  const special = sim.opts.identity && sim.opts.identity.special;
+  if (!awakening || !special || !AWAKENINGS[awakening]) return;
+  const id = state.identity, p = specialProgress(id, awakening), stage = p.stage, stats = sim.stats;
+  // A life or fight is credited only to the stage it started with.
+  if (stage === 1 && (special.stage || 1) === 1) p.lands += stats.specialLands || 0;
+  if (stage === 2 && training) p.lives3++;
+  if (stage === 3 && (special.stage || 1) >= 3) {
+    if (training) { p.lives4++; p.stableLives++; }
+    p.synthLands += stats.synthLands || 0;
+    if (stats.belowFive && !stats.died && stats.result === 'clear') p.closeWins++;
+  }
+  const proxy = { ...id, awaken: awakening };
+  const checks = stageChecks(proxy);
+  if (stage < 4 && checks[stage + 1].every(x => x[1])) {
+    p.stage++; toast(`Ultimate evolved: ${STAGE_NAMES[p.stage - 1]}`);
+  }
+  if (id.awaken === awakening) {
+    id.stage = p.stage;
+    if (id.pair) id.special = buildSpecial(id, knownByUse());
+  }
 }
 
 const SECOND_MOD = { aggression: 'extraCast', defense: 'lifesteal', mobility: 'blinkAll', precision: 'crit', endurance: 'tough', versatility: 'thirdCast' };
@@ -484,7 +537,7 @@ function renderIdentity() {
   }).join('');
   const A = id.awaken && AWAKENINGS[id.awaken], ac = $('awakenCard');
   ac.className = 'id-card' + (A ? '' : ' locked'); ac.style.borderLeftColor = A ? A.color : '';
-  ac.innerHTML = A ? `<div class="k">Awakening</div><div class="n" style="color:${A.color === '#c8ccd2' || A.color === '#bfffd8' ? '#555' : A.color}">${A.name}</div>${A.desc}. Lasts 8s when its gauge fills.`
+  ac.innerHTML = A ? `<div class="k">Awakening</div><div class="n" style="color:${A.color === '#c8ccd2' || A.color === '#bfffd8' ? '#555' : A.color}">${A.name}</div>${A.desc}. You awaken for 8 seconds when your gauge fills.`
     : `<div class="k">Awakening</div><div class="n">Locked</div>Appears after ${AWAKEN_AFTER} lives (${Math.min(id.lives, AWAKEN_AFTER)}/${AWAKEN_AFTER}).`;
   const S = id.special, sc = $('specialCard');
   sc.className = 'id-card' + (S ? '' : ' locked'); sc.style.borderLeftColor = S && A ? A.color : '';
@@ -492,16 +545,30 @@ function renderIdentity() {
     const stage = S.stage || 1, fin = { nova: 'crimson blast', tide: 'healing tide (answers what it soaked)', blitz: 'four-hit blitz', pierce: 'piercing shot', bulwark: 'iron shockwave', myriad: 'every equipped ability at once' }[AWAKENINGS[S.awaken].finisher];
     const rhythm = { aggression: 'a fast flurry', defense: 'a stance that soaks blows, then answers', mobility: 'blinking round the target', precision: 'a charge, then one perfect cut', endurance: 'slow casts and shockwaves', versatility: 'every form in turn' }[S.awaken];
     const chips = [S.primary, S.secondary, stage >= 3 && S.third].filter(Boolean).map(t => `<span>${abFoe(t).name}: ${HERO_ABILITIES[t].atk.id}</span>`);
-    if (stage >= 2) chips.push(...(S.mods || []).map(m => `<span style="background:#eef6ff">${MOD_TEXT[m]}</span>`));
-    if (stage >= 3) chips.push(...(S.fusion || []).map(f => `<span style="background:#f4ecff">${FUSION_TEXT[f]}</span>`));
-    if (stage >= 4) chips.push(`<span style="background:#fff4d6">finale: ${S.finale ? ENEMY_TYPES[S.finale].name + "'s power" : 'one enormous blast'}</span>`);
+    if (stage >= 2) chips.push(...(S.mods || []).map(m => `<span class="recipe-mod">${MOD_TEXT[m]}</span>`));
+    if (stage >= 3) chips.push(...(S.fusion || []).map(f => `<span class="recipe-fusion">${FUSION_TEXT[f]}</span>`));
+    if (stage >= 4) chips.push(`<span class="recipe-finale">finale: ${S.finale ? ENEMY_TYPES[S.finale].name + "'s power" : 'one enormous blast'}</span>`);
     chips.push(`<span>${fin}</span>`);
     const checks = stage < 4 ? stageChecks(id, learned().filter(t => (state.abStats[t] || {}).uses >= 3).sort((x, y) => state.abStats[y].uses - state.abStats[x].uses))[stage + 1] : null;
     sc.innerHTML = `<div class="k">Ultimate Special · stage ${stage} · ${STAGE_NAMES[stage - 1]}</div>${S.title ? `<div class="k" style="color:${A.color}">${S.title}</div>` : ''}<div class="n">${S.name}</div>
       Plays out as ${rhythm}; only while awakened.
       <div class="recipe">${chips.join('')}</div>
       ${checks ? `<div class="k" style="margin-top:8px">Next: ${STAGE_NAMES[stage]}</div>` + checks.map(([t, ok]) => `<div class="mini" style="margin:1px 0;color:${ok ? 'var(--accent)' : 'var(--muted)'}">${ok ? '✓' : '○'} ${t}</div>`).join('') : ''}`;
-  } else sc.innerHTML = `<div class="k">Ultimate Special</div><div class="n">Locked</div>${A ? 'Needs two learned abilities it actually uses (3+ uses each).' : 'Needs an awakening first.'}`;
+  } else sc.innerHTML = `<div class="k">Ultimate Special</div><div class="n">Locked</div>${A ? 'Needs two learned abilities you use (3+ uses each).' : 'Needs an awakening first.'}`;
+  const stages = $('identityStages');
+  const known = knownByUse();
+  const checks = id.pair && id.awaken ? stageChecks(id, known) : null;
+  stages.innerHTML = STAGE_NAMES.map((name, i) => {
+    const level = i + 1, unlocked = !!S && id.stage >= level;
+    const requirements = level === 1 ? [['Awakening and two learned abilities', !!S]] : checks ? checks[level] : [['Forge the special first', false]];
+    return `<div class="identity-stage"><b>${unlocked ? '✓' : '🔒'} ${level}. ${name}</b>${requirements.map(([text, ok]) => `<div class="mini">${ok ? '✓' : '○'} ${text}</div>`).join('')}</div>`;
+  }).join('');
+  const choice = $('thirdChoice'), candidates = thirdCandidates(id);
+  choice.disabled = !S || !candidates.length;
+  const current = candidates.includes(id.thirdChoice) ? id.thirdChoice : '';
+  const options = `<option value="">Automatic</option>` + candidates.map(t => `<option value="${t}">${abFoe(t).name}: ${HERO_ABILITIES[t].name}</option>`).join('');
+  if (choice.innerHTML !== options) choice.innerHTML = options;
+  if (document.activeElement !== choice) choice.value = current;
   renderFinales();
 }
 
@@ -512,7 +579,7 @@ function renderFinales() {
   fc.dataset.key = c.finales.join() + '|' + pick;
   fc.className = 'id-card' + (c.finales.length ? '' : ' locked');
   if (!c.finales.length) { fc.innerHTML = '<div class="k">Transcendence finale</div><div class="n">None yet</div>Each boss you defeat in the worlds for the first time unlocks its finale.'; return; }
-  fc.innerHTML = `<div class="k">Transcendence finale</div><div class="n">${ENEMY_TYPES[pick].name}'s power</div><div class="mini">Pick the finale its special ends with at Transcendence.</div><div class="finales">` +
+  fc.innerHTML = `<div class="k">Transcendence finale</div><div class="n">${ENEMY_TYPES[pick].name}'s power</div><div class="mini">Pick the finale your special ends with at Transcendence.</div><div class="finales">` +
     c.finales.map(b => `<button data-b="${b}" class="${b === pick ? 'on' : ''}">${ENEMY_TYPES[b].name}</button>`).join('') + '</div>';
   fc.querySelectorAll('button').forEach(btn => btn.onclick = () => {
     c.finaleChoice = btn.dataset.b;
@@ -529,6 +596,7 @@ function setAgent(agent) {
 }
 
 function setTraining(on) {
+  if (on && !unlocks().pavilion) return;
   if (on && (state.view.mode === 'campaign' || state.view.mode === 'lobby')) return; // training is started in the Memory Pavilion, not in a world or the lobby
   if (on && !trainingRoster().length) { toast('The Pavilion has nothing to reconstruct yet. Meet a foe in the worlds first: open the Portal.'); return; }
   state.training = on;
@@ -579,6 +647,7 @@ function lobbyInfo() {
 // walk to a station in the jar (or, away from the lobby, just open it)
 function visitStation(id) {
   const st = STATION_BY_ID[id];
+  if (!st || !unlocks()[id]) return;
   if (state.view.mode === 'lobby') lobby.go(st, () => openPanel(st.panel, true));
   else openPanel(st.panel, true);
 }
@@ -591,8 +660,8 @@ function newViewSim() {
   const seed = Math.floor(Math.random() * 1e9);
   const loadout = state.loadout, talents = state.talents.equipped, identity = identityOpts();
   if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
-    const snap = curRoom().kind === 'echo' ? state.campaign.previousSelf : state.campaign.snapshots[curRoom().snapshot];
-    const card = { ...snap, name: curRoom().kind === 'echo' ? 'The one in the black coat' : `Life ${snap.lives}`, agent: snap.agent };
+    const snap = roomSelf(curRoom());
+    const card = { ...snap, name: curRoom().kind === 'echo' ? 'The one in the black coat' : selfLabel(curRoom()).replace(/^./, ch => ch.toUpperCase()), agent: snap.agent };
     v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped, battle: { timeLimit: 180, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
     const echo = v.sim.heroes.find(h => h.team === 1);
     echo.brain = PPOAgent.fromJSON(snap.agent); echo.discarded = curRoom().kind === 'iteration'; echo.guardianEcho = curRoom().kind === 'echo';
@@ -612,7 +681,7 @@ function newViewSim() {
   renderer.reset();
   if (v.mode === 'campaign' && curRoom() && curRoom().kind === 'iteration') { // what you were, once: its life, and how far it had come
     const room = curRoom(), n = state.campaign.run.rooms.filter(r => r.kind === 'iteration').indexOf(room);
-    renderer.banner = { kicker: 'A DISCARDED ITERATION', text: `LIFE ${state.campaign.snapshots[room.snapshot].lives}`, lore: ITERATION_LINES[Math.min(n, ITERATION_LINES.length - 1)], color: '#b8b4ae', life: 3.4 };
+    renderer.banner = { kicker: 'A DISCARDED ITERATION', text: selfLabel(room).toUpperCase(), lore: ITERATION_LINES[Math.min(n, ITERATION_LINES.length - 1)], color: '#b8b4ae', life: 3.4 };
   }
 }
 
@@ -752,6 +821,9 @@ function loadCampaign(saved, killCounts) {
     for (const t of Object.keys(killCounts)) if (isFoeType(t)) c.met[t] = 1;
     return c;
   }
+  c.unlocks = Object.fromEntries(['pavilion', 'hearth', 'altar', 'mirror'].filter(k => saved.unlocks && saved.unlocks[k] === true).map(k => [k, true]));
+  c.observations = keepObservations((Array.isArray(saved.observations) ? saved.observations : []).filter(x => x && typeof x.context === 'string' && Number.isFinite(x.seconds) && x.ranged && Array.isArray(x.foes)));
+  c.deaths = Math.max(0, Number(saved.deaths) || 0);
   c.met = known(saved.met); c.kills = known(saved.kills);
   c.worlds = Object.fromEntries(Object.entries(saved.worlds || {}).filter(([id]) => WORLD_BY_ID[id]));
   c.seals = Object.fromEntries(Object.keys(saved.seals || {}).filter(b => ALL_SEALS.includes(b)).map(b => [b, 1]));
@@ -761,15 +833,18 @@ function loadCampaign(saved, killCounts) {
   c.fragments = (saved.fragments || []).filter(f => f && FRAGMENTS[f.key] && WORLD_BY_ID[f.world]);
   if (!saved.fragments) for (const id of c.order) c.fragments.push({ key: nextFragment(c, WORLD_BY_ID[id]), world: id }); // conquered before memories returned
   c.blackSeaArrivalSeen = !!saved.blackSeaArrivalSeen || !!(c.worlds.blacksea && (c.worlds.blacksea.runs || Object.keys(c.worlds.blacksea.rooms || {}).length)) || c.order.includes('blacksea') || !!(saved.run && saved.run.world === 'blacksea');
-  c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives)).slice(-6)
+  // Keep an in-progress finale's existing opponents stable; otherwise retire old life-based snapshots.
+  const legacyFinale = saved.run && saved.run.world === 'bottom';
+  c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives) && (legacyFinale || WORLD_MILESTONES.includes(x.worldMilestone))).slice(-6)
     .map(x => ({ ...x, agent: compactBrain(x.agent) }));
   c.endingReady = !!saved.endingReady; c.endingSeen = !!saved.endingSeen;
   c.fourteenthPage = !!saved.fourteenthPage; c.swordUpgrade = !!saved.swordUpgrade;
   c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? { ...saved.previousSelf, agent: compactBrain(saved.previousSelf.agent) } : null;
+  c.finalVictorySnapshot = saved.finalVictorySnapshot && validAgentJSON(saved.finalVictorySnapshot.agent) ? { ...saved.finalVictorySnapshot, agent: compactBrain(saved.finalVictorySnapshot.agent) } : null;
   c.cycleHistory = Array.isArray(saved.cycleHistory) ? saved.cycleHistory.filter(Number.isFinite).slice(-100) : [];
   c.cycle = saved.cycle || 0;
   const r = saved.run;
-  if (r && WORLD_BY_ID[r.world] && Array.isArray(r.rooms) && r.rooms[r.idx] && r.rooms.every(rm => Array.isArray(rm.foes) && rm.foes.every(f => ENEMY_TYPES[foeType(f)]) && (rm.kind !== 'iteration' || Number.isInteger(rm.snapshot) && !!c.snapshots[rm.snapshot]) && (rm.kind !== 'echo' || !!c.previousSelf))) c.run = r;
+  if (r && WORLD_BY_ID[r.world] && Array.isArray(r.rooms) && r.rooms[r.idx] && r.rooms.every(rm => Array.isArray(rm.foes) && rm.foes.every(f => ENEMY_TYPES[foeType(f)]) && (!['iteration', 'echo'].includes(rm.kind) || !!roomSelf(rm, c)))) c.run = r;
   return c;
 }
 
@@ -825,15 +900,31 @@ function enterWorld(id) {
   }
 }
 
+// The saved fighter a finale room fights: one of this cycle's earlier selves, or the last cycle's victor.
+function roomSelf(room, c = state.campaign) {
+  if (room.previous || (room.kind === 'echo' && room.snapshot == null)) return c.previousSelf;
+  return Number.isInteger(room.snapshot) ? c.snapshots[room.snapshot] : null;
+}
+function selfLabel(room) {
+  const snap = roomSelf(room);
+  return room.previous ? 'the last cycle' : snap.worldMilestone ? `world ${snap.worldMilestone}` : `life ${snap.lives}`;
+}
+
 // The last path uses saved fighters when available; old saves simply begin at the keeper.
 function enterBottom() {
   const c = state.campaign;
   if (c.run && c.run.world !== 'bottom' && !confirm('Leave the current run? First-clear rewards stay earned.')) return;
   if (!c.run || c.run.world !== 'bottom') {
-    const rooms = c.snapshots.map((_, snapshot) => ({ kind: 'iteration', snapshot, foes: [], time: 180 }));
-    rooms.push({ kind: 'boss', boss: 'timeadmin', foes: [{ type: 'timeadmin', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 });
-    if (c.previousSelf) rooms.push({ kind: 'echo', foes: [], time: 240 });
-    else rooms.push({ kind: 'boss', boss: 'unknown', foes: [{ type: 'unknown', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 });
+    const iterations = c.snapshots.map((_, snapshot) => ({ kind: 'iteration', snapshot, foes: [], time: 180 }));
+    const keeper = { kind: 'boss', boss: 'timeadmin', foes: [{ type: 'timeadmin', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 };
+    let rooms;
+    if (!c.previousSelf) rooms = [...iterations, keeper, { kind: 'boss', boss: 'unknown', foes: [{ type: 'unknown', hp: 1 + c.cycle * 0.15, dmg: 1 + c.cycle * 0.15 }], time: 240 }];
+    else {
+      // New Game+: the last cycle's victor opens; this cycle's latest self (the fifth world's, when kept) waits in the coat at the end
+      const latest = iterations.pop();
+      rooms = latest ? [{ kind: 'iteration', previous: true, foes: [], time: 180 }, ...iterations, keeper, { kind: 'echo', snapshot: latest.snapshot, foes: [], time: 240 }]
+        : [keeper, { kind: 'echo', foes: [], time: 240 }];
+    }
     c.run = { world: 'bottom', rooms, idx: 0, cleared: [] };
   }
   startRoom();
@@ -858,8 +949,10 @@ function enterSummit() {
 function chooseStay() {
   const old = state.campaign;
   if (!old.fourteenthPage || !old.endingReady) return;
-  const echo = fighterSnapshot();
+  // Older saves that already reached the ending have no recorded victory snapshot.
+  const echo = old.finalVictorySnapshot || fighterSnapshot();
   const next = freshCampaign();
+  next.unlocks = { ...unlocks() }; next.deaths = old.deaths || 0;
   next.cycle = old.cycle + 1; next.previousSelf = echo;
   next.finales = old.finales.slice(); next.finaleChoice = old.finaleChoice; next.swordUpgrade = old.swordUpgrade;
   next.met = { ...old.met }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
@@ -924,7 +1017,9 @@ function showRoomEnd() {
   const rr = state.view.roomResult || {}, box = $('roomEnd'), r = state.campaign.run;
   const acts = [];
   if (!rr.cleared && curRoom()) acts.push(['retry', 'Retry room · R', 'primary']);
-  if (rr.cleared && r && r.cleared[r.idx]) acts.push(['next', 'Next room · N', 'primary'], ['abilities', 'Abilities'], ['talents', 'Talents']);
+  if (rr.cleared && r && r.cleared[r.idx]) acts.push(['next', 'Next room · N', 'primary']);
+  if (unlocks().hearth) acts.push(['abilities', 'Abilities']);
+  if (unlocks().altar) acts.push(['talents', 'Talents']);
   acts.push(['lobby', 'Return to the jar · Esc']);
   box.innerHTML = acts.map(([a, label, cls]) => `<button data-a="${a}" class="${cls || ''}">${label}</button>`).join('');
   box.querySelectorAll('button').forEach(b => { b.onclick = () => roomEndAction(b.dataset.a); });
@@ -960,6 +1055,8 @@ function leaveRun() {
 function meetFoes(room) {
   const c = state.campaign, fresh = [...new Set(room.foes.map(foeType))].filter(t => !c.met[t]);
   for (const t of fresh) c.met[t] = 1;
+  refreshUnlocks();
+  saveStore();
   if (!fresh.length) return 0;
   const w = WORLD_BY_ID[c.run.world], box = $('encounter');
   box.innerHTML = `<div class="enc-k">${fresh.length > 1 ? 'New enemies' : 'New enemy'}</div>` + fresh.slice(0, 3).map(t => {
@@ -1015,7 +1112,9 @@ function finishRoom(sim) {
     if (v.roomResult.last) {
       rec.runs = (rec.runs || 0) + 1;
       if (rec.runs === 1) {
-        c.order.push(w.id); toast(w.id === 'blacksea' ? 'Passage cleared: Black Sea' : `World conquered: ${w.name}`);
+        c.order.push(w.id);
+        keepWorldSnapshot(w.id, c.order.length);
+        toast(w.id === 'blacksea' ? 'Passage cleared: Black Sea' : `World conquered: ${w.name}`);
         const key = nextFragment(c, w);
         c.fragments.push({ key, world: w.id });
         showMemory(w.id, key);
@@ -1048,12 +1147,12 @@ function renderPortal() {
   if (r) {
     const w = WORLD_BY_ID[r.world], room = r.rooms[r.idx], here = state.view.mode === 'campaign';
     const nodes = r.rooms.map((rm, i) => `<span class="rnode${rm.kind === 'boss' ? ' boss' : ''}${r.cleared[i] ? ' done' : ''}${i === r.idx ? ' cur' : ''}" title="${rm.kind === 'boss' ? ENEMY_TYPES[rm.boss].name : rm.kind}">${rm.kind === 'boss' ? '◆' : i + 1}</span>`).join('');
-    const what = room.kind === 'echo' ? 'The one in the black coat' : room.kind === 'iteration' ? `Discarded iteration · life ${c.snapshots[room.snapshot].lives}` : room.kind === 'boss' ? `Boss: ${ENEMY_TYPES[room.boss].name}` : `${room.kind[0].toUpperCase() + room.kind.slice(1)}: ` + room.foes.map(f => (c.met[foeType(f)] ? ENEMY_TYPES[foeType(f)].name : '???') + (f.elite ? ' (elite)' : '')).join(', ');
+    const what = room.kind === 'echo' ? 'The one in the black coat' : room.kind === 'iteration' ? `Discarded iteration · ${selfLabel(room)}` : room.kind === 'boss' ? `Boss: ${ENEMY_TYPES[room.boss].name}` : `${room.kind[0].toUpperCase() + room.kind.slice(1)}: ` + room.foes.map(f => (c.met[foeType(f)] ? ENEMY_TYPES[foeType(f)].name : '???') + (f.elite ? ' (elite)' : '')).join(', ');
     rc.innerHTML = `<div class="run-card" style="border-left-color:${w.color}"><div class="k">Run in progress</div><div class="n">${w.name}</div><div class="rnodes">${nodes}</div>` +
       `<div class="mini">Room ${r.idx + 1} of ${r.rooms.length}. ${what}</div><div class="btns">` +
       (r.cleared[r.idx] ? '<button class="primary" data-act="next">Next room</button>' : `<button class="primary" data-act="fight">${here ? 'Restart room' : 'Fight room ' + (r.idx + 1)}</button>`) +
       '<button data-act="leave">Leave run</button><button data-p="abilitiesSection">Abilities</button><button data-p="talentSection">Talents</button></div></div>';
-    rc.querySelectorAll('[data-p]').forEach(b => { b.onclick = () => openPanel(b.dataset.p, true); });
+    rc.querySelectorAll('[data-p]').forEach(b => { b.hidden = !panelUnlocked(b.dataset.p); b.onclick = () => openPanel(b.dataset.p, true); });
     rc.querySelector('[data-act="leave"]').onclick = () => { if (confirm('Leave this run? Rooms you cleared for the first time stay cleared.')) leaveRun(); };
     const go = rc.querySelector('[data-act="next"], [data-act="fight"]');
     go.onclick = () => (go.dataset.act === 'next' ? nextRoom() : startRoom());
@@ -1063,7 +1162,7 @@ function renderPortal() {
   list.innerHTML = '';
   if (broken === ALL_SEALS.length) {
     const el = document.createElement('div'); el.className = 'world-card';
-    el.innerHTML = `<div class="wc-head"><b>The Bottom of the Jar</b></div><div class="wc-blurb">The last seal has burned away. The door is within reach.</div><div class="wc-foot"><span class="mini">${c.endingReady ? (c.previousSelf ? 'The one in the coat has fallen.' : 'Yun Xi has fallen.') : c.snapshots.length ? 'The clay holds earlier versions of your fighter.' : 'No earlier lives were preserved. The keeper waits below.'}</span><button>${c.endingReady ? 'Stand at the door' : 'Enter'}</button></div>`;
+    el.innerHTML = `<div class="wc-head"><b>The Bottom of the Jar</b></div><div class="wc-blurb">The last seal has burned away. The door is within reach.</div><div class="wc-foot"><span class="mini">${c.endingReady ? (c.previousSelf ? 'The one in the coat has fallen.' : 'Yun Xi has fallen.') : c.snapshots.length ? 'The clay holds earlier versions of you.' : 'No earlier lives were preserved. The keeper waits below.'}</span><button>${c.endingReady ? 'Stand at the door' : 'Enter'}</button></div>`;
     el.querySelector('button').onclick = () => c.endingReady ? showDoorEnding() : enterBottom();
     list.appendChild(el);
     const peak = document.createElement('div'); peak.className = 'world-card';
@@ -1112,10 +1211,6 @@ function renderCodex() {
         (CODEX_LORE[t] ? `<span class="cx-lore">${CODEX_LORE[t]}</span>` : '') +
         `<span class="cx-t"><i>${d.passive[0]}:</i> ${d.passive[1]}</span><span class="cx-t"><i>${d.active[0]}:</i> ${d.active[1]}</span></span>`;
       try { row.querySelector('.cx-ic').appendChild(spriteIcon(t)); } catch (e) { /* no icon */ }
-      const spar = document.createElement('button');
-      spar.className = 'cx-spar'; spar.textContent = 'spar'; spar.title = `Watch your fighter against ${d.name} (a memory: no rewards)`;
-      spar.onclick = () => setMode('spar', t);
-      row.appendChild(spar);
       wrap.appendChild(row);
     }
   }
@@ -1157,13 +1252,18 @@ function updateView(dt) {
       if (v.mode !== 'play' && v.mode !== 'battle' && !v.sim.battle) {
         addExposure(v.sim, v.mode === 'campaign' ? 1 : PAVILION_LEARN);
         recordAbilityPractice(v.sim);
+        recordObservation(v.sim, v.mode);
       }
       if (!v.paid) {
         v.paid = true;
         // only the worlds pay: battles, sparring, trials and play are memories
         countKills(v.sim, v.mode === 'campaign');
+        if (v.mode !== 'battle') recordDeath(v.sim);
         if (v.mode === 'campaign') finishRoom(v.sim);
-        else saveStore();
+        if (v.mode !== 'battle') recordSpecialProgress(v.sim, false);
+        refreshUnlocks();
+        if (v.mode === 'campaign' && v.roomResult && v.roomResult.worldId === 'bottom' && v.roomResult.worldDone) state.campaign.finalVictorySnapshot = fighterSnapshot();
+        saveStore();
       }
       v.overlay = resultOverlay(v.sim);
       if (v.mode === 'campaign') showRoomEnd();
@@ -1202,20 +1302,21 @@ function updateView(dt) {
 
 function refreshHint() {
   const v = state.view, h = $('viewHint');
-  if (v.mode === 'lobby') h.innerHTML = state.training ? 'Your fighter keeps training in the Memory Pavilion while you walk the jar.' : 'The inside of the jar. Click a station, or use the buttons above.';
-  else if (v.mode === 'train') h.innerHTML = state.training ? '' : 'Press <b>Start training</b> (or <kbd>T</kbd>) and the fighter starts learning.';
-  else if (v.mode === 'watch') h.textContent = 'The fighter plays without learning.';
+  if (v.mode === 'lobby') h.innerHTML = state.training ? 'You keep training in the Memory Pavilion while you explore the jar.' : 'The inside of the jar. Click a station, or use the buttons above.';
+  else if (v.mode === 'train') h.innerHTML = state.training ? '' : 'Press <b>Start training</b> (or <kbd>T</kbd>) and you start learning.';
+  else if (v.mode === 'watch') h.textContent = 'Watch yourself fight without learning.';
   else if (v.mode === 'play') h.innerHTML = '<kbd>WASD</kbd> move <kbd>J</kbd> strike <kbd>K</kbd> heavy <kbd>Space</kbd> guard <kbd>L</kbd> kick <kbd>Shift</kbd> roll <kbd>Q</kbd> <kbd>E</kbd> abilities <kbd>R</kbd> restart';
   else if (v.mode === 'trial') h.innerHTML = `Trial: <b>${SCENARIOS[v.trialId].name}</b>. ${SCENARIOS[v.trialId].desc}`;
   else if (v.mode === 'spar') h.innerHTML = `Sparring vs <b>${ENEMY_TYPES[v.sparType].name}</b> (no learning). <kbd>R</kbd> again.`;
   else if (v.mode === 'campaign') {
     const r = state.campaign.run;
-    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. Your fighter fights; coach it between rooms. When the room is over: <kbd>N</kbd> next room, <kbd>R</kbd> retry, <kbd>Esc</kbd> back to the jar` : 'Run complete. Open the <b>Portal</b> to choose the next destination.';
+    h.innerHTML = r ? `<b>${WORLD_BY_ID[r.world].name}</b>, room ${r.idx + 1} of ${r.rooms.length}. You fight each room; adjust your abilities between rooms. When the room is over: <kbd>N</kbd> next room, <kbd>R</kbd> retry, <kbd>Esc</kbd> back to the jar` : 'Run complete. Open the <b>Portal</b> to choose the next destination.';
   }
   else if (v.mode === 'battle') h.innerHTML = 'Battle. Set it up in the Battle section. <kbd>R</kbd> rematch' + (state.cfg.battle.slots.some(s => s.kind === 'you') ? '. You: <kbd>WASD</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>Space</kbd> <kbd>L</kbd> <kbd>Shift</kbd> <kbd>Q</kbd> <kbd>E</kbd>' : '.');
 }
 
 function setMode(mode, arg) {
+  if (['train', 'watch', 'play', 'spar', 'trial', 'battle'].includes(mode) && arg !== 'online' && !unlocks().pavilion) return;
   const v = state.view;
   v.mode = mode;
   v.trialId = mode === 'trial' ? arg : null;
@@ -1250,6 +1351,8 @@ function setSpeed(sp) {
 
 // Max speed on the training view swaps the arena for a big live chart.
 function refreshScreen() {
+  refreshUnlocks();
+  renderCoachNotes();
   const mode = state.view.mode, max = mode === 'train' && state.speed === 'max';
   $('game').hidden = max;
   $('maxView').hidden = !max;
@@ -1290,7 +1393,7 @@ function drawChart(cv) {
   const all = state.lives;
   if (all.length < 2) {
     g.fillStyle = '#a8997e'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('Each life the fighter lives adds a point here.', w / 2, h / 2);
+    g.fillText('Each life adds a point here.', w / 2, h / 2);
     return;
   }
   const first = Math.max(0, all.length - 3000);
@@ -1368,7 +1471,7 @@ function bindRange(id, get, set, fmt = v => v) {
 
 function buildSettings() {
   const c = state.cfg, L = state.cfg.learning;
-  bindRange('atOnce', () => c.atOnce, v => { c.atOnce = v; });
+  bindRange('atOnce', () => c.atOnce, v => { c.atOnce = v; refreshTrainingOpponents(); });
   bindRange('episode', () => c.episode, v => { c.episode = v; }, v => v + 's');
   bindRange('learnAfter', () => c.learnAfter, v => { c.learnAfter = v; state.abilitiesDirty = true; }, v => v + 's');
 
@@ -1387,7 +1490,7 @@ function buildSettings() {
     startOver();
   });
   $('resetAgent').addEventListener('click', () => {
-    if (confirm('Forget everything the fighter has learned (its abilities, identity and special) and clear the chart? Talents, jade and skins are kept.')) startOver();
+    if (confirm('Forget everything you have learned (your abilities, identity and special) and clear the chart? Talents, jade and skins are kept.')) startOver();
   });
 
   buildFoes();
@@ -1439,6 +1542,7 @@ function startOver() {
   setAgent(new PPOAgent(state.cfg.learning, Math.floor(Math.random() * 1e9)));
   state.lives = []; state.livesTotal = 0; state.chartDirty = true;
   state.mastery = {}; state.abStats = {}; state.loadout = [null, null];
+  state.campaign.observations = [];
   state.campaign.snapshots = []; // a reset begins a new fighter's history
   if (state.campaign.run && state.campaign.run.world === 'bottom') state.campaign.run = null;
   state.identity = freshIdentity(); // a new fighter: no awakening, no special, until it earns them again
@@ -1485,6 +1589,7 @@ function buildFoes() {
       const set = new Set(state.cfg.roster);
       grp.types.forEach(t => all.checked ? set.add(t) : set.delete(t));
       state.cfg.roster = [...set];
+      refreshTrainingOpponents();
       buildFoes(); saveStore();
     });
     head.append(all, document.createTextNode(grp.title));
@@ -1502,12 +1607,10 @@ function buildFoes() {
         const r = state.cfg.roster.filter(t => t !== type);
         if (e.target.checked) r.push(type);
         state.cfg.roster = r;
+        refreshTrainingOpponents();
         buildFoes(); saveStore();
       });
-      const spar = document.createElement('button');
-      spar.textContent = 'spar'; spar.title = `Watch the fighter vs ${ENEMY_TYPES[type].name}`;
-      spar.addEventListener('click', () => setMode('spar', type));
-      el.append(lab, spar);
+      el.append(lab);
       grid.appendChild(el);
     }
     box.appendChild(grid);
@@ -1874,11 +1977,13 @@ const PANEL_KEY = 'neuroArena.panel';
 const PANEL_PARENT = {
   foesPanel: 'pavilionPanel', rewardsPanel: 'pavilionPanel', learningPanel: 'pavilionPanel', brainSection: 'pavilionPanel',
   battleSection: 'pavilionPanel', trialsPanel: 'pavilionPanel', codexPanel: 'pavilionPanel',
-  fighterPanel: 'tallyPanel', abilitiesSection: 'tallyPanel', identitySection: 'tallyPanel', killsSection: 'tallyPanel',
+  fighterPanel: 'tallyPanel', killsSection: 'tallyPanel',
+  abilitiesSection: 'hearthPanel', identitySection: 'hearthPanel', raceSection: 'mirrorPanel', skinSection: 'mirrorPanel',
 };
-const HUB_NAME = { pavilionPanel: 'Memory Pavilion', tallyPanel: 'Tally Wall' };
+const HUB_NAME = { pavilionPanel: 'Memory Pavilion', tallyPanel: 'Tally Wall', hearthPanel: 'Fireplace', mirrorPanel: 'Mirror' };
 
 function openPanel(id, force) {
+  if (id && !panelUnlocked(id)) return;
   const cur = document.querySelector('#drawer .panel:not([hidden])');
   const next = cur && cur.id === id && !force ? null : id; // clicking the open one closes it
   document.querySelectorAll('#drawer .panel').forEach(el => { el.hidden = el.id !== next; });
@@ -1902,6 +2007,7 @@ function openPanel(id, force) {
 }
 
 function renderPavilion() {
+  renderCoachNotes();
   const n = metFoes().length;
   $('pavMet').textContent = n ? `It can reconstruct ${n} foe${n > 1 ? 's' : ''} you have met.` : 'Nothing to reconstruct yet: meet foes in the worlds first.';
 }
@@ -1933,6 +2039,12 @@ function bindMemory() {
 
 function bindPanels() {
   bindMemory();
+  $('thirdChoice').addEventListener('change', e => {
+    const id = state.identity;
+    id.thirdChoice = thirdCandidates(id).includes(e.target.value) ? e.target.value : null;
+    if (id.special && id.pair) id.special = buildSpecial(id, knownByUse());
+    saveStore(); renderIdentity();
+  });
   $('raceSpin').addEventListener('click', spinRace);
   document.querySelectorAll('#dock button').forEach(b => b.addEventListener('click', () => (b.dataset.station ? visitStation(b.dataset.station) : openPanel(b.dataset.panel))));
   document.querySelectorAll('.hub button[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, true)));
@@ -1948,7 +2060,7 @@ function bindPanels() {
     head.insertBefore(back, head.firstChild);
   }
   document.querySelectorAll('#drawer [data-close]').forEach(b => b.addEventListener('click', () => openPanel(b.closest('.panel').id)));
-  $('jadeBal').addEventListener('click', () => { if ($('talentSection').hidden) openPanel('talentSection'); });
+  $('jadeBal').addEventListener('click', () => openPanel(unlocks().altar ? 'talentSection' : 'mirrorPanel', true));
   window.addEventListener('keydown', e => {
     if (e.code !== 'Escape') return;
     const cur = document.querySelector('#drawer .panel:not([hidden])');
@@ -2013,13 +2125,14 @@ function boot() {
     if (pair.length === 2) {
       state.loadout = pair; state.identity.pair = pair;
       state.identity.awaken = state.identity.awaken || TRAITS[0];
-      Object.assign(state.identity, { stage: 4, lives: 400, lands: 10, synthLands: 25, stableLives: 150 });
+      Object.assign(state.identity, { stage: 4, lives: 15000 });
+      state.identity.progress[state.identity.awaken] = { ...newSpecialProgress(), stage: 4, lands: 10, lives3: 5000, lives4: 10000, synthLands: 30, stableLives: 200, closeWins: 3 };
       state.identity.special = buildSpecial(state.identity, knownByUse());
     }
     saveStore();
   }
   refreshLevel(false);
-  catchUpSnapshot();
+  catchUpWorldSnapshot();
 
   // each panel is built on its own: one that trips over an odd save must not stop the fighter from training or fighting
   const safely = (what, fn) => { try { fn(); } catch (e) { console.error(what, e); toast(`Couldn't build ${what}: ${e.message}`); } };
@@ -2136,3 +2249,76 @@ function boot() {
 }
 
 boot();
+
+
+function unlocks() {
+  return stationAccess(state.campaign, learned().length > 0,
+    state.talents.spins > 0 || Object.keys(state.talents.owned).length > 0,
+    state.race.spins > 0 || Object.keys(state.skins.owned).some(k => k !== 'classic') || Object.keys(state.race.owned).some(k => k !== 'unformed'));
+}
+function panelUnlocked(id) {
+  if (id === 'identitySection' && state.identity.lives < AWAKEN_AFTER && !state.identity.awaken) return false;
+  const root = PANEL_PARENT[id] || id;
+  const station = STATIONS.find(s => s.panel === root);
+  return !station || !!unlocks()[station.id];
+}
+function refreshUnlocks() {
+  const c = state.campaign, access = unlocks(), previous = c.unlocks || {};
+  c.unlocks = { ...previous, ...access };
+  document.querySelectorAll('button[data-panel], button[data-p]').forEach(b => {
+    b.hidden = !panelUnlocked(b.dataset.panel || b.dataset.p);
+  });
+  $('jadeBal').hidden = !access.altar && !access.mirror;
+  const cur = document.querySelector('#drawer .panel:not([hidden])');
+  if (cur && !panelUnlocked(cur.id)) {
+    cur.hidden = true; $('drawer').dataset.panel = '';
+    document.querySelector('.layout').classList.remove('panel-open');
+  }
+  lobby.setAccess(access);
+  for (const key of ['pavilion', 'hearth', 'altar', 'mirror']) {
+    if (previous[key] === false && access[key]) toast(`${STATION_BY_ID[key].name} unlocked`);
+  }
+}
+// Training checks every tenth life, and stops once every station is open.
+let unlockTick = 0;
+function refreshUnlocksSoon() {
+  const u = state.campaign.unlocks || {};
+  if (['pavilion', 'hearth', 'altar', 'mirror'].every(k => u[k]) || ++unlockTick % 10) return;
+  refreshUnlocks();
+}
+function recordDeath(sim) {
+  if (sim.deathRecorded) return;
+  sim.deathRecorded = true;
+  if (!sim.stats.died) return;
+  const c = state.campaign;
+  c.deaths = (c.deaths || 0) + 1;
+  if (c.deaths === 1000) saveStore();
+}
+function recordObservation(sim, mode) {
+  if (sim.observationRecorded || sim.battle) return;
+  sim.observationRecorded = true;
+  const c = state.campaign, entry = fightObservation(sim, mode);
+  entry.context = JSON.stringify([mode, entry.foes, sim.opts.fighter, sim.opts.loadout, sim.opts.talents, sim.opts.race, sim.opts.identity, sim.opts.timeLimit, sim.opts.atOnce, sim.opts.waves]);
+  c.observations = keepObservations([...(c.observations || []), entry]);
+  renderCoachNotes();
+}
+// Training adds an entry every life: keep only its latest ten (enough for a five-versus-five comparison) beside the other fights.
+const TRAIN_OBSERVATIONS = 10;
+function keepObservations(list) {
+  let train = list.filter(x => x.mode === 'train').length - TRAIN_OBSERVATIONS;
+  return list.filter(x => x.mode !== 'train' || train-- <= 0).slice(-60);
+}
+function renderCoachNotes() {
+  const notes = observationNotes(state.campaign.observations || []);
+  for (const id of ['coachNotes', 'pavilionNotes']) {
+    const box = $(id); if (!box) continue;
+    const content = notes.join('\n');
+    if (box.dataset.content !== content) {
+      box.dataset.content = content; box.replaceChildren();
+      const title = document.createElement('strong'); title.textContent = 'Fighter observations'; box.appendChild(title);
+      for (const note of notes) { const p = document.createElement('p'); p.textContent = note; box.appendChild(p); }
+    }
+  }
+  const box = $('coachNotes');
+  if (box) box.hidden = !['train', 'watch', 'trial', 'campaign'].includes(state.view.mode) || !(state.campaign.observations || []).length;
+}

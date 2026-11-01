@@ -4,11 +4,11 @@
 // Each station: what it is, where it is clicked (screen rectangle), and where the fighter stands to use it.
 const STATIONS = [
   { id: 'portal', name: 'PORTAL', desc: 'Enter a world', panel: 'portalPanel', rect: [104, 26, 152, 84], at: [128, 92] },
-  { id: 'pavilion', name: 'MEMORY PAVILION', desc: 'Train, spar, simulate', panel: 'pavilionPanel', rect: [46, 44, 96, 86], at: [70, 94] },
-  { id: 'hearth', name: 'ANCESTRAL HEARTH', desc: 'Spin and choose a race', panel: 'raceSection', rect: [158, 48, 203, 104], at: [181, 105] },
+  { id: 'pavilion', name: 'MEMORY PAVILION', desc: 'Train, watch, simulate', panel: 'pavilionPanel', rect: [46, 44, 96, 86], at: [70, 94] },
+  { id: 'hearth', name: 'FIREPLACE', desc: 'Abilities and identity', panel: 'hearthPanel', rect: [158, 48, 203, 104], at: [181, 105] },
   { id: 'altar', name: 'TALENT ALTAR', desc: 'Talents and spins', panel: 'talentSection', rect: [166, 106, 196, 134], at: [160, 124] },
-  { id: 'mirror', name: 'MIRROR', desc: 'Skins', panel: 'skinSection', rect: [212, 46, 242, 88], at: [222, 98] },
-  { id: 'tally', name: 'TALLY WALL', desc: 'Level, abilities, identity', panel: 'tallyPanel', rect: [4, 26, 46, 80], at: [30, 98] },
+  { id: 'mirror', name: 'MIRROR', desc: 'Races and skin shop', panel: 'mirrorPanel', rect: [212, 46, 242, 88], at: [222, 98] },
+  { id: 'tally', name: 'TALLY WALL', desc: 'Level, kills, memories', panel: 'tallyPanel', rect: [4, 26, 46, 80], at: [30, 98] },
   { id: 'urns', name: 'MEMORY URNS', desc: 'Save and load fighters', panel: 'savePanel', rect: [18, 108, 58, 136], at: [52, 122] },
   { id: 'stone', name: 'RESONANCE STONE', desc: 'Other jars: online', panel: 'onlineSection', rect: [212, 106, 238, 138], at: [206, 126] },
   { id: 'lid', name: 'THE LID', desc: 'Fifteen seals', panel: 'portalPanel', rect: [80, 0, 176, 20], at: [128, 104] },
@@ -28,7 +28,16 @@ class Lobby {
     this.smoke = [];
     this.sparks = [];
     this.motes = Array.from({ length: 16 }, (_, i) => ({ x: (i * 53) % 256, y: 20 + (i * 37) % 100, s: 2 + (i % 5) }));
+    this.access = {};
     this.bg = this.bake();
+  }
+
+  setAccess(access) {
+    const key = JSON.stringify(access);
+    if (key === this.accessKey) return;
+    this.accessKey = key; this.access = access; this.bg = this.bake();
+    if (this.hover && !access[this.hover.id]) this.hover = null;
+    this.hero.then = null;
   }
 
   // the parts that never move: walls, floor, rug, the structures of the stations
@@ -80,6 +89,7 @@ class Lobby {
       const d = Math.hypot(x / (LID.rx + 3), y / (LID.ry + 3));
       if (d <= 1 && LID.y + y >= 0) px(LID.x + x, LID.y + y, d > 0.86 ? '#6b4a2f' : d > 0.78 ? '#4a3220' : (x * 3 + y) % 7 === 0 ? '#1a1410' : '#0c0908');
     }
+    if (this.access.pavilion) {
     // the Memory Pavilion: a small pavilion of red posts under a dark tiled roof
     rect(48, 82, 46, 3, '#2a1d14'); rect(50, 81, 42, 1, '#4a3220');
     for (const x of [54, 86]) { rect(x, 60, 3, 21, '#8f2416'); rect(x, 60, 1, 21, '#c23b22'); }
@@ -87,6 +97,8 @@ class Lobby {
     rect(46, 60, 4, 1, '#b8913c'); rect(92, 60, 4, 1, '#b8913c'); px(45, 59, '#e8c34a'); px(96, 59, '#e8c34a');
     rect(56, 51, 30, 1, '#b8913c'); rect(69, 47, 4, 4, '#b8913c'); px(70, 46, '#e8c34a');
     rect(57, 61, 28, 2, '#5a3a20');
+    }
+    if (this.access.hearth) {
     // the fireplace: a brick hearth set into the clay, a mantel with a teapot and a candle
     const hx = HEARTH.x, hy = HEARTH.y;
     // the chimney breast: bricks rising into the dark, fading as they go
@@ -113,16 +125,21 @@ class Lobby {
     rect(hx - 20, hy - 38, 6, 4, '#8a6a4a'); rect(hx - 19, hy - 39, 4, 1, '#a8825a'); px(hx - 14, hy - 37, '#8a6a4a'); px(hx - 21, hy - 37, '#8a6a4a');
     rect(hx - 11, hy - 36, 2, 2, '#d8cfb8'); rect(hx - 8, hy - 36, 2, 2, '#d8cfb8');
     rect(hx + 10, hy - 37, 4, 3, '#4f7a6a'); px(hx + 11, hy - 38, '#33544a');
+    }
+    if (this.access.altar) {
     // the Talent Altar, at the front: a low table, a bronze censer, candles
     const ax = ALTAR.x, ay = ALTAR.y;
     rect(ax - 13, ay - 9, 26, 3, '#6b4a2f'); rect(ax - 13, ay - 6, 26, 1, '#4a3220'); rect(ax - 11, ay - 5, 2, 6, '#4a3220'); rect(ax + 9, ay - 5, 2, 6, '#4a3220');
     rect(ax - 5, ay - 15, 10, 6, '#8f7438'); rect(ax - 4, ay - 15, 8, 1, '#c9a65a'); rect(ax - 6, ay - 16, 12, 1, '#b8913c');
     rect(ax - 10, ay - 12, 2, 3, '#ece4d2'); rect(ax + 8, ay - 12, 2, 3, '#ece4d2');
+    }
+    if (this.access.mirror) {
     // the Mirror: a round bronze mirror on a stand
     rect(225, 70, 2, 16, '#6b4a2f'); rect(219, 85, 14, 2, '#4a3220');
     for (let y = -10; y <= 10; y++) for (let x = -10; x <= 10; x++) {
       const d = Math.hypot(x, y);
       if (d <= 10) px(226 + x, 60 + y, d > 8.6 ? '#b8913c' : d > 7.8 ? '#8f7438' : (x - y) % 9 === 0 ? '#e8dcc4' : '#9a8670');
+    }
     }
     // the Memory Urns: three jars of different sizes, lids sealed
     const urn = (cx, base, w, h, body, dark) => {
@@ -140,12 +157,12 @@ class Lobby {
     }
     // shadows where things stand on the floor
     g.fillStyle = 'rgba(0,0,0,0.25)';
-    for (const [x, y, w] of [[71, 85, 50], [ax, ay + 1, 30], [226, 87, 16], [42, 134, 40], [226, 135, 16]]) g.fillRect(x - w / 2, y, w, 2);
+    for (const [x, y, w] of [[42, 134, 40], [226, 135, 16], ...(this.access.pavilion ? [[71, 85, 50]] : []), ...(this.access.altar ? [[ALTAR.x, ALTAR.y + 1, 30]] : []), ...(this.access.mirror ? [[226, 87, 16]] : [])]) g.fillRect(x - w / 2, y, w, 2);
     return c;
   }
 
   // a station under a point of the screen
-  hit(x, y) { return STATIONS.find(s => x >= s.rect[0] && x <= s.rect[2] && y >= s.rect[1] && y <= s.rect[3]) || null; }
+  hit(x, y) { return STATIONS.find(s => this.access[s.id] && x >= s.rect[0] && x <= s.rect[2] && y >= s.rect[1] && y <= s.rect[3]) || null; }
 
   // walk to a station, then do what it opens
   go(st, then) {
@@ -165,20 +182,21 @@ class Lobby {
     this.drawPortal(g, t, info.sea);
     // the pavilion reconstructs what you have met: one memory at a time, flickering
     const met = info.met;
-    if (met.length) {
+    if (this.access.pavilion && met.length) {
       const k = Math.floor(t / 3.2) % met.length, s = SPRITE_CACHE[spriteOf(met[k])];
       if (s) {
         const a = Math.min(1, (t % 3.2) / 0.5, (3.2 - t % 3.2) / 0.5) * (0.55 + 0.15 * Math.sin(t * 9));
         g.globalAlpha = a; g.drawImage(s.ghost, Math.round(71 - s.w / 2), 80 - s.h); g.globalAlpha = 1;
       }
     }
-    for (const [x, y] of [[55, 63], [87, 63]]) { // lanterns on the pavilion's posts
+    if (this.access.pavilion) for (const [x, y] of [[55, 63], [87, 63]]) { // lanterns on the pavilion's posts
       const f = Math.floor(t * 8 + x) % 3;
       g.fillStyle = 'rgba(232,140,60,0.14)'; g.fillRect(x - 5, y - 2, 11, 12);
       g.fillStyle = '#c23b22'; g.fillRect(x - 1, y, 4, 6); g.fillStyle = f ? '#e8703a' : '#f09050'; g.fillRect(x, y + 1, 2, 4);
     }
-    this.drawFire(g, t, flick);
+    if (this.access.hearth) this.drawFire(g, t, flick);
     this.drawHangingLanterns(g, t);
+    if (this.access.altar) {
     // incense from the altar, and its candles
     const ax = ALTAR.x, ay = ALTAR.y;
     if (Math.random() < dt * 6) this.smoke.push({ x: ax + (Math.random() - 0.5) * 3, y: ay - 17, life: 2.4 });
@@ -187,9 +205,10 @@ class Lobby {
     for (const s of this.smoke) { g.globalAlpha = Math.min(0.55, s.life / 2.4); px(Math.round(s.x), Math.round(s.y), '#c9bfa8'); }
     g.globalAlpha = 1;
     for (const x of [ax - 9, ax + 9]) { px(x, ay - 13, Math.sin(t * 11 + x) > 0 ? '#ffd27a' : '#f0a040'); g.fillStyle = 'rgba(255,190,90,0.12)'; g.fillRect(x - 3, ay - 16, 7, 6); }
+    }
     // the mirror catches a moving glint of firelight
     const gl = Math.floor((t * 12) % 40) - 10;
-    if (gl > -8 && gl < 8) for (let i = -2; i <= 2; i++) px(226 + gl + i, 60 - i - gl, '#fff0d0');
+    if (this.access.mirror && gl > -8 && gl < 8) for (let i = -2; i <= 2; i++) px(226 + gl + i, 60 - i - gl, '#fff0d0');
     // runes on the stone pulse when another jar is near
     const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
     g.fillStyle = `rgba(150,220,210,${0.3 + 0.5 * pulse})`;
@@ -203,12 +222,14 @@ class Lobby {
     g.globalAlpha = 1;
     this.drawUrnGlow(g, t);
     this.drawHero(dt, info.skin, info.race);
+    if (this.access.hearth) {
     // firelight over everything near the hearth, breathing with the flames
     g.save(); g.globalCompositeOperation = 'lighter';
     const fl = g.createRadialGradient(HEARTH.x, HEARTH.y - 6, 4, HEARTH.x, HEARTH.y - 6, 90);
     fl.addColorStop(0, `rgba(255,150,60,${0.22 * flick})`); fl.addColorStop(0.5, `rgba(200,90,30,${0.08 * flick})`); fl.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = fl; g.fillRect(0, 0, W, H);
     g.restore();
+    }
     // a soft dark edge, so the room closes in around the light
     const vg = g.createRadialGradient(128, 80, 70, 128, 80, 170);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(8,4,2,0.55)');

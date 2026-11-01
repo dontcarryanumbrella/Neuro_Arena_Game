@@ -458,3 +458,19 @@ details.note p, .right p { color: #d8ccb6; }
 /* The station bar is hidden during a campaign run. */
 .hud-top .dock[hidden], #game[hidden] { display: none; }
 .max-view .chart-head { padding: 0 12px; margin: 0; }
+
+/* Locked stations stay hidden even when their normal selector uses flex/grid. */
+[data-panel][hidden], [data-p][hidden], #jadeBal[hidden] { display: none !important; }
+.coach-notes { font: 13px/1.45 system-ui, sans-serif; color: #e5dac5; background: #19130f; border: 1px solid #5a4430; padding: 10px 14px; }
+.coach-notes strong { color: #efc97f; }
+.coach-notes p { margin: 5px 0 0; }
+#coachNotes { width: 100%; max-height: 145px; overflow-y: auto; }
+#coachNotes[hidden] { display: none; }
+
+.recipe span { color: var(--ink); }
+.recipe .recipe-mod, .recipe .recipe-fusion, .recipe .recipe-finale { color: #241a13; }
+.recipe .recipe-mod { background: #eef6ff; }
+.recipe .recipe-fusion { background: #f4ecff; }
+.recipe .recipe-finale { background: #fff4d6; }
+.identity-stage { padding: 6px 0; border-bottom: 1px solid #4a3a2a; }
+#thirdChoice { max-width: 100%; display: block; margin-top: 6px; }

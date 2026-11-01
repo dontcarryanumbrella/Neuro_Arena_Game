@@ -145,7 +145,7 @@ function doorBeats(echo) {
         her(g); cutSprite(g, 'hero', 128, 110);
         if (u > 0.6) { g.globalAlpha = (u - 0.6) * 1.2; g.fillStyle = '#fff6e0'; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
       } },
-    { dur: 4.5, line: 'The core rises from his chest.', sound: 'chime',
+    { dur: 4.5, line: 'The core rises from your chest.', sound: 'chime',
       draw(g, k, t, u) {
         cutJar(g, k, t, 1);
         k.poly([[90, 0], [166, 0], [248, H], [8, H]], 'rgba(255,244,214,0.38)');
@@ -173,7 +173,7 @@ function doorBeats(echo) {
         const cy = 110 - easeOut(u) * 70;
         k.line(128, 112, 128, cy, 'rgba(160,240,200,0.35)'); k.disc(128, cy, 2, '#7fe0a8'); k.px(128, cy, '#ffffff');
       } },
-    { dur: 4.5, line: 'His face flickers. For an instant, the hands of a clock move where his eyes were.',
+    { dur: 4.5, line: 'Your face flickers. For an instant, the hands of a clock move where your eyes were.',
       draw(g, k, t, u) {
         k.rect(0, 0, W, H, '#120a06'); k.poly([[100, 0], [156, 0], [190, H], [66, H]], 'rgba(255,236,190,0.06)');
         const gl = u > 0.35 && u < 0.92, jx = gl && Math.random() < 0.3 ? Math.round((Math.random() - 0.5) * 6) : 0;
@@ -192,7 +192,7 @@ function doorBeats(echo) {
         }
         if (gl) for (let i = 0; i < 6; i++) { const y = Math.floor(Math.random() * 100) + 14, h = 1 + Math.floor(Math.random() * 3), dx = Math.round((Math.random() - 0.5) * 14); g.drawImage(g.canvas, 90 * ARENA_S, y * ARENA_S, 80 * ARENA_S, h * ARENA_S, 90 + dx, y, 80, h); k.rect(90 + dx, y, 2, h, Math.random() < 0.5 ? 'rgba(80,220,230,0.6)' : 'rgba(255,60,90,0.6)'); }
       } },
-    { dur: 7, line: 'On the wall where he woke, one more mark.',
+    { dur: 7, line: 'On the wall where you woke, one more mark.',
       draw(g, k, t, u) {
         const n = tallyGroups(), at = tallyWall(g, k, n), [x, y] = at(n), m = Math.min(5, Math.floor(Math.max(0, u - 0.25) * 14));
         for (let j = 0; j < Math.min(4, m); j++) k.rect(x + j * 2, y, 1, 7, '#f0d8b0');
@@ -208,14 +208,14 @@ function doorBeats(echo) {
 // Ending two, the Sheathed Sword: he stays; she rests; her name is crossed out; someone else begins.
 function stayBeats(cycle) {
   return [
-    { dur: 4.5, line: 'He puts the sword down.', sound: 'gong',
+    { dur: 4.5, line: 'You put the sword down.', sound: 'gong',
       draw(g, k, t, u) {
         cutJar(g, k, t); cutSprite(g, 'b_yunxi', 98, 110, { crop: 3 });
         cutSprite(g, 'hero', 150, 110 + Math.round(easeOut(u) * 4), { flip: true, crop: Math.round(easeOut(u) * 2) });
         const v = Math.min(1, u * 1.6), sx0 = 150, sy0 = 92 + v * 22; // the sword, lowered to the clay
         k.line(sx0 - 10 * v, sy0, sx0 + 12, sy0 - 12 * (1 - v), '#dfe9f5'); k.rect(sx0 + 10, sy0 - 12 * (1 - v) - 1, 2, 3, '#c9a65a');
       } },
-    { dur: 5, line: 'Yun Xi leaves her coat beside him, and finally rests.', sound: 'chime',
+    { dur: 5, line: 'Yun Xi leaves her coat beside you, and finally rests.', sound: 'chime',
       draw(g, k, t, u) {
         cutJar(g, k, t);
         cutSprite(g, 'hero', 150, 114, { flip: true, crop: 2 }); k.line(140, 114, 162, 114, '#dfe9f5');
@@ -243,7 +243,7 @@ function stayBeats(cycle) {
         for (let i = 0; i < n; i++) { const x = 40 + (i % 5) * 4 + Math.floor(i / 5) * 30, y = 64 + (i % 2); k.line(x, y, x + 2, y + 9, '#8a9aa8'); if (i % 5 === 4) k.line(x - 17, y + 7, x + 3, y + 2, '#8a9aa8'); }
         if (n > 0) cutOnce('n' + n, () => sfx.play('snap'));
       } },
-    { dur: 4.5, line: `New Game+ ${cycle}. What he learned has soaked into the clay.`,
+    { dur: 4.5, line: `New Game+ ${cycle}. What you learned has soaked into the clay.`,
       draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE SHEATHED SWORD', 128, 70); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, u * 2)})`; g.fillText(`CYCLE ${cycle + 1}`, 128, 88); g.textAlign = 'left'; } },
   ];
 }

@@ -11,10 +11,10 @@ const FRAGMENTS = {
   o5: 'A word is carved beside the oldest marks: 蛊. A jar. Poisons sealed in together until one remains.',
   o6: 'The worlds were taken from somewhere else. In an old drawing scratched beside the gate, a line runs across dark water from one circle to another. Someone has marked the circles with names.',
   o7: 'You have seen the woman in the black coat before. She stood at the door, with her hand on it, and she did not open it.',
-  t: 'In the keeper\'s hand, a broken watch. Engraved on its back: your Lives, and a number you have not reached yet. It fought with your openings, and it learned them first. When the gate opens again, there is no road. Across black water, lights burn at distances he cannot judge. Then the familiar paths return, along with three he has never seen.',
+  t: 'In the keeper\'s hand, a broken watch. Engraved on its back: your Lives, and a number you have not reached yet. It fought with your openings, and it learned them first. When the gate opens again, there is no road. Across black water, lights burn at distances you cannot judge. Then the familiar paths return, along with three you have never seen.',
   h1: 'Under her tallies is a name, the only one in the jar that is not crossed out: 云汐. Yun Xi.',
   h2: 'The dice. You remember her teaching you to read them, in a life you do not remember living.',
-  h3: 'He has crossed the water and come back. The mark over his heart still aches when he reaches for the lid. The seals will not let it open yet.',
+  h3: 'You have crossed the water and come back. The mark over your heart still aches when you reach for the lid. The seals will not let it open yet.',
 };
 const FRAGMENT_TRACKS = { outer: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o7'], hidden: ['h1', 'h2', 'h3'] };
 
@@ -137,4 +137,4 @@ const CODEX_LORE = {
 };
 
 // A present observation, archived separately from the world-clear memories.
-const BLACK_SEA_ARRIVAL = 'The gate opens onto a narrow shore. There is water in every direction, and lights far out on it. Some stay still; others move. He turns to look back, but the gate has already closed. When he touches the mark over his heart, it is warm.';
+const BLACK_SEA_ARRIVAL = 'The gate opens onto a narrow shore. There is water in every direction, and lights far out on it. Some stay still; others move. You turn to look back, but the gate has already closed. When you touch the mark over your heart, it is warm.';

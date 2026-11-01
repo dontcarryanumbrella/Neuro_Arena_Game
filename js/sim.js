@@ -1612,7 +1612,11 @@ const SCENARIOS = {
     name: 'Open Duels', custom: true,
     wave: (n, opts, rand) => {
       const roster = opts.roster && opts.roster.length ? opts.roster : ['bandit'];
-      return Array.from({ length: opts.atOnce || 1 }, () => roster[Math.floor(rand() * roster.length)]);
+      const pool = [];
+      return Array.from({ length: opts.atOnce || 1 }, () => {
+        if (!pool.length) pool.push(...roster);
+        return pool.splice(Math.floor(rand() * pool.length), 1)[0];
+      });
     },
   },
   // a room of a world in the jar: its waves come with the sim (opts.waves), each foe a type or { type, hp, dmg } tuned for the campaign
@@ -1691,6 +1695,7 @@ class Sim {
       abilUses: {}, abilDmg: {}, bounty: 0, reach: 0,
       strikes: 0, heavies: 0, kicks: 0, rolls: 0, dist: 0, lowHpT: 0, guardT: 0, awakenings: 0, specials: 0, specialLands: 0, synthLands: 0, bossKills: {}, killsByType: {},
     };
+    this.observation = { foes: {}, ranged: {}, bosses: {} };
     this.input = new Float32Array(N_INPUTS);
     this.lastOut = new Float32Array(N_OUTPUTS);
     if (this.battle) this.setupBattle(opts.battle || { slots: [] });
@@ -1962,6 +1967,21 @@ class Sim {
     if (h.dead) return;
     if (h.frozenT > 0) { h.frozenT -= DT; return; } // caught in stopped time
     if (h === this.p) {
+      const ranged = {};
+      for (const e of this.enemies) if (!e.dead && this.active(e) && !this.friendlyToHero(e)) {
+        this.observation.foes[e.type] = 1;
+        if (e.def.boss && e.summoner == null) this.observation.bosses[e.type] = 1;
+        if (e.def.role === 'marksman' || (e.def.specials || []).some(a => ['shoot', 'lob'].includes(a.kind))) {
+          const close = Math.hypot(e.x - h.x, e.y - h.y) - e.r - h.r < BASE_MOVES.strike.range + 2;
+          ranged[e.type] = ranged[e.type] || close;
+        }
+      }
+      for (const [type, close] of Object.entries(ranged)) {
+        const v = this.observation.ranged[type] || (this.observation.ranged[type] = { time: 0, close: 0 });
+        v.time += DT;
+        if (close) v.close += DT;
+      }
+      if (h.hp > 0 && h.hp < h.maxHp * 0.05) this.stats.belowFive = true;
       if (h.hp < h.maxHp * 0.35) this.stats.lowHpT += DT;
       if (h.guard) this.stats.guardT += DT;
       const near = this.nearestEnemy(h);
@@ -2986,6 +3006,7 @@ class Sim {
     if (bound && t.hp - dmg < 1) { if (!t.broodSpent) this.emit('broodshield', t.x, t.y); t.broodSpent = true; } // the swarm will not let her die, but she has nothing left to give it
     dmg = Math.min(dmg, t.berserkT > 0 || bound ? Math.max(0, t.hp - 1) : t.hp); // the armor won't let you die
     t.hp -= dmg;
+    if (t === this.p && t.hp > 0 && t.hp < t.maxHp * 0.05) this.stats.belowFive = true;
     t.dmgIn += dmg;
     t.combo = 0;
     t.lastHurtT = this.t;
@@ -5079,7 +5100,7 @@ class Sim {
     if (f.def && f.def.conceptual) dmg = 1;
     if (f.def && f.def.broodBound && this.enemies.some(m => m.summoner === f.id && !m.dead && !m.def.inferior && !m.spilled)) dmg = Math.min(dmg, Math.max(0, f.hp - 1));
     if (by) { f.lastHitBy = by; by.dmgOut += dmg; }
-    f.hp -= dmg; f.dmgIn += dmg; f.lastHurtT = this.t;
+    f.hp -= dmg; if (f === this.p && f.hp > 0 && f.hp < f.maxHp * 0.05) this.stats.belowFive = true; f.dmgIn += dmg; f.lastHurtT = this.t;
     if (f === this.p) { if (!this.battle) this.stats.dmgTaken += dmg; }
     else if (!this.battle && !this.friendlyToHero(f)) this.stats.dmgDealt += dmg;
     this.emit('dot', f.x, f.y, { dmg: Math.round(dmg), kind });

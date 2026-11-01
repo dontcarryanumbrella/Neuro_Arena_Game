@@ -160,7 +160,7 @@ function recommendedLevel(w) {
 }
 
 function freshCampaign() {
-  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], fragments: [], blackSeaArrivalSeen: false, snapshots: [], endingReady: false, endingSeen: false, fourteenthPage: false, swordUpgrade: false, previousSelf: null, cycleHistory: [], run: null, cycle: 0 };
+  return { met: {}, kills: {}, worlds: {}, seals: {}, finales: [], finaleChoice: null, order: [], fragments: [], blackSeaArrivalSeen: false, snapshots: [], endingReady: false, endingSeen: false, fourteenthPage: false, swordUpgrade: false, previousSelf: null, finalVictorySnapshot: null, cycleHistory: [], run: null, cycle: 0 };
 }
 
 const worldVisible = (c, w) => !w.hidden || !!c.seals[HIDDEN_KEY_BOSS];
