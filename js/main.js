@@ -1196,7 +1196,7 @@ function refreshScreen() {
   $('lobbyBtn').hidden = mode === 'lobby';
   $('speedGroup').hidden = mode === 'lobby';
   $('pauseBtn').hidden = mode === 'lobby';
-  $('chartBox').hidden = mode !== 'train' && mode !== 'watch';
+  $('chartBox').hidden = (mode !== 'train' && mode !== 'watch') || max; // at Max the big chart takes the arena's place
   if (mode !== 'lobby') { lobby.hover = null; $('game').style.cursor = ''; }
   // effects are only collected while someone is watching the training fighter
   const sim = state.trainer.sim;

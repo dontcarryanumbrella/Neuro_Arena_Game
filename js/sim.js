@@ -3250,7 +3250,8 @@ class Sim {
     if (this.enemies.some(e => !this.friendlyToHero(e)) || this.rewinds.length) return;
     if (this.waveDelay > 0) { this.waveDelay -= DT; return; }
     const sc = this.sc;
-    const wave = sc.custom ? sc.wave(this.waveIdx, this.opts, this.rand) : (sc.waves || this.opts.waves || [])[this.waveIdx];
+    // in training, a boss felled ends the life as a win: the next one would start against whatever health was left
+    const wave = sc.custom && this.bossWave ? null : sc.custom ? sc.wave(this.waveIdx, this.opts, this.rand) : (sc.waves || this.opts.waves || [])[this.waveIdx];
     if (this.waveIdx > 0) this.stats.waves = this.waveIdx;
     if (!wave) {
       // credit the remaining time so finishing fast is never worse than stalling
@@ -3269,6 +3270,7 @@ class Sim {
     this.waveIdx++;
     this.waveDelay = 0.8;
     const b = wave.map(w => typeof w === 'string' ? w : w.type).find(t => ENEMY_TYPES[t].boss);
+    this.bossWave = !!b;
     this.emit('wave', 0, 0, { n: this.waveIdx, boss: b ? ENEMY_TYPES[b].name : null });
   }
 
