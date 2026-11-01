@@ -624,15 +624,51 @@ const WORLD_SCENES = {
       k.with(() => { k.g.shadowColor = '#9fd8ff'; k.g.shadowBlur = 4 * ARENA_S; k.line(-R, -R * 0.3, R, R * 0.3, '#eaf8ff', 0.9); });
       floorArt.speckle(k, rand, 60, ['rgba(255,255,255,0.6)'], 0.7);
     } },
-    bake(k, rand) { // above the clouds at night; the sky he split is still open
-      k.sky(0, 68, ['#02040c', '#060c1e', '#101c38', '#24365a']);
-      k.stars(rand, 140, 1, 62, ['#8a9ac8', '#e0e8ff', '#5a6a98', '#ffffff']);
+    bake(k, rand) { // the top of the world at night: ridge after ridge of granite going pale into the mist, a pine on its cliff, and the sky he split still open
+      k.sky(0, 70, ['#03051a', '#0a1236', '#1c2c62', '#41598f']);
+      k.glow(150, 18, 160, '#5a78c8', 0.22, 46); // the split's light, spread through the haze
+      k.stars(rand, 150, 1, 52, ['#8a9ac8', '#e0e8ff', '#5a6a98', '#ffffff']);
+      for (const [x, y, s] of [[34, 10, 3.2], [206, 44, 2.2], [98, 6, 2], [176, 4, 1.6]]) { // a few bright ones, with points
+        k.glow(x, y, s * 1.6, '#cfe0ff', 0.6); k.line(x - s, y, x + s, y, '#e8f0ff', 0.3); k.line(x, y - s, x, y + s, '#e8f0ff', 0.3); k.circle(x, y, 0.5, '#ffffff');
+      }
       // the split: a tear of light across the sky, glowing
       k.with(() => { k.g.shadowColor = '#9fd8ff'; k.g.shadowBlur = 14 * ARENA_S;
         k.g.beginPath(); k.g.moveTo(-4, 31); k.g.quadraticCurveTo(128, 17, 260, 7.4); k.g.quadraticCurveTo(128, 21.4, -4, 32.6); k.g.closePath(); k.g.fillStyle = '#dff4ff'; k.g.fill(); });
       k.with(() => { k.g.beginPath(); k.g.moveTo(-4, 31.4); k.g.quadraticCurveTo(128, 18.8, 260, 7.8); k.g.lineWidth = 0.4; k.g.strokeStyle = '#ffffff'; k.g.stroke(); });
-      for (const [x, h, w] of [[24, 18, 40], [66, 22, 44], [192, 20, 50], [236, 14, 40]]) k.mountain(rand, x, 68, w, h, '#1e2c44', '#3a4e70', '#c8d8f0', 1);
-      for (let i = 0; i < 24; i++) k.cloud(rand, rand() * W, 68 + rand() * 6, 24 + rand() * 26, 5 + rand() * 4, ['#1e2a44', '#2e4064', '#5a74a0'], 1);
+      const mist = (y0, y1, a) => k.rect(0, y0, W, y1 - y0, k.vgrad(y0, y1, ['rgba(140,166,226,0)', `rgba(140,166,226,${a})`, 'rgba(140,166,226,0)']));
+      // granite spires, narrow and tall, their moonlit faces toward the split
+      const spire = (x, base, w, h, body, lit) => {
+        k.poly([[x - w, base], [x - w * 0.55, base - h * 0.55], [x - w * 0.3, base - h], [x + w * 0.2, base - h * 0.96], [x + w * 0.5, base - h * 0.5], [x + w, base]], body);
+        k.poly([[x - w * 0.3, base - h], [x + w * 0.2, base - h * 0.96], [x + w * 0.5, base - h * 0.5], [x + w, base], [x + w * 0.35, base]], lit);
+      };
+      k.ridge(rand, 40, 14, 10, '#5d74a8', 70, true); // the farthest ranges, almost the colour of the sky
+      mist(30, 46, 0.4);
+      k.ridge(rand, 47, 12, 9, '#4f66a0', 70, true);
+      // far off on its own peak, a spire with something built on it, and a cold glint
+      spire(70, 50, 5, 28, '#4c629a', '#6a82b8'); k.rect(66.5, 21, 7, 1.4, '#3c5088'); k.poly([[67.5, 21], [70, 17.5], [72.5, 21]], '#3c5088'); k.rect(69.6, 10, 0.8, 8, '#3c5088');
+      k.glow(70, 11, 9, '#7fe8ff', 0.7, 2); k.line(62, 11, 78, 11, 'rgba(160,240,255,0.7)', 0.3);
+      mist(36, 54, 0.45);
+      k.ridge(rand, 55, 10, 8, '#3c5088', 70, true);
+      for (const [x, h, w] of [[22, 22, 7], [40, 15, 5], [118, 18, 6], [138, 26, 7], [160, 14, 5], [182, 20, 6]]) spire(x, 62, w, h, '#2e3e70', '#4c64a0');
+      mist(48, 66, 0.5);
+      // the sea of cloud the peaks stand in, its tops edged with the split's light
+      for (let i = 0; i < 16; i++) {
+        const x = (i * 17 + rand() * 10) % (W + 20) - 10, y = 63 + rand() * 6, w = 26 + rand() * 30, h = 5 + rand() * 3, seed = Math.floor(rand() * 1e6);
+        k.cloud(mulberry32(seed), x, y - 0.7, w, h, ['#c8d8ff', '#dce6ff', '#f0f4ff'], 1); // the lit rim
+        k.cloud(mulberry32(seed), x, y, w, h, ['#1c2850', '#2c3c6c', '#4a5e94'], 1);
+      }
+      // the near cliff on the right, pale granite under the moon, and the pine that grows out of it
+      k.poly([[W + 4, -4], [242, 4], [234, 20], [238, 32], [229, 48], [233, 70], [W + 4, 70]], k.hgrad(228, W, ['#a8b6d4', '#7a8ab0', '#3e4a70']));
+      for (const [x0, y0, x1, y1] of [[244, 8, 240, 22], [238, 34, 234, 46], [250, 18, 247, 40], [236, 52, 240, 66]]) k.line(x0, y0, x1, y1, 'rgba(30,36,60,0.6)', 0.5);
+      k.curve([[238, 33], [229, 26], [220, 17], [214, 12]], '#1a1c26', 1.4); k.curve([[233, 50], [222, 46], [208, 45]], '#1a1c26', 1);
+      for (const [x, y, w] of [[212, 12, 26], [225, 9, 15], [201, 17, 17], [219, 19, 15], [210, 45, 21], [197, 48, 14], [223, 43, 13]]) { // its flat, layered crowns of needles
+        const seed = Math.floor(rand() * 1e6);
+        k.cloud(mulberry32(seed), x, y + 0.5, w, 3.6, ['#7aa890', '#7aa890', '#9ac8aa'], -1); // moonlight on their tops
+        k.cloud(mulberry32(seed), x, y + 1.2, w, 3.6, ['#0e221e', '#1e3c34', '#3a6656'], -1);
+      }
+      // a dark pine near on the left, framing the view
+      k.line(4, 70, 6, -4, '#05080f', 2.2);
+      for (let i = 0; i < 7; i++) { const y = 4 + i * 9, w = 9 + i * 1.6; k.poly([[5, y - 1], [5 + w, y + 2.6], [5 + w * 0.6, y + 3.6], [5, y + 2.4], [-4, y + 3]], '#05080f'); }
     },
     ambient(k, t) { // the split glows and the stars turn
       for (let i = 0; i < 40; i++) { const x = (i * 6.4 + t * 2) % W, y = 31 - x * 23.6 / 256 - 0.4; if ((i + Math.floor(t * 4)) % 5 === 0) k.glow(x, y, 2.4, '#ffffff', 0.8); }

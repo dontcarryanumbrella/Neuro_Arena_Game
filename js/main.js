@@ -1284,7 +1284,9 @@ function updateView(dt) {
   const speed = hasKeys ? 1 : (state.speed === 'max' ? 1 : state.speed);
   v.acc += dt * speed;
   let steps = 0;
+  v.sim.holdYield = v.mode === 'campaign'; // a teacher who yields here stops the fight for his last draw
   while (v.acc >= DT && !v.sim.done && steps < 600) {
+    if (v.sim.yieldScene) { startTeacherScene(); break; }
     v.acc -= DT; steps++;
     if (v.mode === 'battle' || (v.mode === 'campaign' && v.sim.battle)) { stepBattle(); continue; }
     if (v.mode === 'play') {
@@ -1298,6 +1300,14 @@ function updateView(dt) {
     }
     v.sim.step(v.action);
   }
+}
+
+// The teacher yields: the fight stops and nobody moves while he draws the one sword he held back (teacherBeats in
+// ending.js). When it ends, or is skipped, he is gone, the sky stays cut, and the room is won.
+function startTeacherScene() {
+  const v = state.view, sim = v.sim, teacher = sim.yieldScene;
+  sim.yieldScene = null; v.acc = 0; v.paused = true; refreshPauseBtn();
+  playCutscene(teacherBeats(), () => { teacher.yieldDone = true; v.paused = false; refreshPauseBtn(); });
 }
 
 function refreshHint() {

@@ -328,9 +328,16 @@ class Lobby {
     g.globalAlpha = 1;
     this.drawUrnGlow(g, t);
     this.drawHero(dt, info.skin, info.race);
-    // pools of candle and lantern light, in rings the way pixel art holds them
+    // the light that is not a flame: the gate's cold white, the fire's orange, the stone's sea-green
+    const big = [[128, 58, 74, '214,228,255', 0.62]];
+    if (this.access.hearth) big.push([HEARTH.x, HEARTH.y - 8, 88, '255,140,60', 0.72 * flick]);
+    big.push([226, 120, 28, '110,220,205', 0.3 + 0.2 * pulse], [42, 120, 26, '232,212,170', 0.22 + 0.05 * Math.sin(t * 1.5)]); // ...and the urns' own faint memory-light
+    this.lightRoom(g, [...big, ...lights.map(([x, y, r, rgb, a]) => [x, y, r * 2.8, rgb, Math.min(0.85, a * 9)])]);
+    // and where each one burns, its bloom, in rings the way pixel art holds them
     g.save(); g.globalCompositeOperation = 'lighter';
-    for (const [x, y, r, rgb, a] of lights) this.glow(g, x, y, r, rgb, a);
+    for (const [x, y, r, rgb, a] of lights) this.glow(g, x, y, r, rgb, a * 1.6);
+    this.glow(g, 128, 58, 30, '220,234,255', 0.05 + 0.01 * Math.sin(t * 1.6));
+    this.glow(g, 226, 122, 12, '120,230,215', 0.04 + 0.04 * pulse);
     g.restore();
     if (this.access.hearth) {
     // firelight over everything near the hearth, breathing with the flames
@@ -342,7 +349,7 @@ class Lobby {
     }
     // a soft dark edge, so the room closes in around the light
     const vg = g.createRadialGradient(128, 80, 70, 128, 80, 170);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(8,4,2,0.55)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(6,3,4,0.72)');
     g.fillStyle = vg; g.fillRect(0, 0, W, H);
     // the station under the pointer: an arrow over it, and its name along the bottom
     const hv = this.hover;
@@ -397,6 +404,24 @@ class Lobby {
     // the candle on the mantel
     g.fillStyle = Math.sin(t * 12) > 0 ? '#ffd27a' : '#f0a040'; g.fillRect(hx + 18, HEARTH.y - 40, 1, 2);
     this.lights.push([hx + 18, HEARTH.y - 39, 12, '255,175,85', 0.065]);
+  }
+
+  // The room's light: it starts dark (a dim, cool ambient), and each light source brightens its own part of it in its
+  // own colour, in stepped rings; the map is multiplied over the picture, so what no light reaches stays in shadow.
+  lightRoom(g, sources) {
+    const L = this.lightMap || (this.lightMap = Object.assign(document.createElement('canvas'), { width: W, height: H }));
+    const m = L.getContext('2d');
+    if (!m || !m.fillRect) return;
+    m.globalCompositeOperation = 'source-over'; m.fillStyle = '#4a3a4e'; m.fillRect(0, 0, W, H);
+    m.globalCompositeOperation = 'lighter';
+    for (const [x, y, r, rgb, a] of sources) {
+      m.fillStyle = `rgba(${rgb},${a * 0.26})`;
+      for (const k of [1, 0.8, 0.6, 0.42, 0.26]) {
+        const R = Math.round(r * k);
+        for (let dy = -R; dy <= R; dy++) { const w = Math.round(Math.sqrt(R * R - dy * dy)); m.fillRect(Math.round(x) - w, Math.round(y) + dy, w * 2 + 1, 1); }
+      }
+    }
+    g.save(); g.globalCompositeOperation = 'multiply'; g.imageSmoothingEnabled = false; g.drawImage(L, 0, 0, W, H); g.restore();
   }
 
   // a disc of light in three stepped rings (drawn additively)

@@ -2996,7 +2996,8 @@ class Sim {
       t.yielded = true; t.yieldT = YIELD_T; dmg = Math.max(0, t.hp - t.maxHp * 0.1);
       t.state = 'idle'; t.atk = null; t.ult = null; t.invulnT = YIELD_T + 1;
       this.hazards = this.hazards.filter(h => h.src !== t); this.proj = this.proj.filter(pr => pr.src !== t); // every sword he had drawn is put away
-      this.emit('teacheryield', t.x, t.y);
+      if (this.holdYield) this.yieldScene = t; // a watched fight stops here for his last draw (a cutscene); see updateYield
+      else this.emit('teacheryield', t.x, t.y);
     }
     if (t.def && t.def.manual && t.phase === 2 && !t.manualDone && !t.teacher && t.hp - dmg < 1) { // the manual is not finished: he will not fall until the Thirteenth Sword is drawn
       dmg = Math.max(0, t.hp - 1);
@@ -3621,6 +3622,8 @@ class Sim {
   // The teacher has yielded: he lowers his sword and stands a moment, then draws the one stroke he held back, into
   // the sky and never at you, and goes. The sky stays cut along it (the Summit's split is the same line).
   updateYield(e) {
+    if (e.yieldDone) { this.skySplit = { t: 60, sky: true, age: 9 }; e.lastHitBy = this.p; e.hp = 0; this.kill(e); return; } // the cutscene drew it: he is gone
+    if (this.holdYield) { e.state = 'idle'; e.mvx = e.mvy = e.kvx = e.kvy = 0; e.guard = false; e.invulnT = Math.max(e.invulnT || 0, 1); return; } // held while it plays
     const was = e.yieldT;
     e.yieldT -= DT; e.state = 'idle'; e.mvx = e.mvy = e.kvx = e.kvy = 0; e.guard = false; e.invulnT = Math.max(e.invulnT || 0, 1);
     if (this.p && !this.p.dead) { const d = Math.hypot(this.p.x - e.x, this.p.y - e.y) || 1; e.fx = (this.p.x - e.x) / d; e.fy = (this.p.y - e.y) / d; }
