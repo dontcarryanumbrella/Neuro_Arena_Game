@@ -946,7 +946,7 @@ const FLASKS = {
 
 const HEAD_KINDS = ['bite', 'spit', 'flame'];
 // lingering conditions an attack can carry onto whoever it hits
-const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab', 'fear', 'freeze', 'nail', 'wet'];
+const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab', 'fear', 'freeze', 'nail', 'wet', 'forget', 'sealSkill', 'sealSpecial'];
 // What the true dragons (and anything given `nemesis`) hunt hardest: the dead that walk, and the things that should not be.
 const UNDEAD_TYPES = new Set(['zombie', 'skeleton', 'lich', 'lichhead', 'lichtorso', 'lichleg', 'vampire', 'vampirelord', 'bonedragon', 'ghoul']);
 const STRANGE_TYPES = new Set(['yellowking', 'courtier', 'byakhee', 'horror', 'cultist', 'zergqueen', 'zergling', 'spitter', 'bloater', 'brute', 'broodling', 'mutant', 'shifter', 'scholar', 'inkdragon', 'rollinghead']);
@@ -1254,6 +1254,47 @@ ENEMY_TYPES.moonvenerable = boss('ninja', {
       [1.2, 'radial', { count: 12, kind: 'orb', dmg: 10, speed: 100 }], [2.2, 'sigil', { variant: 'seal', pattern: 'scatter', count: 4, radius: 14, dmg: 14, delay: 0.9, slow: 2 }]] },
 });
 for (const t of ['sunvenerable', 'moonvenerable']) { ENEMY_TYPES[t].ult2 = ENEMY_TYPES[t].ult; ENEMY_TYPES[t].stage3Ult = BIRTH_OF_ALL_THINGS; }
+
+// ---------- the Yellow Spring Ancestor (黄泉老祖): death, forgetting, rebirth ----------
+// Woken at the bottom of the Netherworld by the brood's war. A frail ferryman with a fishing rod; then, dissolved into
+// the river, the Nine Springs Domain: nine springs that heal him and that he cannot die while any still flows.
+const ANCESTOR_ELITES = ['golem', 'demon', 'westdragon', 'hydra', 'drake', 'tortoise', 'treant', 'brute'];
+const SAMSARA = ['skeleton', 'ghoul', 'reaper', 'cspirit', 'zombie', 'flyhead']; // what a spirit is reborn as
+ENEMY_TYPES.spring = foe('beast', {
+  name: 'Yellow Spring', hp: 60, r: 5, speed: 0, mass: 99, postureMul: 0, summon: true, noClaim: true, fixture: true, statusImmune: true, kickImmune: true, sprite: 'spring',
+  moves: moveSet({ strike: { dmg: 0, range: 0 } }),
+});
+ENEMY_TYPES.ancestor = boss('necromancer', {
+  name: 'Yellow Spring Ancestor', hp: 440, r: 6, mass: 3, speed: 36, postureMul: 0.4, undead: true, ancestor: true, raiseDead: false,
+  sprite: 'b_ancestor', sprite2: 'b_ancestor2', form2: 'Nine Springs Domain', color: '#e8c860', lore: 'THE RIVER REMEMBERS NOTHING',
+  moves: moveSet({ strike: { dmg: 11, range: 22, wind: 0.3 }, heavy: { dmg: 20, range: 24 } }),
+  specials: [
+    { id: 'surge', kind: 'cone', range: 60, angle: 0.8, wind: 0.55, recover: 0.5, dmg: 12, kb: -150, hitPosture: 10, cd: 4, unblockable: true, variant: 'wind', forget: 1 },   // Yellow Springs Surge (the hands pull you in)
+    { id: 'reflection', kind: 'reflection', maxRange: 999, wind: 0.5, recover: 0.4, cd: 7 },                                                                               // Forgotten Reflection
+    { id: 'fishcast', kind: 'fishcast', maxRange: 999, wind: 0.9, recover: 0.6, cd: 13 },                                                                                  // Casting for Lost Souls
+    { id: 'waters', kind: 'shoot', proj: 'venom', shots: 1, speed: 200, dmg: 8, minRange: 20, maxRange: 180, wind: 0.45, recover: 0.4, cd: 5, sealSkill: 4, forget: 1 },     // Waters of Forgetfulness
+  ],
+  phase2: { speedMul: 1.15, cdMul: 0.7, dmgMul: 1.25, heal: 0.25, flags: { springBound: true },
+    replace: { waters: { id: 'waters', kind: 'shoot', proj: 'venom', shots: 3, spread: 0.3, speed: 210, dmg: 9, minRange: 20, maxRange: 190, wind: 0.45, recover: 0.4, cd: 5, sealSpecial: 4, forget: 1 } },
+    add: [
+      { id: 'springstep', kind: 'springstep', maxRange: 999, wind: 0.3, recover: 0.2, cd: 6 },                                                                             // he travels between his springs
+      { id: 'othershore', kind: 'sigil', pattern: 'scatter', count: 4, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 14, radius: 13, delay: 0.9, root: 1.0, cd: 6, unblockable: true, variant: 'hellfire' }, // The Other Shore
+    ] },
+  passive: ['Broth of Forgetting; Yellow Springs Never Dry, Forgotten Mortal World, Samsara Without End', 'His water makes you forget: at 3 stacks a talent, at 6 your strongest. In his true form he cannot die while any of his nine springs flows (each revival dries one), standing near a spring you forget your special, and his fallen spirits come back as something else.'],
+  active: ['Surge, Reflection, Casting for Lost Souls, Waters of Forgetfulness; The Other Shore', 'A wave of yellow water whose hands drag you in; your own technique cast back at you; a creature fished out of the river; water that seals the skill you last used (your special, in his true form). Then spider lilies that trap and burn, and a step from spring to spring.'],
+  ult: { name: 'No Return from the Yellow Spring', charge: 1.4, dur: 4.6, cd: 16, dark: 'rgba(40,30,0,0.5)',
+    steps: [[0, 'riverrise', { dur: 4.4 }], [0.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 200, delay: 0.8, aimed: true, turn: 1.57 }],
+      [1.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 200, delay: 0.8, aimed: true, turn: 0.6 }], [2.8, 'whirlpool', { dur: 1.0, dmg: 18 }],
+      [3.8, 'sigil', { variant: 'seal', radius: 14, dmg: 24, delay: 0.6, kb: 180 }]] },
+  ult2: { name: 'Wheel of Six Paths', charge: 1.6, dur: 6.0, cd: 18, dark: 'rgba(20,10,0,0.6)',
+    steps: [[0, 'lightning', { count: 4, variant: 'goldlightning', dmg: 16 }],                                   // Deva: celestial judgement
+      [1.0, 'summonEdge', { type: 'general', count: 2 }],                                                         // Asura: warriors charge
+      [1.8, 'pastechoall', { dmg: 14 }],                                                                          // Human: your own attacks again
+      [2.6, 'radial', { count: 10, kind: 'orb', dmg: 9, speed: 120 }],                                            // Animal: beasts rush through
+      [3.4, 'drain', { range: 90, dmg: 6 }],                                                                      // Hungry Ghost: hands that drink
+      [4.2, 'sigil', { variant: 'hellfire', pattern: 'scatter', count: 5, radius: 13, dmg: 16, delay: 0.8 }],      // Hell: chains and fire
+      [5.0, 'springserupt', { dmg: 20 }], [5.2, 'whirlpool', { dur: 0.7, dmg: 22 }]] },                           // the wheel falls into the springs
+});
 
 // ---------- the super boss: the Time Administrator ----------
 ENEMY_TYPES.timeadmin = boss('ninja', {
@@ -2058,7 +2099,7 @@ class Sim {
   // Sum up equipped talents into one modifier table and apply the stat ones.
   applyTalents(h, ids, raceId) {
     const race = RACE_BY_ID[raceId] || RACE_BY_ID.unformed;
-    h.race = race.id;
+    h.race = race.id; h.talentIds = ids.filter(id => TALENT_BY_ID[id]);
     const tal = { ...race.mods };
     for (const id of ids) {
       const t = TALENT_BY_ID[id];
@@ -2123,6 +2164,7 @@ class Sim {
     let v = f.tal ? f.tal[k] || 0 : 0;
     if (f.beastT > 0 && BEAST_MODS[f.beast]) v += (BEAST_MODS[f.beast][k] || 0) + (f.skinTalent ? BEAST_ALL[k] || 0 : 0); // in a beast's skin (the talent's skins are stronger)
     if (f.awakeT > 0 && f.awaken) { const m = f.awaken.mods[k] || 0; v += m === 1 ? 1 : m * f.awakenPower; } // awakened: stronger with every awakening this fight
+    if (f.forgot && f.forgot.length) for (const fg of f.forgot) if (fg.until > this.t) v -= (TALENT_BY_ID[fg.id] && TALENT_BY_ID[fg.id].mods[k]) || 0; // the Broth of Forgetting
     return v;
   }
 
@@ -2286,6 +2328,7 @@ class Sim {
     this.resolveFalls();
     this.updateRevives();
     this.updateRewinds();
+    this.updateSamsara();
     if (this.done) return;
 
     if (this.battle) this.checkBattleOver();
@@ -2371,6 +2414,7 @@ class Sim {
   // 3 Synthesis: a third tradition joins and the techniques fuse.
   // 4 Transcendence: a domain of its own, a storm of fused casts and a finale drawn from its history.
   startHeroUlt(h) {
+    if (h.specialSealUntil > this.t) { this.emit('sealed', h.x, h.y); return; } // forgotten in the Yellow Springs
     const sp = h.special, stage = sp.stage || 1, mods = sp.mods || [];
     const ab = k => HERO_ABILITIES[k];
     const P = [sp.primary, sp.secondary, stage >= 3 ? sp.third : null].filter(k => k && ab(k)).map(ab);
@@ -2570,6 +2614,9 @@ class Sim {
       }
       // Yin and Yang Return to One: a fallen Venerable flows into the other (it still falls)
       if (f.def && f.def.venerable && !f.taiji && f.partner && !f.partner.dead) this.taijiMerge(f);
+      // Yellow Springs Never Dry: while a spring flows, the Ancestor reforms from it
+      if (f.springBound && this.springReform(f)) continue;
+      if (f.spirit && f.summoner != null) this.reincarnate(f);
       // Undying Heart: the Blind Gentleman rises four times, stronger each time and with half the life
       if (!fell && f.def && f.def.undyingHeart && (f.lives || 0) < f.def.undyingHeart) {
         f.lives = (f.lives || 0) + 1;
@@ -2855,7 +2902,9 @@ class Sim {
   // Fires a learned ability from a slot if it is off cooldown and affordable.
   useAbility(f, slot) {
     const ab = f.abilities[slot];
+    if (ab && f.sealedSlot === slot && f.sealUntil > this.t) { if (!f.sealToldAt || this.t - f.sealToldAt > 1) { f.sealToldAt = this.t; this.emit('sealed', f.x, f.y); } return false; } // Waters of Forgetfulness
     if (!ab || f.abCd[slot] > 0 || !this.spend(f, this.T(f, 'abilityFree') ? 0 : ab.cost)) return false;
+    f.lastAbSlot = slot;
     f.abCd[slot] = ab.cd * Math.max(0.1, 1 + this.T(f, 'abilityCd'));
     if (f === this.p) { const u = this.stats.abilUses; u[ab.from] = (u[ab.from] || 0) + 1; }
     f.lastAbility = ab; // (the Glitch is watching)
@@ -3293,6 +3342,7 @@ class Sim {
     const dealt = this.dealDamage(t, (atk.dmg || 0) * mult + (atk.maxHpPct ? t.maxHp * atk.maxHpPct : 0), a, ux, uy, (atk.kb || 0) * kbOut);
     if (cat && dealt > 0) this.adaptTo(t, cat, 0.1 + dealt / t.maxHp);
     if (t.def && t.def.scholar && t.phase === 2 && by && by.team !== t.team) this.recordTechnique(t, atk);
+    if (t.def && t.def.ancestor && by && by.team !== t.team && (atk.abilityId || BASE_MOVES[atk.id])) t.recentTech = atk.abilityId || atk.id; // the river keeps a reflection of what struck it
     if (a && dealt > 0 && a.def && a.def.focusGain && this.t - (a.lastDefT || -9) < 0.9) this.gainFocus(a, 'counter');
     if (by && by.isPlayer && by.state === 'heroult' && by.team !== t.team) {
       by.ultDmg = (by.ultDmg || 0) + dealt;
@@ -3910,6 +3960,7 @@ class Sim {
   }
 
   updateEnemy(e) {
+    if (e.def.fixture) { e.kvx = e.kvy = 0; if (e.state === 'spawn' && (e.st -= DT) <= 0) e.state = 'idle'; return; } // a spring: it only is
     if (e.yieldT > 0) return this.updateYield(e);
     if (e.def.statusImmune) { e.frozenT = e.rootT = e.fearT = e.posture = 0; e.kvx = e.kvy = 0; }
     if (e.frozenT > 0) { e.frozenT -= DT; return; } // caught in stopped time
@@ -4024,6 +4075,7 @@ class Sim {
     }
     if (e.rainT > 0) this.updateRain(e);
     if (def.venerable) this.updateTaiji(e);
+    if (def.ancestor) this.updateAncestor(e);
     if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
       const P = def.pressure[Math.min(def.pressure.length, e.stage || (e.phase >= 2 ? 2 : 1)) - 1];
       for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < P.r + v.r) { v.pressure = P; v.pressureBy = e; v.pressureT = 0.3; }
@@ -4074,6 +4126,7 @@ class Sim {
     if (ph.heal) { e.hp = Math.min(e.maxHp, e.hp + e.maxHp * ph.heal); this.emit('heal', e.x, e.y, { n: Math.round(e.maxHp * ph.heal) }); }
     if (ph.healTo && e.hp < e.maxHp * ph.healTo) { this.emit('heal', e.x, e.y, { n: Math.round(e.maxHp * ph.healTo - e.hp) }); e.hp = e.maxHp * ph.healTo; }
     if (third && e.taiji) e.spriteNow = 'b_taiji';
+    if (!third && def.ancestor) this.raiseSprings(e); // the Nine Springs Domain
     if (def.ult) e.cds.ult = def.ult2Delay != null ? def.ult2Delay : 0.8; // the new form opens with its ultimate (unless it takes its time)
     // the shockwave of the transformation throws everyone nearby back
     for (const v of this.hostiles(e)) {
@@ -4418,7 +4471,79 @@ class Sim {
         }
         break;
       case 'rain': this.startRain(e, o.dur); break;
+      case 'riverrise': e.riverT = o.dur; this.emit('riverrise', 0, 0, { dur: o.dur }); break;
+      case 'whirlpool': // everything drawn to the middle, then the river closes over it
+        e.whirlT = o.dur;
+        this.hazards.push({ kind: 'sigil', variant: 'seal', x: 0, y: 0, r: 22, t: o.dur, delay: o.dur, dmg: o.dmg || 18, kb: 140, team: e.team, src: e, forget: 1 });
+        this.emit('whirlpool', 0, 0, { dur: o.dur });
+        break;
+      case 'springserupt':
+        for (const sp of this.springsOf(e)) this.hazards.push({ kind: 'sigil', variant: 'seal', x: sp.x, y: sp.y, r: 16, t: 0.6, delay: 0.6, dmg: o.dmg, kb: 160, team: e.team, src: e });
+        break;
     }
+  }
+
+  // ---------- the Yellow Spring Ancestor ----------
+  springsOf(e) { return this.enemies.filter(m => m.def.fixture && m.summoner === e.id && !m.dead && m.hp > 0); }
+  // nine springs erupt around the stage when he becomes the Nine Springs Domain
+  raiseSprings(e) {
+    for (let i = 0; i < 9; i++) { const a = i / 9 * 6.2832 + 0.35, m = this.spawnMinion('spring', Math.cos(a) * 60, Math.sin(a) * 60, e); if (m) { m.state = 'idle'; m.st = 0; } }
+    this.emit('springsrise', 0, 0);
+  }
+  // Broth of Forgetting: stacks of forgetting; at 3 the weakest talent goes, at 6 the strongest (each for 8s)
+  addForget(t, n) {
+    if (!t.talentIds) return;
+    const before = t.forgetStacks || 0; t.forgetStacks = Math.min(9, before + n); t.forgetAt = this.t;
+    const tier = id => (TALENT_BY_ID[id] && TALENT_BY_ID[id].tier) || 0;
+    const live = (t.forgot || []).filter(f => f.until > this.t), gone = new Set(live.map(f => f.id));
+    const pick = strongest => t.talentIds.filter(id => !gone.has(id)).sort((a, b) => strongest ? tier(b) - tier(a) : tier(a) - tier(b))[0];
+    for (const [at, strongest] of [[3, false], [6, true]]) if (before < at && t.forgetStacks >= at) {
+      const id = pick(strongest); if (!id) continue;
+      live.push({ id, until: this.t + 8 }); gone.add(id); this.emit('forgotten', t.x, t.y, { name: TALENT_BY_ID[id].name });
+    }
+    t.forgot = live;
+  }
+  updateAncestor(e) {
+    const springs = this.springsOf(e), hostiles = this.hostiles(e);
+    for (const v of hostiles) if ((v.forgetStacks || 0) > 0 && this.t - (v.forgetAt || 0) > 2) { v.forgetStacks--; v.forgetAt = this.t; } // out of the water it fades
+    if (e.phase === 2 && springs.length) {
+      if (e.hp > 0 && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.0008 * springs.length * DT); // the springs feed him
+      if (this.t >= (e.springTickAt || 0)) { // Forgotten Mortal World: near a spring the river takes your memory, and then your special
+        e.springTickAt = this.t + 1.5;
+        for (const v of hostiles) if (springs.some(s => Math.hypot(s.x - v.x, s.y - v.y) < 30)) { this.addForget(v, 1); if (v.forgetStacks >= 4 && v.special && !(v.specialSealUntil > this.t)) { v.specialSealUntil = this.t + 4; this.emit('sealed', v.x, v.y); } }
+      }
+    }
+    if (e.riverT > 0) { // the river rises: only the middle stays dry
+      e.riverT -= DT; e.riverTick = (e.riverTick || 0) - DT;
+      if (e.riverTick <= 0) { e.riverTick = 0.5; for (const v of hostiles) if (Math.hypot(v.x, v.y) > 42) this.addForget(v, 1); }
+    }
+    if (e.whirlT > 0) { e.whirlT -= DT; for (const v of hostiles) { const d = Math.hypot(v.x, v.y) || 1; if (!(v.def && v.def.statusImmune)) this.move(v, -v.x / d, -v.y / d, 40); } }
+  }
+  // Yellow Springs Never Dry: at the end he reforms from a spring, and that spring is gone
+  springReform(f) {
+    const springs = this.springsOf(f);
+    if (!springs.length) return false;
+    const s = springs.sort((a, b) => Math.hypot(a.x - f.x, a.y - f.y) - Math.hypot(b.x - f.x, b.y - f.y))[0];
+    s.hp = 0; s.dead = true; this.emit('springdry', s.x, s.y);
+    f.x = s.x; f.y = s.y; f.kvx = f.kvy = 0; f.hp = f.maxHp * 0.2; f.posture = 0; f.state = 'recover'; f.st = 0.6; f.invulnT = Math.max(f.invulnT || 0, 1.2);
+    this.emit('springreform', f.x, f.y, { left: springs.length - 1 });
+    return true;
+  }
+  // Samsara Without End: what he summoned comes back, a few seconds later, as something else
+  reincarnate(f) {
+    const owner = this.enemies.find(o => o.id === f.summoner && !o.dead && o.def.ancestor);
+    if (!owner) return;
+    (this.samsara = this.samsara || []).push({ t: 4, x: f.x, y: f.y, owner, was: f.type });
+  }
+  updateSamsara() {
+    if (!this.samsara || !this.samsara.length) return;
+    for (const r of this.samsara) {
+      if ((r.t -= DT) > 0) continue;
+      if (r.owner.dead) continue;
+      const pool = SAMSARA.filter(t => t !== r.was), m = this.spawnMinion(pool[Math.floor(this.rand() * pool.length)], r.x, r.y, r.owner);
+      if (m) { m.spirit = true; this.emit('reborn', r.x, r.y); }
+    }
+    this.samsara = this.samsara.filter(r => r.t > 0 && !r.owner.dead);
   }
 
   // The Venerables' dial: day (the Sun ascendant) or night (the Moon). Extremes Reverse: every 12s it turns, and the
@@ -4824,6 +4949,19 @@ class Sim {
         break;
       }
       case 'rain': this.startRain(e, atk.dur || 8); break;
+      case 'reflection': if (e.recentTech) this.paintingCasts(e, e.recentTech); else this.ultStep(e, 'sigil', { variant: 'seal', radius: 12, dmg: 12, delay: 0.7 }, tgt); break; // Forgotten Reflection: your own technique, out of the river
+      case 'fishcast': { // Casting for Lost Souls: an elite out of the river; in his true form, sometimes a boss
+        if (e.phase === 2 && this.rand() < 0.4 && this.openBossProjection(e)) { this.emit('fishcast', e.x, e.y); break; }
+        const type = ANCESTOR_ELITES[Math.floor(this.rand() * ANCESTOR_ELITES.length)], a = this.rand() * 6.2832;
+        const m = this.spawnMinion(type, Math.cos(a) * 40, Math.sin(a) * 40, e);
+        if (m) { m.def = { ...ENEMY_TYPES[type], summon: true }; m.specials = ENEMY_TYPES[type].specials.map(s => ({ ...s })); m.maxHp = m.hp = Math.round(m.maxHp * 1.3); m.elite = true; m.spirit = true; this.emit('fishcast', m.x, m.y); }
+        break;
+      }
+      case 'springstep': { // from one spring to another
+        const sp = this.springsOf(e); if (!sp.length) break;
+        const s = sp[Math.floor(this.rand() * sp.length)]; this.emit('vanish', e.x, e.y); e.x = s.x + 8; e.y = s.y; this.emit('reappear', e.x, e.y);
+        break;
+      }
       case 'wuxing': this.breatheWuxing(e, tgt); break;
       case 'cloudhop': { // the cloud somersault: over the target in one bound, and down behind it with the staff
         if (!tgt.id || atk.copy) break;
@@ -5551,6 +5689,9 @@ class Sim {
     if (atk.poison) { t.poisonT = Math.max(t.poisonT || 0, atk.poisonT || 3); t.poisonDps = Math.max(t.poisonDps || 0, atk.poison); t.poisonBy = by; }
     if (atk.corrode) t.corrodeT = Math.max(t.corrodeT || 0, atk.corrode);
     if (atk.wet) t.wetT = Math.max(t.wetT || 0, atk.wet);
+    if (atk.forget) this.addForget(t, atk.forget);
+    if (atk.sealSkill && t.abilities && t.lastAbSlot != null) { t.sealedSlot = t.lastAbSlot; t.sealUntil = this.t + atk.sealSkill; this.emit('sealed', t.x, t.y); } // Waters of Forgetfulness
+    if (atk.sealSpecial && t.special) { t.specialSealUntil = this.t + atk.sealSpecial; this.emit('sealed', t.x, t.y); }
     if (atk.nail) t.nails = Math.min(6, (t.nails || 0) + 1); // a nail stays in you, for the doll to find
     if (immune) return;
     if (atk.slow) t.slowT = Math.max(t.slowT || 0, atk.slow);

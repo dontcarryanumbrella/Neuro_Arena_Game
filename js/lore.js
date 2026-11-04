@@ -26,7 +26,7 @@ const WORLD_VIGNETTES = {
   night: 'A country where the sun stopped rising, and the lords of the dark were glad of it for a while. They held court for a century of midnights. Then the stars went out one by one, and even they understood that something larger was eating the night.',
   forest: 'A forest older than the names of its trees, where the beasts were never afraid and the elves were never alone. When the jar came, the roots drank the last of the sky and held. The elves still tend the great tree, and it still tends them. Only something small and white at the edge of the wood learned a different way to be afraid.',
   peaks: 'Ten thousand peaks, a sword on every one, and on the highest an old master who had written a manual that ended with Heaven itself. When the world was taken, he alone looked up at the lid and recognised it. He went on teaching. He is still teaching.',
-  abyss: 'A world of pits beneath pits, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen.',
+  abyss: 'A world of pits beneath pits, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen. The noise of that last war carried all the way down, to where a yellow river runs under everything, and something older than the demons sat up in its boat.',
   isles: 'Islands of falling petals and old blades. A blind swordsman lived there who could hear a leaf decide to fall. On the last day he drew once at the sky, and the sky did not bleed. It was clay.',
   heavens: 'The celestial court, nine layers up, where gods kept ledgers of mortal lives, and the sun and the moon kept palaces of their own beside the court. When the jar came, the generals stood at the gates of the ninth heaven for a thousand years, waiting for an enemy who never had to come in.',
   timestream: 'Not a world at all: the river where the jar keeps its time. Moments from every world drift in it, torn loose. Its keeper walked these banks with a clock for a face, pulling champions through the rifts so the jar would never go hungry.',
@@ -145,6 +145,7 @@ const CODEX_LORE = {
   courtier: 'A puppet of the yellow court. Its strings go up into the dark.',
   inkdragon: 'Painted with one stroke. Hungry with every other.',
   // bosses
+  ancestor: 'The old ferryman of the yellow springs, woken by the brood\'s war. He offers every passenger a cup of the river. No one has ever got off on the far shore.',
   sunvenerable: 'Burned so the world could see. The world is gone, and he burns anyway. The two were one before there were two.',
   moonvenerable: 'Cooled what the sun burned. Keeps the night for no one. Closing the lid made the two of them one again.',
   jaderabbit: 'Fell from a moon that no longer rises. Something dark and wet came up to meet it. It still pounds the medicine, for a moon that is gone.',

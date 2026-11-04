@@ -1220,6 +1220,49 @@ const SPRITES = {
     'wwwwwwwSkkkkkkk...',
     '.SSSSSSSSSSSSS....',
   ],
+  // the Yellow Spring Ancestor: a frail ferryman under a bamboo hat, his rod over his shoulder and the line hanging;
+  // then, out of the river, younger, his robes floating, the rod become a long spectral staff
+  b_ancestor: [
+    '...........n...',
+    '....HHHH...n...',
+    '..hhhhhhhh..n..',
+    '....fkfk.....n.',
+    '....ffff.....nw',
+    '....WWWW.....nw',
+    '...nnWWnnf..n.w',
+    '..nnnWnnnnfn..w',
+    '..nnnnnnn.....w',
+    '..nnnnnnn......',
+    '..nnTnnTn......',
+    '..nnnnnnn......',
+    '...t...t.......',
+    '..TT...TT......',
+  ],
+  b_ancestor2: [
+    '....JJJJ.....Y.',
+    '...JJJJJJ...YJY',
+    '...JfkfkJ....Y.',
+    '...JffffJ....J.',
+    '....WWWW.....J.',
+    '..JJJWWJJJ...J.',
+    '.JJJJWJJJJJffJ.',
+    'J.JJJJJJJJ...J.',
+    '..JJJJJJJJ...J.',
+    '..JJJYJJJJ...J.',
+    '.JJJJYJJJJJ..J.',
+    '.JJJJJJJJJJ..J.',
+    'JJJJJJJJJJJJ.J.',
+    '..J...J...J....',
+  ],
+  // a yellow spring: a pool welling up, bright at its heart
+  spring: [
+    '..yyyy..',
+    '.yJJJJy.',
+    'yJlllJJy',
+    'yJlllJJy',
+    '.yJJJJy.',
+    '..yyyy..',
+  ],
   // the Rabbit: harmless, a pestle and mortar; then the Black Sea's ink comes through
   b_rabbit: [
     '.w.w......',
@@ -3972,6 +4015,7 @@ class Renderer {
       }
       if (e.court && e.phase === 2) this.drawCourt(t);
       if (e.rainT > 0) this.drawRain(t, Math.min(1, e.rainT));
+      if (e.def.ancestor && !e.dead) this.drawYellowSprings(sim, e, t);
       if (e.def.venerable === 'sun' && sim.taijiDial && !e.dead) { // the dial: a warm day or a deep blue night over the whole court
         const g = this.g, T = sim.taijiDial, k = Math.min(1, (12 - T.t) / 0.8);
         g.globalAlpha = T.day ? 0.1 * k : 0.45 * k; g.fillStyle = T.day ? '#ffd890' : '#0a1440'; g.fillRect(0, 13, W, H - 13); g.globalAlpha = 1;
@@ -5109,6 +5153,30 @@ class Renderer {
   }
 
   // an eastern dragon: the body follows a slow wave behind the head, tapering to the tail
+  // The Yellow Springs: in his true form a murky yellow wash and lanterns rising; the river rising round the edge
+  // (only the middle dry); a whirlpool turning in the middle
+  drawYellowSprings(sim, e, t) {
+    const g = this.g;
+    if (e.phase === 2) {
+      g.globalAlpha = 0.16; g.fillStyle = '#6a5010'; g.fillRect(0, 13, W, H - 13);
+      for (let i = 0; i < 14; i++) { const u = (t * 0.08 + i / 14) % 1, x = (i * 53 + Math.sin(t + i) * 6) % W, y = H - u * (H - 13); g.globalAlpha = 0.7 * (1 - u); g.fillStyle = '#ffd070'; g.fillRect(Math.round(x), Math.round(y), 2, 2); g.globalAlpha = 0.2 * (1 - u); g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 4, 4); }
+    }
+    if (e.riverT > 0) { // the water at the edge, leaving a dry island
+      const k = Math.min(1, e.riverT, 4.4 - e.riverT + 0.3);
+      g.save(); g.globalAlpha = 0.4 * k; g.fillStyle = '#b89030';
+      g.beginPath(); g.ellipse(sx(0), sy(0), R, R * SQ, 0, 0, 6.2832); g.ellipse(sx(0), sy(0), 42, 42 * SQ, 0, 0, 6.2832); g.fill('evenodd');
+      g.globalAlpha = 0.6 * k; g.strokeStyle = '#ffe090'; g.lineWidth = 0.6;
+      for (let r = 46; r < R; r += 9) { g.beginPath(); g.ellipse(sx(0), sy(0), r + Math.sin(t * 3 + r) * 1.5, (r + Math.sin(t * 3 + r) * 1.5) * SQ, 0, 0, 6.2832); g.stroke(); }
+      g.restore();
+    }
+    if (e.whirlT > 0) { // the whirlpool
+      g.save(); g.strokeStyle = '#ffe090'; g.lineWidth = 0.8;
+      for (let i = 0; i < 5; i++) { g.globalAlpha = 0.6 - i * 0.1; g.beginPath(); for (let a = 0; a < 6.2832 * 1.5; a += 0.2) { const r = 4 + a * 3 + i * 4, x = sx(0) + Math.cos(a + t * 6 + i) * r, y = sy(0) + Math.sin(a + t * 6 + i) * r * SQ; a ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+      g.restore();
+    }
+    g.globalAlpha = 1;
+  }
+
   // Calling Wind and Rain: slanting rain over the whole stage, a dark wash of cloud
   drawRain(t, k) {
     const g = this.g;

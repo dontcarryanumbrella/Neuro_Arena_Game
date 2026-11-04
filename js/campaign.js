@@ -25,7 +25,7 @@ const isColossus = t => ENEMY_TYPES[t].role === 'colossus';
 const BOSS_TUNE = {
   warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
   abbot: { hp: 0.9, dmg: 0.9 }, jaderabbit: { hp: 0.9, dmg: 0.8 }, lifetree: { hp: 0.95, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
-  swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 },
+  swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 }, ancestor: { hp: 1, dmg: 0.95 },
   blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, sunvenerable: { hp: 1, dmg: 1 }, moonvenerable: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
   timeadmin: { hp: 1.15, dmg: 1.1 },
   gojo: { hp: 1.1, dmg: 1.1 }, mahoraga: { hp: 1.05, dmg: 1.05 }, scholar: { hp: 1.1, dmg: 1 }, yellowking: { hp: 1.1, dmg: 1.1 },
@@ -94,7 +94,7 @@ const WORLDS = [
     pool: [p('cultivator', 4, 3), p('talisman', 3, 2), p('formation', 3, 2), p('spearmaster', 3, 2), p('disciple', 4, 4)],
   },
   {
-    id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen'],
+    id: 'abyss', name: 'Netherworld Abyss', tier: 3, color: '#7a3ad9', bosses: ['zergqueen', 'ancestor'],
     blurb: 'A world of pits beneath pits, and the brood that eats its way up.',
     pool: [p('demon', 2, 1), p('westdragon', 1, 1), p('golem', 2, 1), p('reaper', 3, 2), p('imp', 3, 4), p('hellhound', 3, 3),
       p('zergling', 4, 4, { hp: 2.5, dmg: 1.3 }), p('spitter', 2, 3, { hp: 2.5, dmg: 1.2 }), p('bloater', 2, 3, { hp: 2.5, dmg: 1.2 }), p('brute', 2, 2, { hp: 1.5, dmg: 1.1 })],
