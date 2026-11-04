@@ -770,7 +770,12 @@ const FLASKS = {
 
 const HEAD_KINDS = ['bite', 'spit', 'flame'];
 // lingering conditions an attack can carry onto whoever it hits
-const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab', 'fear', 'freeze', 'nail'];
+const STATUS_KEYS = ['poison', 'poisonT', 'slow', 'poly', 'charm', 'cocoon', 'lift', 'liftDmg', 'corrode', 'root', 'grab', 'fear', 'freeze', 'nail', 'wet'];
+// What the true dragons (and anything given `nemesis`) hunt hardest: the dead that walk, and the things that should not be.
+const UNDEAD_TYPES = new Set(['zombie', 'skeleton', 'lich', 'lichhead', 'lichtorso', 'lichleg', 'vampire', 'vampirelord', 'bonedragon', 'ghoul']);
+const STRANGE_TYPES = new Set(['yellowking', 'courtier', 'byakhee', 'horror', 'cultist', 'zergqueen', 'zergling', 'spitter', 'bloater', 'brute', 'broodling', 'mutant', 'shifter', 'scholar', 'inkdragon', 'rollinghead']);
+const isUndead = f => !!f && (UNDEAD_TYPES.has(f.type) || !!(f.def && f.def.undead));
+const isStrange = f => !!f && (STRANGE_TYPES.has(f.type) || !!(f.def && f.def.strange));
 const statusOf = o => { const s = {}; for (const k of STATUS_KEYS) if (o[k]) s[k] = o[k]; return s; };
 
 // ---------- bosses: one per role, with a second phase at half health ----------
@@ -2927,7 +2932,12 @@ class Sim {
     if (by && by.berserkT > 0) mult *= 1.6;
     if (by && by.worldT > 0) mult *= 1.6; // The World: every blow in stopped time lands at once, and harder
     if (by && this.T(by, 'kaioken') && by.hp > by.maxHp * 0.3) mult *= 1.4;
-    if (by && this.T(by, 'ripple') && t.def && /zombie|skeleton|lich|vampire|bonedragon/.test(t.type)) mult *= 1.25;
+    if (by && this.T(by, 'ripple') && t.def && isUndead(t)) mult *= 1.25;
+    if (by && by.def && by.def.nemesis && (isUndead(t) || isStrange(t))) mult *= by.def.nemesis[(by.stage || by.phase || 1) >= 3 ? 2 : (by.stage || by.phase) >= 2 ? 1 : 0]; // the bane of the unclean
+    if (t.wetT > 0 && atk.lightning) mult *= 1.3; // water carries the thunder
+    if (t.wetT > 0 && atk.fire) mult *= 0.7;      // and dulls the fire
+    if (t.pressureT > 0) { mult *= 1 + t.pressure.def; }                                      // a dragon's majesty: guard comes down
+    if (by && by.pressureT > 0 && by.pressureBy === t) mult *= 1 - by.pressure.dmg;            // and hands shake before him
     if (a && atk.id === 'heavy' && this.T(a, 'onePunch') && (a.heavyLands = (a.heavyLands || 0) + 1) % 5 === 0) { mult *= 5; this.emit('seriouspunch', t.x, t.y); }
     if (cat) mult *= 1 - 0.75 * Math.min(1, t.adapt[cat] || 0) - (t.adaptAll || 0);
     if (t.def && t.def.fireImmune && (atk.fire || atk.burn || atk.variant === 'fire' || atk.id === 'breath' || atk.id === 'spray')) { mult = 0; this.emit('fireproof', t.x, t.y); }
@@ -3006,6 +3016,8 @@ class Sim {
     const bound = t.def && t.def.broodBound && this.enemies.some(m => m.summoner === t.id && !m.dead && !m.def.inferior && !m.spilled); // the frantic spill can't hold her up
     if (bound && t.hp - dmg < 1) { if (!t.broodSpent) this.emit('broodshield', t.x, t.y); t.broodSpent = true; } // the swarm will not let her die, but she has nothing left to give it
     dmg = Math.min(dmg, t.berserkT > 0 || bound ? Math.max(0, t.hp - 1) : t.hp); // the armor won't let you die
+    const floor = this.phaseFloor(t); // a gated boss shows every form: no blow carries it past its next threshold
+    if (floor) dmg = Math.min(dmg, Math.max(0, t.hp - floor));
     t.hp -= dmg;
     if (t === this.p && t.hp > 0 && t.hp < t.maxHp * 0.05) this.stats.belowFive = true;
     t.dmgIn += dmg;
@@ -3678,6 +3690,10 @@ class Sim {
         for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < e.r + 22) { v.lastHitBy = e; this.dealDamage(v, 1.5, null, 0, 0, 0); this.emit('burn', v.x, v.y); }
       }
     }
+    if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
+      const P = def.pressure[Math.min(def.pressure.length, e.stage || (e.phase >= 2 ? 2 : 1)) - 1];
+      for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < P.r + v.r) { v.pressure = P; v.pressureBy = e; v.pressureT = 0.3; }
+    }
     if (def.blessing) {
       e.blessT += DT;
       if (e.blessT >= 1) {
@@ -3692,12 +3708,27 @@ class Sim {
       e.phase = 1.5; e.state = 'transform'; e.st = 1.6; e.guard = false; e.plan = null; e.chainAt = 0;
       this.emit('transformStart', e.x, e.y, { color: def.color, name: def.name, yellowKing: def.yellowKing });
     }
+    if (def.phase3 && !e.teacher && e.phase === 2 && e.stage !== 3 && e.hp < e.maxHp * def.phase3.at && e.state !== 'ult' && e.state !== 'transform') {
+      // a third stage: the same invulnerable turn, into whatever is under the second form
+      e.phase = 1.5; e.toStage = 3; e.state = 'transform'; e.st = def.phase3.dur || 1.8; e.guard = false; e.plan = null; e.chainAt = 0;
+      this.emit('transformStart', e.x, e.y, { color: def.color, name: def.form2 || def.name, stage: 3 });
+    }
+  }
+
+  // The next threshold a gated boss may not be struck past until its transformation has played (0 if none).
+  phaseFloor(t) {
+    const d = t.def;
+    if (!d || !d.phaseGate) return 0;
+    if (t.phase === 1 && d.phase2) return Math.max(1, Math.ceil(t.maxHp * (d.phase2At || 0.5)) - 1);
+    if (t.phase === 2 && t.stage !== 3 && d.phase3 && !t.teacher) return Math.max(1, Math.ceil(t.maxHp * d.phase3.at) - 1);
+    return 0;
   }
 
   updateTransform(e) {
     e.st -= DT;
     if (e.st > 0) return;
-    const def = e.def, ph = def.phase2;
+    const def = e.def, third = e.toStage === 3, ph = third ? def.phase3 : def.phase2;
+    e.toStage = 0; e.stage = third ? 3 : 2;
     e.phase = 2; e.state = 'idle'; e.speedMul = ph.speedMul || 1; e.cdMul = ph.cdMul || 1; e.dmgMul = ph.dmgMul || 1;
     e.posture = 0;
     // second-form versions of its skills, and whatever it gains
@@ -3713,11 +3744,11 @@ class Sim {
       const d = Math.hypot(v.x - e.x, v.y - e.y) || 1;
       if (d < 40) { v.kvx += (v.x - e.x) / d * 90; v.kvy += (v.y - e.y) / d * 90; }
     }
-    this.emit('phase', e.x, e.y, { name: def.form2 || def.name, color: def.color, yellowKing: def.yellowKing, scholar: def.scholar, lore: def.lore });
+    this.emit('phase', e.x, e.y, { name: (third && def.form3) || def.form2 || def.name, stage: e.stage, color: def.color, yellowKing: def.yellowKing, scholar: def.scholar, lore: def.lore });
   }
 
   startUlt(e) {
-    let u = e.honored && e.def.ult3 ? e.def.ult3 : e.phase === 2 && e.def.ult2 ? e.def.ult2 : e.def.ult;
+    let u = e.honored && e.def.ult3 ? e.def.ult3 : e.stage === 3 && e.def.stage3Ult ? e.def.stage3Ult : e.phase === 2 && e.def.ult2 ? e.def.ult2 : e.def.ult;
     if (e.phase === 2 && e.def.anyUlt) { // the future self has learned every boss's ultimate
       const pool = BOSSES.filter(b => b !== e.type).map(b => ENEMY_TYPES[b].ult).filter(Boolean); // first-form ultimates only
       u = pool[Math.floor(this.rand() * pool.length)];
@@ -4811,7 +4842,7 @@ class Sim {
       for (const f of foes) {
         if (dist(f) > h.r + f.r) continue;
         const [ux, uy] = dir(f);
-        this.receiveHit(f, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
+        this.receiveHit(f, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', lightning: /lightning/.test(h.variant || ''), wet: h.wet, trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
         if (f === this.p) heroHit = true;
       }
       if (threatensHero && !heroHit) this.stats.evades++;
@@ -5091,7 +5122,7 @@ class Sim {
       if ((f.poisonTick = (f.poisonTick || 0) - DT) <= 0) { f.poisonTick = 0.5; this.dot(f, f.poisonDps * 0.5, f.poisonBy, 'poison'); }
       if (f.poisonT <= 0) f.poisonDps = 0;
     }
-    for (const k of ['spinGuardT', 'creepT', 'slowT', 'polyT', 'charmT', 'liftT', 'cocoonT', 'gravT', 'webT', 'corrodeT', 'wardedT', 'armorT']) if (f[k] > 0) f[k] -= DT;
+    for (const k of ['spinGuardT', 'creepT', 'slowT', 'polyT', 'charmT', 'liftT', 'cocoonT', 'gravT', 'webT', 'corrodeT', 'wardedT', 'armorT', 'wetT', 'pressureT']) if (f[k] > 0) f[k] -= DT;
   }
 
   // Damage over time: no flinch, no knockback, no fanfare.
@@ -5119,6 +5150,7 @@ class Sim {
     const immune = t.def && t.def.statusImmune && !exposed;
     if (atk.poison) { t.poisonT = Math.max(t.poisonT || 0, atk.poisonT || 3); t.poisonDps = Math.max(t.poisonDps || 0, atk.poison); t.poisonBy = by; }
     if (atk.corrode) t.corrodeT = Math.max(t.corrodeT || 0, atk.corrode);
+    if (atk.wet) t.wetT = Math.max(t.wetT || 0, atk.wet);
     if (atk.nail) t.nails = Math.min(6, (t.nails || 0) + 1); // a nail stays in you, for the doll to find
     if (immune) return;
     if (atk.slow) t.slowT = Math.max(t.slowT || 0, atk.slow);
@@ -5161,6 +5193,7 @@ class Sim {
   speedFactor(f) {
     let k = 1;
     if (f.slowT > 0) k *= 0.55;
+    if (f.pressureT > 0) k *= 1 - f.pressure.slow;
     if (f.hasteT > 0) k *= 1.35;
     if (f.gravT > 0) k *= 0.5;
     if (f.armorT > 0) k *= 1 + (f.armorHaste || 0);
