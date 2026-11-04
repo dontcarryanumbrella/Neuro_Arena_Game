@@ -1263,6 +1263,56 @@ const SPRITES = {
     '.yJJJJy.',
     '..yyyy..',
   ],
+  // Tamamo-no-Mae: a court lady, hair up with gold pins, layered robes of white and crimson, a folded fan; and the
+  // Heavenly Fox she becomes, white and gold (her tails are drawn live, one more for every life)
+  b_fox: [
+    '...h.kk.h.....',
+    '....kkkk......',
+    '...kkkkkk.....',
+    '...kwfwfk.....',
+    '...kffffk.....',
+    '...kkffkk.....',
+    '..wwrrrrww....',
+    '.wwrrhhrrww...',
+    '.fwrrrrrrwfhh.',
+    '..wrrrhrrrw.h.',
+    '..wrrrhrrrw...',
+    '.wwrrrhrrrww..',
+    '.wrrrrhrrrrw..',
+    'wwrrrrhrrrrww.',
+    'wrrrrrhrrrrrw.',
+    '.hhhhhhhhhhh..',
+  ],
+  b_fox2: [
+    '.w...w........',
+    'ww..ww........',
+    'wwwwwww.......',
+    'wSwwwSww......',
+    'wwwwwwwwk.....',
+    '.wwwwwwww.....',
+    '..wwwwwwwwww..',
+    '..wwSwwwwwwww.',
+    '..wwwwwwwSwww.',
+    '...wwwwwwwww..',
+    '...ww.ww.ww...',
+    '...SS.SS.SS...',
+  ],
+  soullantern: [
+    '..hh..',
+    '.hrrh.',
+    '.rllr.',
+    '.rllr.',
+    '.hrrh.',
+    '..hh..',
+  ],
+  killingstone: [
+    '..$$$...',
+    '.$***$..',
+    '$**x**$.',
+    '$*****$.',
+    '$$***$$.',
+    '.$$$$$..',
+  ],
   // the Rabbit: harmless, a pestle and mortar; then the Black Sea's ink comes through
   b_rabbit: [
     '.w.w......',
@@ -3295,6 +3345,19 @@ class Renderer {
           this.flash('rgba(255,255,255,0.6)', 0.2); this.shake = Math.max(this.shake, 8);
           break;
         }
+        case 'foxtail': { // a life ends, a tail unfurls: its name in the sky, petals and foxfire
+          const cols = ev.final ? ['#ffffff', '#fff6dc', '#ffd890', '#ff6a4a'] : ['#ffd890', '#ffffff', '#ff9ab8'];
+          this.banner = { text: ev.name, life: ev.final ? 3.0 : 1.6, small: true, color: ev.final ? '#ffffff' : '#ffd890', kicker: ev.final ? 'THE NINTH TAIL' : 'TAIL ' + ev.n, lore: ev.final ? 'NINE-TAILED AWAKENING' : undefined };
+          for (let i = 0; i < (ev.final ? 6 : 3); i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 4 + i * 5, r1: (ev.final ? 100 : 50) + i * 18, life: 0.6 + i * 0.12, max: 0.6 + i * 0.12, color: cols[i % cols.length] });
+          burst(ev, ev.final ? 120 : 45, ev.final ? 360 : 220, cols, 1.0);
+          if (ev.final) for (let i = 0; i < 30; i++) this.parts.push({ kind: 'px', x: sx(ev.x) + (rand() - 0.5) * 10, y: sy(ev.y) - 10 + (rand() - 0.5) * 14, vx: (rand() - 0.5) * 60, vy: -20 - rand() * 50, g: 20, life: 1.6, max: 1.6, color: rand() < 0.5 ? '#f4ecd8' : '#e8dcc0' }); // the disguise peels away like paper
+          this.flash(ev.final ? 'rgba(255,255,255,0.9)' : 'rgba(255,230,180,0.5)', ev.final ? 0.3 : 0.15); this.shake = Math.max(this.shake, ev.final ? 16 : 6);
+          this.snd(ev.final ? 'ultboom' : 'riser');
+          break;
+        }
+        case 'gaze': num(ev, "DON'T LOOK", '#ffd84a', -14, 1.0); this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 16, r1: 3, life: 0.6, max: 0.6, color: '#ffd84a' }); break;
+        case 'petals': burst(ev, 60, 200, ['#ffb7d5', '#ffffff', '#ff8ab8'], 1.4); break;
+        case 'dancebroken': num(ev, 'FOUND YOU', '#ffffff', -14, 1.2); this.flash('rgba(255,255,255,0.4)', 0.12); break;
         case 'taijiturn': // day turns to night (or back): a soft flash of the new hour
           this.flash(ev.day ? 'rgba(255,220,150,0.35)' : 'rgba(40,60,140,0.45)', 0.25);
           break;
@@ -4448,6 +4511,7 @@ class Renderer {
     if (egg) { mode = e.flash > 0 ? 'flash' : null; g.globalAlpha = 1; }
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'pre');
     if (e.def.venerable && !(e.polyT > 0)) this.drawVenerableHalo(sim, e, lift);
+    if ((e.def.foxLives || (e.mirrorOf != null && e.def.sprite === 'b_fox')) && !(e.polyT > 0)) this.drawFoxTails(sim, e, lift);
     const human = e.type === 'emperor' && !e.stage && e.phase !== 2; // the Emperor is a man until his first transformation completes
     const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0) && !human;
     if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
@@ -5184,6 +5248,24 @@ class Renderer {
     g.globalAlpha = 0.45 * k; g.strokeStyle = '#b8d0ff'; g.lineWidth = 0.6; g.beginPath();
     for (let i = 0; i < 70; i++) { const x = (i * 37 + t * 180) % (W + 30) - 15, y = 13 + ((i * 53 + t * 260) % (H - 13)); g.moveTo(x, y); g.lineTo(x - 2, y + 5); }
     g.stroke(); g.globalAlpha = 1;
+  }
+
+  // Tamamo's tails: one for every life she has lived, fanned out behind her and swaying; vast and filling the sky
+  // behind the Heavenly Fox
+  drawFoxTails(sim, e, lift) {
+    const g = this.g, t = sim.t, owner = e.mirrorOf != null ? sim.enemies.find(o => o.id === e.mirrorOf) : e;
+    const n = (owner && owner.tails) || 1, big = n >= 9, F = e.fx < 0 ? 1 : -1; // tails behind her, away from where she faces
+    const x0 = sx(e.x) + F * (big ? 8 : 3), y0 = sy(e.y) - lift - (big ? 14 : 6), L = big ? 42 : 13, W0 = big ? 6 : 2.6;
+    for (let i = 0; i < n; i++) {
+      const spread = n === 1 ? 0 : (i / (n - 1) - 0.5) * (big ? 2.6 : 1.6), sway = Math.sin(t * 2 + i * 0.9) * 0.15, a = -Math.PI / 2 + F * 0.9 + spread + sway;
+      const pts = []; for (let k = 0; k <= 8; k++) { const u = k / 8, aa = a + Math.sin(u * 2.5 + t * 1.5 + i) * 0.25 * u; pts.push([x0 + Math.cos(aa) * L * u, y0 + Math.sin(aa) * L * u * 0.85]); }
+      for (let k = 0; k < 8; k++) {
+        const u = k / 8, w = W0 * Math.sin(Math.PI * (0.15 + u * 0.85)) + 0.6, [x, y] = pts[k], [x2, y2] = pts[k + 1];
+        g.strokeStyle = u > 0.78 ? '#ffffff' : big ? '#fff6dc' : '#ffd890'; g.lineWidth = w; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
+      }
+      if (big) { g.globalAlpha = 0.35; g.fillStyle = '#ffe0a0'; g.beginPath(); g.arc(pts[8][0], pts[8][1], 2.5, 0, 6.2832); g.fill(); g.globalAlpha = 1; } // foxfire at each tip
+    }
   }
 
   // What hangs behind a Venerable: the Sun's turning sigil of gold, the Moon's full moon, the Taiji Venerable's yin and
@@ -5994,6 +6076,7 @@ class Renderer {
       g.font = '8px "Press Start 2P", monospace'; g.textAlign = 'center'; g.textBaseline = 'top';
       g.fillStyle = b.phase === 2 ? (b.def.color || INK.rice) : INK.rice;
       g.fillText((b.stage === 3 && b.def.form3 ? b.def.form3 : b.phase === 2 ? b.def.form2 || b.def.name : b.def.name).toUpperCase(), 128, 129);
+      if (b.def.foxLives) for (let i = 0; i < b.def.foxLives; i++) { const lived = i < (b.tails || 1); g.fillStyle = i === b.def.foxLives - 1 ? (lived ? '#ffffff' : '#5a4a3a') : lived ? '#ffd890' : '#4a3a2a'; g.fillRect(83 + i * 10, 142, 6, 1.5); } // nine tails: the lives she has lived
     }
   }
 

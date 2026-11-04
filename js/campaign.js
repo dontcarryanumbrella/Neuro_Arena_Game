@@ -26,7 +26,7 @@ const BOSS_TUNE = {
   warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
   abbot: { hp: 0.9, dmg: 0.9 }, jaderabbit: { hp: 0.9, dmg: 0.8 }, lifetree: { hp: 0.95, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
   swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 }, ancestor: { hp: 1, dmg: 0.95 },
-  blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, sunvenerable: { hp: 1, dmg: 1 }, moonvenerable: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
+  blind: { hp: 1, dmg: 0.95 }, tamamo: { hp: 1, dmg: 1 }, emperor: { hp: 1, dmg: 1 }, sunvenerable: { hp: 1, dmg: 1 }, moonvenerable: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
   timeadmin: { hp: 1.15, dmg: 1.1 },
   gojo: { hp: 1.1, dmg: 1.1 }, mahoraga: { hp: 1.05, dmg: 1.05 }, scholar: { hp: 1.1, dmg: 1 }, yellowking: { hp: 1.1, dmg: 1.1 },
 };
@@ -100,7 +100,7 @@ const WORLDS = [
       p('zergling', 4, 4, { hp: 2.5, dmg: 1.3 }), p('spitter', 2, 3, { hp: 2.5, dmg: 1.2 }), p('bloater', 2, 3, { hp: 2.5, dmg: 1.2 }), p('brute', 2, 2, { hp: 1.5, dmg: 1.1 })],
   },
   {
-    id: 'isles', name: 'Eastern Isles', tier: 4, color: '#e86a8a', bosses: ['blind'],
+    id: 'isles', name: 'Eastern Isles', tier: 4, color: '#e86a8a', bosses: ['tamamo', 'blind'],
     blurb: 'Islands of falling petals and old blades. Something with eight heads sleeps in the bay.',
     pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1), p('yukionna', 2, 1), p('tengu', 2, 2)],
   },
@@ -257,7 +257,7 @@ function buildRun(worldId, seed, cycle = 0) {
       const t = BOSS_TUNE[x] || {};
       const one = type => ({ type, hp: ((BOSS_TUNE[type] || t).hp || 1) * (1 + cycle * 0.15), dmg: ((BOSS_TUNE[type] || t).dmg || 1) * (1 + cycle * 0.15), teacher: w.teacher === type || undefined });
       const pair = ENEMY_TYPES[x].companion; // a pair (the Venerables) is one seal and one room
-      return { kind, boss: x, foes: pair ? [one(x), one(pair)] : [one(x)], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
+      return { kind, boss: x, foes: pair ? [one(x), one(pair)] : [one(x)], time: ENEMY_TYPES[x].bossTime || (w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME) };
     }
     const foes = rollRoom(w, kind, x * (1 + cycle * 0.1), stretch, rand).map(f => { const o = typeof f === 'string' ? { type: f } : { ...f }; o.hp = (o.hp || 1) * (1 + cycle * 0.15); o.dmg = (o.dmg || 1) * (1 + cycle * 0.15); if (cycle >= 3) o.modifier = ['shielded', 'swift', 'vampiric', 'explosive'][Math.floor(rand() * 4)]; return o; });
     return { kind, foes, time: ROOM_TIME };

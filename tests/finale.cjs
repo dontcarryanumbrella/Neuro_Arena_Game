@@ -50,7 +50,7 @@ finalFight.resolveFalls();
 assert.equal(finalFight.stats.killsByType[projection.type], undefined);
 
 assert.ok(finalKeeper.maxHp > normalKeeper.maxHp * 0.9);
-assert.equal(ALL_SEALS.length, 19);
+assert.equal(ALL_SEALS.length, 20);
 assert.equal(WORLD_BY_ID.bottom.id, 'bottom');
 assert.equal(freshCampaign().snapshots.length, 0);
 for (const w of WORLDS) {

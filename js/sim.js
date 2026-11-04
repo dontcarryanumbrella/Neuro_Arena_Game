@@ -1296,6 +1296,44 @@ ENEMY_TYPES.ancestor = boss('necromancer', {
       [5.0, 'springserupt', { dmg: 20 }], [5.2, 'whirlpool', { dur: 0.7, dmg: 22 }]] },                           // the wheel falls into the springs
 });
 
+// ---------- Tamamo-no-Mae (玉藻前), the Nine-Tailed Fox: nine lives, a tail for each ----------
+// Each time a life ends she rises again with one more tail, more health for the new life, and that tail's art.
+// The ninth is the Heavenly Fox. She walks on petals and foxfire: she cannot be thrown out of the ring.
+ENEMY_TYPES.lantern = foe('beast', { name: 'Soul Lantern', hp: 26, r: 4, speed: 0, mass: 99, postureMul: 0, summon: true, noClaim: true, fixture: true, statusImmune: true, kickImmune: true, sprite: 'soullantern', lifespan: 14,
+  moves: moveSet({ strike: { dmg: 0, range: 0 } }) });
+ENEMY_TYPES.killingstone = foe('beast', { name: 'Killing Stone', hp: 40, r: 5, speed: 0, mass: 99, postureMul: 0, summon: true, noClaim: true, fixture: true, statusImmune: true, kickImmune: true, sprite: 'killingstone', lifespan: 12,
+  moves: moveSet({ strike: { dmg: 0, range: 0 } }) });
+const FOX_TAILS = { // the art each tail brings (the first she has from the start)
+  1: [{ ...ENEMY_TYPES.magician.trueForm.specials[0], id: 'foxfire' }],                                                                                                    // Foxfire
+  2: [{ id: 'guise', kind: 'decoy', maxRange: 160, wind: 0.4, recover: 0.3, count: 2, cd: 8 }],                                                                         // Phantom Guise
+  3: [{ id: 'gaze', kind: 'gaze', maxRange: 160, wind: 0.9, recover: 0.4, cd: 7 }],                                                                                     // Bewitching Gaze
+  4: [{ id: 'fan', kind: 'shoot', proj: 'feather', shots: 5, spread: 0.6, speed: 200, dmg: 7, minRange: 15, maxRange: 170, wind: 0.4, recover: 0.4, cd: 3.5, kb: 60 }],  // Thousand-Faced Fan
+  5: [{ id: 'lanterns', kind: 'fixtures', fixture: 'lantern', count: 3, maxRange: 999, wind: 0.6, recover: 0.4, cd: 12 }],                                               // Soul Lantern
+  6: [{ id: 'dream', kind: 'dream', maxRange: 999, wind: 0.5, recover: 0.4, cd: 7 }],                                                                                   // Dreamweaver
+  7: [{ id: 'cursedmoon', kind: 'cursedmoon', maxRange: 999, wind: 0.6, recover: 0.4, cd: 14 }],                                                                        // Cursed Moon
+  8: [{ id: 'stones', kind: 'fixtures', fixture: 'killingstone', count: 2, maxRange: 999, wind: 0.6, recover: 0.4, cd: 13 }],                                            // Killing Stone
+  9: [],                                                                                                                                                                 // Heavenly Fox: everything, more fiercely
+};
+const FOX_TAIL_NAMES = ['', 'FOXFIRE', 'PHANTOM GUISE', 'BEWITCHING GAZE', 'THOUSAND-FACED FAN', 'SOUL LANTERN', 'DREAMWEAVER', 'CURSED MOON', 'KILLING STONE', 'HEAVENLY FOX'];
+ENEMY_TYPES.tamamo = boss('magician', {
+  name: 'Tamamo-no-Mae', hp: 70, r: 5, mass: 1.6, speed: 54, postureMul: 0.6, floating: true, foxLives: 9, trueForm: null, decoy: false,
+  sprite: 'b_fox', sprite2: 'b_fox2', form2: 'Heavenly Fox', color: '#ffe0a0', lore: 'A LADY, A FOX, A STONE',
+  moves: moveSet({ strike: { dmg: 10, range: 16, wind: 0.16 }, heavy: { dmg: 18, range: 18 } }),
+  specials: FOX_TAILS[1].slice(),
+  passive: ['Nine Lives, Ninefold Sovereignty, The Fox That Cannot Be Caught', 'She has nine lives: each time one ends she rises with one more tail, more health and a new art. She cannot be thrown out of the ring. With the ninth she becomes the Heavenly Fox: every art fiercer and faster, and strike her the same way too often and an illusion takes the blow.'],
+  active: ['Foxfire, Phantom Guise, Bewitching Gaze, Thousand-Faced Fan, Soul Lantern, Dreamweaver, Cursed Moon, Killing Stone', 'One per tail: homing foxfire; clones; a golden eye that scrambles you if you keep facing her; fan blades; lanterns that drain your energy (break them to get it back); false hazards among real ones; a blood-red moon that curses you; stones that poison the air.'],
+  ult: { name: 'Dance of a Hundred Foxes', charge: 1.0, dur: 3.4, cd: 16, dark: 'rgba(60,10,30,0.4)',
+    steps: [[0, 'foxdance', { n: 8 }], [0.8, 'radial', { count: 10, kind: 'orb', dmg: 8, speed: 100 }], [2.0, 'foxreveal', {}], [2.9, 'foxburst', { dmg: 14 }]] },
+  ult2: { name: 'Nine Tails Eclipse the Moon', untouchable: true, charge: 1.4, dur: 4.4, cd: 16, dark: 'rgba(60,0,10,0.6)',
+    steps: [[0, 'bloodmoon', { dur: 4.4 }], [0.3, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 4, radius: 14, dmg: 18, delay: 0.9 }],
+      [0.9, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 110 }], [1.4, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 4, radius: 14, dmg: 18, delay: 0.9 }],
+      [2.2, 'beam', { variant: 'exterminate', len: 320, width: 26, dmg: 30, kb: 200, delay: 0.9, aimed: true }],
+      [3.3, 'dash', { dmg: 20, speed: 380, time: 0.3, breaksGuard: true, hitPosture: 25, parryPosture: 30, kb: 160, shock: { radius: 30, dmg: 16 } }],
+      [3.7, 'radial', { count: 18, kind: 'orb', dmg: 9, speed: 150 }], [4.0, 'radial', { count: 18, kind: 'orb', dmg: 9, speed: 110, offset: 0.17 }]] },
+});
+ENEMY_TYPES.tamamo.phase2 = null;
+for (const [t, s] of [['tamamo', 240], ['ancestor', 240], ['sunvenerable', 240], ['emperor', 240]]) ENEMY_TYPES[t].bossTime = s; // the longest fights get longer rooms
+
 // ---------- the super boss: the Time Administrator ----------
 ENEMY_TYPES.timeadmin = boss('ninja', {
   name: 'Time Administrator', hp: 340, pastRevive: true, r: 9, scale: 1.2, mass: 2.5, speed: 50, postureMul: 0.4, superBoss: true, glitch: true, phasing: 0.3, phasing2: 0.5, evasive: false, timeImmune: true,
@@ -2614,6 +2652,9 @@ class Sim {
       }
       // Yin and Yang Return to One: a fallen Venerable flows into the other (it still falls)
       if (f.def && f.def.venerable && !f.taiji && f.partner && !f.partner.dead) this.taijiMerge(f);
+      // Nine lives: the Fox rises with another tail
+      if (f.def && f.def.foxLives && (f.tails || 1) < f.def.foxLives) { this.foxRise(f); continue; }
+      if (f.type === 'lantern' && f.lastHitBy && f.lastHitBy.energyMax) { const v = f.lastHitBy; v.energy = Math.min(v.energyMax, v.energy + 15); this.emit('lanternfree', f.x, f.y); } // what the lantern stole comes back
       // Yellow Springs Never Dry: while a spring flows, the Ancestor reforms from it
       if (f.springBound && this.springReform(f)) continue;
       if (f.spirit && f.summoner != null) this.reincarnate(f);
@@ -2806,6 +2847,7 @@ class Sim {
   // ---------- shared fighter mechanics ----------
 
   updateFighter(f, it, speed) {
+    if (f.confuseT > 0 && it) { f.confuseT -= DT; it = { ...it, mx: -it.mx, my: -it.my }; } // Bewitching Gaze: left is right, near is far
     f.cds.kick -= DT; f.cds.roll -= DT; f.hurtT -= DT; f.flash -= DT; f.rootT -= DT;
     f.abCd[0] -= DT; f.abCd[1] -= DT;
     f.mvx = 0; f.mvy = 0;
@@ -3207,6 +3249,11 @@ class Sim {
       }
     }
     // Phase: the Time Administrator flickers out of the moment the blow lands
+    if (t.def && t.def.foxLives && t.danceOpenUntil > this.t) t.danceBroken = true; // the real one, found in the dance
+    if (!piercing && t.def && t.def.foxLives && t.tails >= 9 && t.state !== 'stun' && t.state !== 'ult') { // The Fox That Cannot Be Caught
+      const key = atk.abilityId || atk.id; t.evadeN = key === t.evadeKey ? (t.evadeN || 0) + 1 : 0; t.evadeKey = key;
+      if (this.rand() < Math.min(0.6, 0.15 * t.evadeN)) { this.substitute(t); this.emit('phased', t.x, t.y); return 'ward'; }
+    }
     if (!piercing && t.def && t.def.phasing && t.state !== 'stun' && t.state !== 'ult' && this.rand() < (t.phase === 2 && t.def.phasing2 ? t.def.phasing2 : t.def.phasing)) {
       this.emit('phased', t.x, t.y);
       return 'ward';
@@ -3315,6 +3362,7 @@ class Sim {
     if (by && this.T(by, 'kaioken') && by.hp > by.maxHp * 0.3) mult *= 1.4;
     if (by && this.T(by, 'ripple') && t.def && isUndead(t)) mult *= 1.25;
     if (by && by.def && by.def.nemesis && (isUndead(t) || isStrange(t))) mult *= by.def.nemesis[(by.stage || by.phase || 1) >= 3 ? 2 : (by.stage || by.phase) >= 2 ? 1 : 0]; // the bane of the unclean
+    if (t.cursedT > 0 && by && by.def && (by.def.foxLives || by.mirrorOf != null)) mult *= 1.3; // Cursed Moon: foxfire and illusions bite deeper
     if (t.wetT > 0 && atk.lightning) mult *= 1.3; // water carries the thunder
     if (t.wetT > 0 && atk.fire) mult *= 0.7;      // and dulls the fire
     if (t.pressureT > 0) { mult *= 1 + t.pressure.def; }                                      // a dragon's majesty: guard comes down
@@ -3805,7 +3853,7 @@ class Sim {
         if (n === 13) { this.startUlt(e); return it; }
         if (s) { this.startAttack(e, this.swordCast(e, s)); return it; }
       }
-    } else if (def.ult && e.phase !== 1.5 && (e.hp < e.maxHp * 0.65 || def.ultAnyHp) && !(e.cds.ult > 0)) { this.startUlt(e); return it; }
+    } else if (def.ult && e.phase !== 1.5 && (e.hp < e.maxHp * 0.65 || def.ultAnyHp) && !(e.cds.ult > 0) && !(def.foxLives && (e.tails || 1) < 4)) { this.startUlt(e); return it; } // the Fox dances only from her fourth tail
 
     // counters: Riposte after a parry, guardians after a block
     if (e.counterAt && this.t >= e.counterAt) {
@@ -4076,6 +4124,7 @@ class Sim {
     if (e.rainT > 0) this.updateRain(e);
     if (def.venerable) this.updateTaiji(e);
     if (def.ancestor) this.updateAncestor(e);
+    if (def.foxLives) this.updateFox(e);
     if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
       const P = def.pressure[Math.min(def.pressure.length, e.stage || (e.phase >= 2 ? 2 : 1)) - 1];
       for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < P.r + v.r) { v.pressure = P; v.pressureBy = e; v.pressureT = 0.3; }
@@ -4471,6 +4520,26 @@ class Sim {
         }
         break;
       case 'rain': this.startRain(e, o.dur); break;
+      case 'foxdance': { // a hundred foxes: identical women out of the petals all around you; she is among them
+        e.danceIds = [];
+        for (let i = 0; i < o.n; i++) { const a = i / o.n * 6.2832 + this.rand() * 0.3, [x, y] = clampIn(p.x + Math.cos(a) * 34, p.y + Math.sin(a) * 34), m = this.spawnDecoy(e, x, y); if (m) { m.life = 3.5; e.danceIds.push(m.id); } }
+        const [x0, y0] = clampIn(p.x + 34, p.y); e.x = x0; e.y = y0; e.danceBroken = false;
+        this.emit('petals', p.x, p.y);
+        break;
+      }
+      case 'foxreveal': { // the real one, behind you, closing her fan: hit her now and the dance is broken
+        const [x, y] = clampIn(p.x - (p.fx || 1) * 14, p.y - (p.fy || 0) * 14); e.x = x; e.y = y; e.fx = p.x - x; e.fy = p.y - y;
+        e.danceOpenUntil = this.t + 0.9; this.emit('reappear', e.x, e.y); this.emit('fanclose', e.x, e.y);
+        break;
+      }
+      case 'foxburst': { // ...or every illusion bursts into golden foxfire at once
+        const ds = this.enemies.filter(m => (e.danceIds || []).includes(m.id) && !m.dead);
+        if (!e.danceBroken) for (const m of ds) this.hazards.push({ kind: 'sigil', variant: 'foxfire', x: m.x, y: m.y, r: 16, t: 0.05, delay: 0.05, dmg: o.dmg, kb: 120, team: e.team, src: e });
+        else { this.emit('dancebroken', e.x, e.y); e.state = 'recover'; e.st = 1.0; e.ult = null; }
+        for (const m of ds) { m.dead = true; this.emit('poof', m.x, m.y); }
+        e.danceIds = [];
+        break;
+      }
       case 'riverrise': e.riverT = o.dur; this.emit('riverrise', 0, 0, { dur: o.dur }); break;
       case 'whirlpool': // everything drawn to the middle, then the river closes over it
         e.whirlT = o.dur;
@@ -4481,6 +4550,25 @@ class Sim {
         for (const sp of this.springsOf(e)) this.hazards.push({ kind: 'sigil', variant: 'seal', x: sp.x, y: sp.y, r: 16, t: 0.6, delay: 0.6, dmg: o.dmg, kb: 160, team: e.team, src: e });
         break;
     }
+  }
+
+  // ---------- the Nine-Tailed Fox ----------
+  // a life ends: she rises with the next tail, more health for the new life, and its art; the ninth is the Heavenly Fox
+  foxRise(f) {
+    f.baseHp = f.baseHp || f.maxHp;
+    const n = f.tails = (f.tails || 1) + 1;
+    f.maxHp = Math.round(f.baseHp * (1 + 0.18 * (n - 1))); f.hp = f.maxHp; f.posture = 0;
+    f.state = 'recover'; f.st = 1.4; f.invulnT = Math.max(f.invulnT || 0, 1.5); f.guard = false; f.ult = null; f.mobileUlt = null; f.kvx = f.kvy = 0;
+    for (const sp of FOX_TAILS[n] || []) { f.specials.push({ ...sp }); f.cds[sp.id] = 1.6; } // and shows it at once
+    if (n === f.def.foxLives) { // the Heavenly Fox: everything fiercer and faster
+      f.phase = 2; f.spriteNow = 'b_fox2'; f.r = 9; f.def = { ...f.def, scale: 2 }; // the true shape, twice her size f.dmgMul = 1.4; f.speedMul = 1.15; f.cdMul = 0.6; f.cds.ult = 1.6;
+    }
+    if (Math.hypot(f.x, f.y) > R - 12) { const d = Math.hypot(f.x, f.y); f.x *= (R - 20) / d; f.y *= (R - 20) / d; }
+    this.emit('foxtail', f.x, f.y, { n, name: FOX_TAIL_NAMES[n], final: n === f.def.foxLives });
+  }
+  updateFox(e) {
+    const lanterns = this.enemies.filter(m => m.type === 'lantern' && m.summoner === e.id && !m.dead);
+    if (lanterns.length) for (const v of this.hostiles(e)) if (v.energyMax) v.energy = Math.max(0, v.energy - 4 * lanterns.length * DT); // Soul Lanterns drink your spirit
   }
 
   // ---------- the Yellow Spring Ancestor ----------
@@ -4949,6 +5037,24 @@ class Sim {
         break;
       }
       case 'rain': this.startRain(e, atk.dur || 8); break;
+      case 'gaze': { // Bewitching Gaze: a golden eye; if you are still facing her when it opens, your feet go the wrong way
+        this.emit('gaze', tgt.x, tgt.y);
+        if (tgt.id != null && tgt.fx != null) { const dx = e.x - tgt.x, dy = e.y - tgt.y, d = Math.hypot(dx, dy) || 1; if ((tgt.fx * dx + tgt.fy * dy) / d > 0.3 && !(tgt.def && tgt.def.boss)) { tgt.confuseT = 1.4; this.emit('charm', tgt.x, tgt.y); } }
+        break;
+      }
+      case 'fixtures': { // Soul Lanterns, Killing Stones
+        for (let i = 0; i < atk.count; i++) {
+          const a = this.rand() * 6.2832, d = 20 + this.rand() * 45, x = Math.cos(a) * d, y = Math.sin(a) * d, m = this.spawnMinion(atk.fixture, x, y, e);
+          if (m) { m.state = 'idle'; m.st = 0; if (atk.fixture === 'killingstone') this.addZone(e, e.team, x, y, { variant: 'poison', r: 18, life: 12, dps: 4 }); this.emit('poof', x, y); }
+        }
+        break;
+      }
+      case 'dream': { // Dreamweaver: three real foxfire sigils among three that are only a dream
+        for (let i = 0; i < 6; i++) { const a = this.rand() * 6.2832, d = 8 + this.rand() * 40, x = tgt.x + Math.cos(a) * d, y = tgt.y + Math.sin(a) * d;
+          this.hazards.push({ kind: 'sigil', variant: 'foxfire', x, y, r: 12, t: 1.0, delay: 1.0, dmg: i < 3 ? 14 : 0, kb: 80, fake: i >= 3, team: e.team, src: e }); }
+        break;
+      }
+      case 'cursedmoon': e.moonT = 6; this.emit('bloodmoonrise', e.x, e.y); for (const v of this.hostiles(e)) { v.cursedT = 8; this.emit('cursed', v.x, v.y); } break;
       case 'reflection': if (e.recentTech) this.paintingCasts(e, e.recentTech); else this.ultStep(e, 'sigil', { variant: 'seal', radius: 12, dmg: 12, delay: 0.7 }, tgt); break; // Forgotten Reflection: your own technique, out of the river
       case 'fishcast': { // Casting for Lost Souls: an elite out of the river; in his true form, sometimes a boss
         if (e.phase === 2 && this.rand() < 0.4 && this.openBossProjection(e)) { this.emit('fishcast', e.x, e.y); break; }
@@ -5380,7 +5486,7 @@ class Sim {
       for (const f of foes) {
         if (dist(f) > h.r + f.r) continue;
         const [ux, uy] = dir(f);
-        this.receiveHit(f, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', lightning: /lightning/.test(h.variant || ''), wet: h.wet, trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
+        if (!h.fake) this.receiveHit(f, null, { ...statusOf(h), dmg: h.dmg, unblockable: true, kb: h.kb || 60, hitPosture: f.isPlayer ? (h.kb ? 25 : 10) : 15, root: h.root, abilityId: h.abilityId, src: h.src, lift: h.lift, liftDmg: h.liftDmg, fire: h.variant === 'hellfire', lightning: /lightning/.test(h.variant || ''), wet: h.wet, trueDmg: h.trueDmg, fromSpecial: h.fromSpecial }, ux, uy, true);
         if (f === this.p) heroHit = true;
       }
       if (threatensHero && !heroHit) this.stats.evades++;
@@ -5660,7 +5766,7 @@ class Sim {
       if ((f.poisonTick = (f.poisonTick || 0) - DT) <= 0) { f.poisonTick = 0.5; this.dot(f, f.poisonDps * 0.5, f.poisonBy, 'poison'); }
       if (f.poisonT <= 0) f.poisonDps = 0;
     }
-    for (const k of ['spinGuardT', 'creepT', 'slowT', 'polyT', 'charmT', 'liftT', 'cocoonT', 'gravT', 'webT', 'corrodeT', 'wardedT', 'armorT', 'wetT', 'pressureT']) if (f[k] > 0) f[k] -= DT;
+    for (const k of ['spinGuardT', 'creepT', 'slowT', 'polyT', 'charmT', 'liftT', 'cocoonT', 'gravT', 'webT', 'corrodeT', 'wardedT', 'armorT', 'wetT', 'pressureT', 'cursedT']) if (f[k] > 0) f[k] -= DT;
   }
 
   // Damage over time: no flinch, no knockback, no fanfare.

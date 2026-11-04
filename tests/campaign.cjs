@@ -29,8 +29,8 @@ for (const w of WORLDS) {
   }
 }
 // every boss is a seal, and the hidden worlds hide until the keeper falls
-assert.equal(ALL_SEALS.length, 19);
-assert.equal(new Set(ALL_SEALS).size, 19);
+assert.equal(ALL_SEALS.length, 20);
+assert.equal(new Set(ALL_SEALS).size, 20);
 const c = freshCampaign();
 assert.ok(!WORLDS.filter(w => w.hidden).some(w => worldVisible(c, w)));
 c.seals.timeadmin = 1;
