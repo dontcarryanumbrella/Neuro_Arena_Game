@@ -233,9 +233,9 @@ Today the Ultimate Special's last stage borrows a finale from "the boss it has f
 | Tier | Worlds | Bosses (= seals) |
 |---|---|---|
 | I · Early | The Last Frontier | Bandit Warlord, Deadeye |
-| II | Red Dust Temple, Night Country | Grand Abbot · Vampire Lord, Lich |
-| III | Myriad Sword Peaks, Netherworld Abyss | Sword Immortal (as teacher) · Zerg Queen |
-| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor, Sun Wukong |
+| II | Night Country | Vampire Lord, Lich |
+| III | Red Dust Temple, Myriad Sword Peaks, Netherworld Abyss | Grand Abbot, Sun Wukong · Sword Immortal (as teacher) · Zerg Queen |
+| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor |
 | V · The gate | Timestream | Time Administrator |
 | Hidden (after the Timestream) | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
 | After all 15 seals | Heaven's End Summit (Myriad Sword Peaks) | Sword Immortal, serious (optional; unlocks ending two) |
@@ -264,7 +264,7 @@ The early-game world: lawless badlands that turn into a frontier town. It's long
 - 10 foes, all existing, no new art needed.
 - Crab and Mutant appear only as late-room elites, because they're the trickiest early foes.
 
-### 3.2 Red Dust Temple (Tier II)
+### 3.2 Red Dust Temple (Tier III; see boss-expansion-plan.md, which moves Sun Wukong here as its second boss)
 - **Boss:** Grand Abbot
 - **Foes:** Buddhist, Tai Chi Master, Drunken Master, Druid (a mountain hermit who rides with tamed tigers and bears), **+ Staff Monk** (new: long reach, temple drill lines of 3–4), **+ Bronze Arhat** (new: golden-bell body, an immovable guardian)
 - Teaches breaking guards and posture.
@@ -295,7 +295,7 @@ The early-game world: lawless badlands that turn into a frontier town. It's long
 - **Foes:** Samurai, Ninja, Oni, Magician (kitsune), Hydra (an eight-headed serpent of the isles), Shapeshifter, **+ Yuki-onna** (new: frost caster, slows, ice mirrors), **+ Tengu** (new: wind trickster, gust ring-outs, feather darts)
 
 ### 3.7 The Nine Heavens (Tier IV, the last open world before the gate)
-- **Bosses:** Dragon Emperor, then Sun Wukong (who once wrecked heaven)
+- **Bosses:** Dragon Emperor (Sun Wukong has moved to the Red Dust Temple; the Sun and Moon Venerables are planned to follow the Emperor, see boss-expansion-plan.md)
 - **Foes:** Angel, Paladin (holy knight), Phoenix, Eastern Dragon, Djinn, **+ Heavenly General** (promoted from the Emperor's summon)
 
 ### 3.8 Timestream (Tier V, the gate)

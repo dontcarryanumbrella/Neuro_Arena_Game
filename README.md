@@ -36,9 +36,9 @@ The fighter wakes in a sealed jar with no memory. The gate leads to worlds bound
 | Tier | Worlds | Bosses |
 | --- | --- | --- |
 | I | The Last Frontier | Bandit Warlord, Deadeye |
-| II | Red Dust Temple, Night Country | Grand Abbot · Vampire Lord, Lich |
-| III | Myriad Sword Peaks, Netherworld Abyss | Sword Immortal · Zerg Queen |
-| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor, Sun Wukong |
+| II | Night Country | Vampire Lord, Lich |
+| III | Red Dust Temple, Myriad Sword Peaks, Netherworld Abyss | Grand Abbot, Sun Wukong · Sword Immortal · Zerg Queen |
+| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor |
 | V (the gate) | Timestream | Time Administrator |
 | Hidden | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
 

@@ -33,8 +33,8 @@ addToScene('peaks', {
 // ---------- the Bottom of the Jar ----------
 addToScene('bottom', {
   bake(k) {
-    // the fifteen talismans on the lid's rim, every one burned down to a stub
-    for (let i = 0; i < 15; i++) { const x = 113 + i * 2.1, len = 2.5 + (i * 7) % 5; k.rect(x, 5, 0.9, len, '#d8c8a0'); k.rect(x, 5 + len, 0.9, 1.6, '#3a200e'); }
+    // every talisman on the lid's rim, burned down to a stub
+    for (let i = 0, n = ALL_SEALS.length; i < n; i++) { const x = 113 + i * 29.4 / (n - 1), len = 2.5 + (i * 7) % 5; k.rect(x, 5, 0.9, len, '#d8c8a0'); k.rect(x, 5 + len, 0.9, 1.6, '#3a200e'); }
     // the ones who came before, sitting against the clay in the dark, facing the stage
     for (const [x, y, f] of JAR_WATCHERS) { k.poly([[x - 3.4, y], [x + 3.4, y], [x + 2.2, y - 7], [x - 2.2, y - 7]], '#120904'); k.circle(x + f, y - 9, 2.3, '#120904'); k.oval(x + f * 3, y - 1, 2.6, 1.4, '#120904'); }
   },

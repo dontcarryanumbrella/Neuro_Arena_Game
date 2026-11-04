@@ -21,12 +21,12 @@ const FRAGMENT_TRACKS = { outer: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o7'], hid
 // What each world was, and how it ended: shown when it is conquered, kept on the Tally Wall.
 const WORLD_VIGNETTES = {
   frontier: 'A dry country where the law ran out and the road kept going. Its outlaws took everything that wasn\'t nailed down, then the nails. The last town at the end of the road held out the longest. One noon its bell stopped ringing, and the dust settled over everything at once, as if a lid had closed.',
-  temple: 'A temple above the red dust, where monks spent lifetimes learning to be still. They were the only ones who noticed the sky growing round and close. They kept sweeping the courtyards anyway. The Abbot said a broom does not argue with the weather.',
+  temple: 'A temple above the red dust, where monks spent lifetimes learning to be still. They were the only ones who noticed the sky growing round and close. They kept sweeping the courtyards anyway. In the great hall sat the Victorious Fighting Buddha, who had once torn through heaven and still could not stop fighting. The Abbot said a broom does not argue with the weather. The monkey argued anyway.',
   night: 'A country where the sun stopped rising, and the lords of the dark were glad of it for a while. They held court for a century of midnights. Then the stars went out one by one, and even they understood that something larger was eating the night.',
   peaks: 'Ten thousand peaks, a sword on every one, and on the highest an old master who had written a manual that ended with Heaven itself. When the world was taken, he alone looked up at the lid and recognised it. He went on teaching. He is still teaching.',
   abyss: 'A world of pits beneath pits, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen.',
   isles: 'Islands of falling petals and old blades. A blind swordsman lived there who could hear a leaf decide to fall. On the last day he drew once at the sky, and the sky did not bleed. It was clay.',
-  heavens: 'The celestial court, nine layers up, where gods kept ledgers of mortal lives. A monkey once tore through it and laughed. When the jar came, the generals stood at the gates of the ninth heaven for a thousand years, waiting for an enemy who never had to come in.',
+  heavens: 'The celestial court, nine layers up, where gods kept ledgers of mortal lives, and the sun and the moon kept palaces of their own beside the court. When the jar came, the generals stood at the gates of the ninth heaven for a thousand years, waiting for an enemy who never had to come in.',
   timestream: 'Not a world at all: the river where the jar keeps its time. Moments from every world drift in it, torn loose. Its keeper walked these banks with a clock for a face, pulling champions through the rifts so the jar would never go hungry.',
   cursed: 'A world where fear curdled into curses, and sorcerers fought them in the streets. Its strongest wore a blindfold because he saw too much. He saw the jar before anyone, and smiled, and said it was a cramped little domain.',
   blacksea: 'The scholar came across the water under an umbrella. He had no head by then. Wherever he stopped, the figures in his paintings came out to meet him; some followed after he left. The ink is still drying on the rocks where he stood.',
@@ -127,7 +127,7 @@ const CODEX_LORE = {
   zergqueen: 'Ate her way up from beneath the Netherworld. In the jar, she has finally met something hungrier.',
   blind: 'Heard the lid close from the other side of the world. Drew once at it.',
   emperor: 'Ruled the nine heavens. Kept a ledger of every life. One page is in your hand.',
-  wukong: 'Tore through heaven once, laughing. Tore at the lid once too. It held, and he stopped laughing.',
+  wukong: 'Tore through heaven once, laughing. Became a Buddha for it, and tore at the lid anyway. It held, and he stopped laughing.',
   timeadmin: 'The keeper of the jar and its roads. Its clock face shows your Lives. Its movements are yours, a little ahead.',
   gojo: 'The strongest, and he knows it. Called the jar a cramped little domain.',
   mahoraga: 'Adapts to everything. Is still adapting to the jar.',

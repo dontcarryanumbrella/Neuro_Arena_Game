@@ -64,7 +64,7 @@ const WORLDS = [
       ['skirmish', 2.2, 'town'], ['pack', 5.4, 'town'], ['warband', 3.4, 'town'], ['elite', 3.6, 'town'], ['boss', 'deadeye']],
   },
   {
-    id: 'temple', name: 'Red Dust Temple', tier: 2, color: '#d9a441', bosses: ['abbot'],
+    id: 'temple', name: 'Red Dust Temple', tier: 3, color: '#d9a441', bosses: ['abbot', 'wukong'],
     blurb: 'A mountain temple above the red dust, where every courtyard is a lesson in patience.',
     pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('druid', 2, 1), p('staffmonk', 3, 4), p('arhat', 2, 1)],
   },
@@ -90,7 +90,7 @@ const WORLDS = [
     pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1), p('yukionna', 2, 1), p('tengu', 2, 2)],
   },
   {
-    id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor', 'wukong'],
+    id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor'],
     blurb: 'The celestial court, nine layers up. Someone already tore through it once.',
     pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2), p('general', 3, 3, { hp: 1.6, dmg: 1.2 })],
   },

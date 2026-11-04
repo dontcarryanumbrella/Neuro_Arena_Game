@@ -11,11 +11,11 @@ const STATIONS = [
   { id: 'tally', name: 'TALLY WALL', desc: 'Level, kills, memories', panel: 'tallyPanel', rect: [4, 26, 46, 80], at: [30, 98] },
   { id: 'urns', name: 'MEMORY URNS', desc: 'Save and load fighters', panel: 'savePanel', rect: [18, 108, 58, 136], at: [52, 122] },
   { id: 'stone', name: 'RESONANCE STONE', desc: 'Other jars: online', panel: 'onlineSection', rect: [212, 106, 238, 138], at: [206, 126] },
-  { id: 'lid', name: 'THE LID', desc: 'Fifteen seals', panel: 'portalPanel', rect: [80, 0, 176, 20], at: [128, 104] },
+  { id: 'lid', name: 'THE LID', desc: `${ALL_SEALS.length} seals`, panel: 'portalPanel', rect: [80, 0, 176, 20], at: [128, 104] },
 ];
 const STATION_BY_ID = Object.fromEntries(STATIONS.map(s => [s.id, s]));
 const LID = { x: 128, y: 6, rx: 46, ry: 9 };
-const SEALS_SHOWN = 15;
+const SEALS_SHOWN = ALL_SEALS.length;
 const HEARTH = { x: 180, y: 84 }; // the fireplace, on the back wall
 const ALTAR = { x: 181, y: 128 };
 const FLOOR_CANDLES = [[80, 98], [152, 93]]; // flame positions; each candle stands under its flame
@@ -445,7 +445,7 @@ class Lobby {
     }
   }
 
-  // fifteen paper talismans hang round the lid; a broken one is a charred stub
+  // a paper talisman for every seal hangs round the lid; a broken one is a charred stub
   drawSeals(g, seals) {
     for (let i = 0; i < SEALS_SHOWN; i++) {
       const a = Math.PI * (0.06 + 0.88 * i / (SEALS_SHOWN - 1));

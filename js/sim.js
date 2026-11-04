@@ -1112,7 +1112,7 @@ ENEMY_TYPES.blind = boss('fencer', {
 
 ENEMY_TYPES.wukong = boss('ninja', {
   name: 'Sun Wukong', phase2At: 0.3, hp: 520, r: 6, mass: 2.5, speed: 60, postureMul: 0.35, superBoss: true, kbOut: 0.3, minionCap: 10, dr: 0.25, dr2: 0.45,
-  sprite: 'b_wukong', sprite2: 'b_wukong2', form2: 'Heaven and Earth Dharma Form', color: '#ffd84a', lore: 'THE GREAT SAGE, EQUAL OF HEAVEN',
+  sprite: 'b_wukong', sprite2: 'b_wukong2', form2: 'Victorious Fighting Buddha', color: '#ffd84a', lore: 'THE GREAT SAGE, EQUAL OF HEAVEN',
   fireImmune: true, trueSight: true, evasive: true, dodgeP: 0.35, parryP: 0.5, blockP: 0.5, counterP: 0.4, aggr: 0.75,
   moves: moveSet({ strike: { range: 26, dmg: 13, wind: 0.16 }, heavy: { range: 30, dmg: 24, wind: 0.4, kb: 150 } }),
   specials: [

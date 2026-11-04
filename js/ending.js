@@ -469,8 +469,8 @@ function jarMouth(g, k, t, gap = 0.15, lift = 0) {
     cutLight(g, () => k.oval(lx - r + 1, 0.6, 3 + gap * 20, 4.4, `rgba(255,250,228,${0.5 + gap * 2})`));
     k.oval(lx, ly + 1.2, r, 5.4 + lift * 2, '#140b06'); k.oval(lx, ly, r, 5.2 + lift * 2, '#2e1c10'); k.oval(lx - 2, ly - 1, r * 0.8, 2.6 + lift, '#3e2818');
   }
-  for (let i = 0; i < 15; i++) { // the fifteen talismans' burnt stubs, dark against the light, an ember on a few
-    const x = 113 + i * 2.1, len = 2.5 + (i * 7) % 5, sw = Math.sin(t * 0.8 + i) * 0.3, ly = -easeIn(lift) * 70;
+  for (let i = 0, n = ALL_SEALS.length; i < n; i++) { // every talisman's burnt stub, dark against the light, an ember on a few
+    const x = 113 + i * 29.4 / (n - 1), len = 2.5 + (i * 7) % 5, sw = Math.sin(t * 0.8 + i) * 0.3, ly = -easeIn(lift) * 70;
     k.rect(x + sw, 5 + ly, 1, len + 1.6, '#160c06');
     if ((i * 5) % 3 === 0 && Math.sin(t * 3 + i) > 0.3) k.px(x + sw, 5 + ly + len + 1, '#e8703a');
   }
