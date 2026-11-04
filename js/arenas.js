@@ -675,6 +675,105 @@ const WORLD_SCENES = {
       for (let i = 0; i < 12; i++) { const a = Math.sin(t * 3 + i * 7); if (a > 0.7) k.glow((i * 61) % W, (i * 17) % 56 + 4, 2, '#ffffff', a); }
     },
   },
+  forest: {
+    ground: ['#16261a', '#2a4428'],
+    floor: { top: '#5a7a3a', rim: '#7e9a52', side: '#3a3c2c', art: (k, rand) => {
+      // a grassy clearing: tufts of light and shade in the turf
+      for (let i = 0; i < 260; i++) { const a = rand() * 6.2832, d = Math.sqrt(rand()) * R; k.oval(Math.cos(a) * d, Math.sin(a) * d, 2 + rand() * 5, 1.4 + rand() * 3, ['#527236', '#628440', '#4a6a30', '#6e9046', '#5e7e3a'][Math.floor(rand() * 5)]); }
+      for (let i = 0; i < 160; i++) { const a = rand() * 6.2832, d = Math.sqrt(rand()) * R, x = Math.cos(a) * d, y = Math.sin(a) * d; k.line(x, y, x + (rand() - 0.5) * 1.2, y - 1.6 - rand(), rand() < 0.5 ? '#8aae5a' : '#3e5a28', 0.4); }
+      // an old stone path round the middle, and a worn round stone at its heart, both half sunk in the grass
+      for (let i = 0; i < 26; i++) { const a = i / 26 * 6.2832 + rand() * 0.08, d = 52 + (rand() - 0.5) * 4, x = Math.cos(a) * d, y = Math.sin(a) * d, w = 6 + rand() * 3, h = 4.5 + rand() * 2;
+        k.oval(x + 0.6, y + 0.8, w / 2, h / 2, rgba('#1e2a14', 0.5)); k.oval(x, y, w / 2, h / 2, ['#8a8a74', '#7e806a', '#96967e'][Math.floor(rand() * 3)]); k.oval(x - 0.6, y - 0.6, w / 3, h / 4, rgba('#ffffff', 0.12)); if (rand() < 0.5) k.oval(x + w * 0.15, y + h * 0.1, w / 4, h / 4, rgba('#5e8e3a', 0.7)); }
+      k.circle(0.8, 1, 17, rgba('#1e2a14', 0.45)); k.circle(0, 0, 17, '#8a8a72'); k.circle(-1, -1, 15, '#94947c');
+      for (let i = 0; i < 14; i++) { const a = rand() * 6.2832, d = rand() * 15; k.oval(Math.cos(a) * d, Math.sin(a) * d, 2 + rand() * 3, 1.4 + rand() * 2, rgba('#5e8e3a', 0.6)); }
+      // roots of the great tree running under the stage and out through it
+      for (let i = 0; i < 4; i++) {
+        const a = -2.2 + i * 1.5 + rand() * 0.5; let x = Math.cos(a) * R * 1.15, y = Math.sin(a) * R * 1.15, dir = a + Math.PI + (rand() - 0.5) * 0.6; const pts = [[x, y]];
+        for (let j = 0; j < 6; j++) { dir += (rand() - 0.5) * 0.5; x += Math.cos(dir) * 8; y += Math.sin(dir) * 8; pts.push([x, y]); }
+        for (let j = 0; j < pts.length - 1; j++) { // tapering as it goes in
+          const w = 9 * (1 - j / pts.length) + 1.5, seg = [pts[j], pts[j + 1]];
+          k.curve(seg, rgba('#000', 0.35), w + 1.6); k.curve(seg, '#4a3624', w); k.curve(seg.map(([x, y]) => [x - w * 0.15, y - w * 0.2]), '#7a5e40', w * 0.45);
+        }
+      }
+      // an old elven ward circle, mostly grown over
+      floorArt.rings(k, [[12, rgba('#e8f8b8', 0.45), 0.5], [14, rgba('#e8f8b8', 0.25), 0.3]]);
+      floorArt.ticks(k, 12, 14, 9, rgba('#e8f8b8', 0.45), 0.35);
+      // little flowers and fallen petals
+      for (let i = 0; i < 40; i++) { const a = rand() * 6.2832, d = Math.sqrt(rand()) * R; k.circle(Math.cos(a) * d, Math.sin(a) * d, 0.5 + rand() * 0.5, ['#f0e0a0', '#f4b8c8', '#ffffff', '#b8d8ff'][Math.floor(rand() * 4)]); }
+      floorArt.speckle(k, rand, 60, ['rgba(40,70,30,0.35)', 'rgba(230,240,170,0.18)']);
+    } },
+    bake(k, rand) { // dawn in a forest older than names: mist, a waterfall, the Life Tree burning gold in the distance, the elves' lanterns
+      const g = k.g;
+      k.sky(0, 64, ['#1a2840', '#34566a', '#7aa08a', '#d8d8a0', '#f8e8b8']);
+      k.glow(128, 30, 120, '#fff2c0', 0.55, 60);
+      // far ranges in the mist
+      k.ridge(rand, 34, 7, 20, '#8eaaa0', 80); k.ridge(rand, 42, 6, 16, '#7a9a8c', 80);
+      k.rect(0, 30, W, 22, k.vgrad(30, 52, [rgba('#f0f0d0', 0), rgba('#f0f0d0', 0.45)]));
+      // a long-necked giant walking in the far mist
+      const sauro = (x, y, s, c) => {
+        k.oval(x, y, 7 * s, 3 * s, c); k.line(x - 4 * s, y, x - 4 * s, y + 4 * s, c, 1.4 * s); k.line(x + 4 * s, y, x + 4 * s, y + 4 * s, c, 1.4 * s);
+        k.curve([[x + 5 * s, y - 1 * s], [x + 9 * s, y - 6 * s], [x + 10 * s, y - 13 * s]], c, 1.4 * s); k.oval(x + 11 * s, y - 13.4 * s, 1.6 * s, 0.9 * s, c);
+        k.curve([[x - 6 * s, y], [x - 12 * s, y + 1 * s], [x - 16 * s, y + 3 * s]], c, 1 * s);
+      };
+      sauro(46, 29, 0.75, rgba('#5e7e78', 0.8)); sauro(66, 32, 0.45, rgba('#6e8e86', 0.65)); sauro(196, 30, 0.55, rgba('#6a8a82', 0.7));
+      // the Life Tree: a colossal trunk far away, its crown filling the sky, light coming through it
+      k.poly([[118, 64], [121, 40], [124, 26], [126, 14], [130, 14], [132, 26], [135, 40], [138, 64]], k.hgrad(118, 138, ['#4a5a48', '#7a8a6a', '#a8b48a', '#5a6a54']));
+      for (const [sx, ex, ey] of [[121, 96, 30], [122, 104, 22], [135, 160, 30], [134, 152, 20], [128, 110, 12], [128, 148, 10]]) k.curve([[(sx + 128) / 2, 34], [sx, 24], [ex, ey]], '#6a7a5e', 1.4);
+      k.with(() => { g.globalAlpha = 0.95;
+        // a broad, layered crown: dark undersides, sunlit tops, and sky showing through between the boughs
+        const tufts = [];
+        for (let layer = 0; layer < 3; layer++) for (let i = 0; i < 18 - layer * 4; i++) { // three tiers, each narrower and higher: a dome
+          const u = (i + rand() * 0.7) / (18 - layer * 4), span = 124 - layer * 30, x = 128 + (u - 0.5) * span, arc = Math.sqrt(Math.max(0, 1 - Math.pow((u - 0.5) * 2, 2)));
+          tufts.push([x, 24 - layer * 7 - arc * (6 + layer * 2) + (rand() - 0.5) * 3, 4 + rand() * 3 + arc * 2.5]);
+        }
+        tufts.sort((p, q) => q[1] - p[1]);
+        for (const [x, y, r] of tufts) k.oval(x, y + r * 0.35, r * 1.25, r * 0.55, '#2c4a36');
+        for (const [x, y, r] of tufts) { k.oval(x, y, r * 1.2, r * 0.62, '#4e7a4e'); k.oval(x - r * 0.2, y - r * 0.22, r * 0.85, r * 0.38, '#6a9a5a'); k.oval(x - r * 0.35, y - r * 0.32, r * 0.42, r * 0.18, '#a8d07a'); }
+      });
+      k.with(() => { g.globalCompositeOperation = 'screen'; for (let i = 0; i < 26; i++) { const x = 74 + rand() * 108, y = 6 + rand() * 18; k.glow(x, y, 2 + rand() * 3, rand() < 0.5 ? '#fff4b0' : '#d8ffb0', 0.55); } });
+      // light falling through the crown
+      k.with(() => { g.globalCompositeOperation = 'screen';
+        for (const [x, w] of [[92, 6], [110, 4], [146, 5], [166, 7], [128, 3]]) k.poly([[x - w / 2, 18], [x + w / 2, 18], [x + w * 2.4, 66], [x - w * 1.2, 66]], k.vgrad(18, 66, [rgba('#fff4c0', 0.28), rgba('#fff4c0', 0)]));
+      });
+      k.rect(0, 50, W, 16, k.vgrad(50, 66, [rgba('#e8f0d0', 0), rgba('#e8f0d0', 0.35)]));
+      // the nearer forest: broad old trees, lit along their tops toward the tree's light
+      const tree = (x, y, h, s, body, lit) => {
+        k.rect(x - 1.2 * s, y - h, 2.4 * s, h, '#2e2a1e'); k.rect(x - 1.2 * s, y - h, 0.8 * s, h, rgba('#c8b080', 0.18));
+        for (let i = 0; i < 6; i++) { const ox = (rand() - 0.5) * 12 * s, oy = -h - rand() * 8 * s, r = (4 + rand() * 4) * s; k.circle(x + ox, y + oy, r, body); k.circle(x + ox + (x < 128 ? 1 : -1) * r * 0.25, y + oy - r * 0.3, r * 0.6, lit); }
+      };
+      for (let x = -6; x < 70; x += 9 + rand() * 6) tree(x, 62, 10 + rand() * 8, 0.9, '#2c4a30', '#4e7a44');
+      for (let x = 186; x < 262; x += 9 + rand() * 6) tree(x, 62, 10 + rand() * 8, 0.9, '#2c4a30', '#4e7a44');
+      k.ridge(rand, 62, 3, 10, k.vgrad(58, 90, ['#22382a', '#18281c']), 100);
+      // the waterfall, falling from a mossy cliff into a pool of mist
+      k.poly([[-4, 20], [14, 18], [26, 24], [30, 44], [24, 76], [-4, 78]], k.hgrad(-4, 30, ['#2a3428', '#4a5a46', '#3a463a']));
+      for (let i = 0; i < 8; i++) k.oval(4 + rand() * 22, 22 + rand() * 50, 3 + rand() * 4, 1.4, rgba('#5e8a3e', 0.7));
+      k.rect(13, 22, 7, 50, k.vgrad(22, 72, ['#d8f0ff', '#a8d0e8', '#e8f8ff']));
+      for (let x = 13.5; x < 20; x += 1.2) k.line(x, 22, x + 0.2, 72, rgba('#ffffff', 0.4), 0.25);
+      k.glow(16, 72, 14, '#ffffff', 0.55, 6); k.oval(16, 74, 12, 2.5, rgba('#c8e8ff', 0.7));
+      // the elves' tree-hall: a great trunk, a curved white arch, a platform hung with lanterns
+      k.rect(226, 6, 14, 70, k.hgrad(226, 240, ['#3a3022', '#6a5a40', '#4a3e2c']));
+      for (let y = 10; y < 74; y += 3) k.line(226, y, 240, y + 1, rgba('#2a2018', 0.35), 0.3);
+      // its crown, dark against the dawn
+      for (const [x, y, r] of [[226, 6, 9], [240, 4, 10], [252, 10, 8], [232, 14, 7], [248, 18, 6]]) { k.oval(x, y + 1, r * 1.2, r * 0.6, '#1e3626'); k.oval(x - 1, y - 1, r, r * 0.45, '#3a6040'); }
+      k.with(() => { g.beginPath(); g.ellipse(233, 34, 16, 4.4, 0, 0, 6.2832); g.fillStyle = '#7a6a4a'; g.fill(); g.beginPath(); g.ellipse(233, 33.4, 16, 3.6, 0, 0, 6.2832); g.fillStyle = '#a8946a'; g.fill(); });
+      k.rect(216, 33.4, 34, 1, '#f0e8d0');
+      for (const x of [219, 247]) { k.rect(x - 0.6, 25, 1.2, 8.6, '#f0ead8'); k.rect(x - 0.6, 25, 0.4, 8.6, '#ffffff'); }
+      k.curve([[219, 26], [222, 19], [233, 15], [244, 19], [247, 26]], '#f0ead8', 1.4); k.curve([[220.5, 26], [223, 20.6], [233, 17], [243, 20.6], [245.5, 26]], rgba('#c8b890', 0.9), 0.5);
+      k.circle(233, 15.4, 1.2, '#d8ffb0'); k.glow(233, 15.4, 5, '#d8ffb0', 0.6); // a leaf-shaped gem at the arch's crown
+      for (const [x, y] of [[221, 37], [233, 38], [245, 37], [229, 52], [238, 60]]) { k.line(x, y - 2.6, x, y - 1, '#5a4a30', 0.3); k.glow(x, y, 6, '#ffe39a', 0.8); k.circle(x, y, 0.9, '#fff2c0'); }
+      k.curve([[226, 70], [218, 64], [236, 56], [226, 46], [238, 40]], rgba('#e8e0c8', 0.6), 0.5);
+      // glowing mushrooms and great ferns in the near corners
+      for (const [x, y, c] of [[34, 80, '#9ae8ff'], [38, 82, '#b8f0ff'], [212, 82, '#d8b8ff'], [217, 79, '#b8f0ff']]) { k.glow(x, y - 1, 5, c, 0.6); k.rect(x - 0.3, y - 1.5, 0.6, 2, '#e8e0d0'); k.oval(x, y - 1.6, 1.4, 0.7, c); }
+      const fern = (x, y, dir, s) => { for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + dir * (0.2 + i * 0.2), L = (16 + rand() * 6) * s, ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L * 0.8 + L * 0.25; k.curve([[x, y], [(x + ex) / 2 + dir * 2, (y + ey) / 2 - 4], [ex, ey]], '#1c3420', 2.2 * s); k.curve([[x, y], [(x + ex) / 2 + dir * 2, (y + ey) / 2 - 4.5], [ex, ey - 0.4]], '#4a7a3a', 0.6 * s); } };
+      fern(4, 112, 1, 1.1); fern(252, 114, -1, 1.1); fern(-2, 140, 1, 1.3); fern(258, 142, -1, 1.3);
+    },
+    ambient(k, t) { // fireflies and drifting spores, leaves falling from the crown, the waterfall moving
+      for (let i = 0; i < 22; i++) { const x = (i * 53 + Math.sin(t * 0.6 + i) * 10 + t * 3) % W, y = 20 + (i * 29) % 70 + Math.sin(t * 0.9 + i * 2) * 4, a = 0.35 + 0.35 * Math.sin(t * 3 + i * 1.7); k.glow(x, y, 2.4, i % 3 ? '#f0ffa0' : '#b8ffd8', a); }
+      for (let i = 0; i < 8; i++) { const u = (t * 0.07 + i / 8) % 1, x = 70 + i * 16 + Math.sin(u * 12 + i) * 6, y = 10 + u * 56; k.oval(x, y, 0.8, 0.4, rgba(i % 2 ? '#c8e070' : '#e8c060', 0.8 * (1 - u))); }
+      for (let i = 0; i < 6; i++) { const y = 22 + ((t * 40 + i * 9) % 50); k.rect(13.5 + (i % 5) * 1.2, y, 0.5, 2.2, 'rgba(255,255,255,0.5)'); }
+      for (const ph of [0, 1.7, 3.1]) { const x = ((t * 14 + ph * 60) % (W + 40)) - 20, y = 14 + Math.sin(t * 0.5 + ph) * 4, f = Math.sin(t * 7 + ph) * 0.9; k.curve([[x - 2, y - f], [x - 0.8, y - 0.3], [x, y]], '#2a3a30', 0.5); k.curve([[x + 2, y - f], [x + 0.8, y - 0.3], [x, y]], '#2a3a30', 0.5); }
+    },
+  },
 };
 
 // ---------- light and depth ----------
@@ -683,6 +782,7 @@ const WORLD_SCENES = {
 const ARENA_LIGHT = {
   frontier: { lights: [{ x: 196, y: 48, c: '#ffb050', reach: 170, power: 0.5 }], haze: '#e8a060', horizon: 62, shade: 0.45 },
   temple: { lights: [{ x: 128, y: 36, c: '#ffb070', reach: 170, power: 0.35 }, { x: 7, y: 68, c: '#ffc080', reach: 30, power: 0.4 }], haze: '#d89a6a', horizon: 58, shade: 0.45 },
+  forest: { lights: [{ x: 128, y: 26, c: '#fff0b8', reach: 200, power: 0.4 }, { x: 233, y: 40, c: '#ffe39a', reach: 40, power: 0.35 }, { x: 16, y: 72, c: '#d8f0ff', reach: 30, power: 0.3 }], haze: '#c8dcb0', horizon: 60, shade: 0.5 },
   night: { lights: [{ x: 200, y: 28, c: '#b8c8ff', reach: 150, power: 0.35 }], haze: '#3a3458', horizon: 60, shade: 0.6 },
   peaks: { lights: [{ x: 60, y: -10, c: '#eef6ff', reach: 220, power: 0.3 }], haze: '#c8dae6', horizon: 60, shade: 0.35 },
   abyss: { lights: [{ x: 21, y: 60, c: '#ff6a2a', reach: 90, power: 0.5 }, { x: 233, y: 60, c: '#ff6a2a', reach: 90, power: 0.5 }, { x: 128, y: 170, c: '#ff3a1a', reach: 140, power: 0.4 }], haze: '#7a2018', horizon: 66, shade: 0.6 },
