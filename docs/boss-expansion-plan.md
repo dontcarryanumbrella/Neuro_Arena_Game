@@ -9,6 +9,68 @@ Art rule for everything new: paint at 1x with texture and shading, then scale 4x
 
 ---
 
+## Progress (as of 2026-11-04)
+
+Build order steps 1 to 8 are done and committed; steps 9 and 10 are not started. 20 of 20 seals exist. 15 test suites pass.
+
+### Done
+| Plan section | What was built | Commit |
+|---|---|---|
+| 1, 3. Campaign | Temple to Tier III with Sun Wukong (Victorious Fighting Buddha); seal and talisman counts follow the boss list; save migration (saves that reached the door get new seals); Abyss order Queen then Ancestor; Isles order Fox then Blind Gentleman; 4-minute rooms for the four longest bosses | `5e04c3a`, `a275ee6`, `0f23723` |
+| 2. Shared tech | Stage system with a third stage; phase gates on every boss; transition heals; pressure; nemesis (UNDEAD/STRANGE); `wet`; pair support and two-bar HUD; lives; fixtures (springs, lanterns, stones); immobile boss; Forgetfulness, confusion, cursed; talent masking; skill and special sealing; rain; day/night dial; whirlpool | `6db4795`, `7f42ad6`, later boss commits |
+| 3.1 Temple additions | Temple Macaque, Mountain Ape, elite Sweeping Monk | `20bfcdc` |
+| 4. Primordial Forest | Painted arena; 11 new foes plus promoted Tiger, Bear, Bunny; the Rabbit (Ink-Stained Jade Rabbit) and the Life Tree; vignette, fragment o8, Codex lines, techniques | `af5d28b`, `a275ee6` |
+| 5. Dragon Emperor | Three stages, 900 HP, Dragon Majesty, Bane of the Unclean, all three kits and ultimates, rain heal, Golden Body, pearl window; humanoid stage 1 sprite; stage 3 drawn twice as big in correct proportions | `ce7425a`, `44aae4b` |
+| 6. Venerables | One seal, one room; dial (Extremes Reverse); Mutual Shelter; Five Phases below 55%; merge into the Taiji Venerable; Sun and Moon kits and ultimates; Birth of All Things; models redrawn from Tom's references with halos; heavier transformation effects | `45d00c8`, `c8d5b27` |
+| 7. Yellow Spring Ancestor | Both phases, Broth of Forgetting (talents), sealing, nine springs and reforming, Samsara, fishing elites and bosses, The Other Shore, both ultimates (No Return merged with the whirlpool; Wheel of Six Paths) | `f234230` |
+| 8. Nine-Tailed Fox | Nine lives with a tail and art each; Dance of a Hundred Foxes (breakable); Nine Tails Eclipse the Moon; Heavenly Fox; The Fox That Cannot Be Caught; unringable; live tails and nine-pip bar | `0f23723` |
+| 10. Nine Heavens additions | Frost Maiden, Tiangou, Shade Attendant, Qilin and Jade Toad elites | `20bfcdc` |
+| 11. Lore | Vignettes (forest new; temple, abyss, isles, heavens revised), fragment o8, Codex lines for every new foe and boss | various |
+
+### Not done yet (Tom wants these; for future sessions)
+**Art**
+- The sprites are small and simple: compact pixel grids in the game's existing format, not the painted-at-1x style. The Life Tree especially needs a proper painted treatment.
+
+**Dragon Emperor (section 5)**
+- Stage 1's Mandate of Heaven passive (uninterruptible decrees, tougher summons) is described but its effects aren't built.
+- The stage 3 dragon is bigger and gold, but not the sky-spanning body with coils above the stage.
+- The Five Phases beams use the existing beam visuals with new colours, not their own art.
+
+**Venerables (section 6)**
+- The four stances (Unyielding, Yielding, Moon in the Water); only Mutual Shelter is built.
+- The joint ultimate, The Two Poles Turn, with its rotating black-and-white floor.
+- The Five Phases wheel setting arena hazards (today it is the same breath the Emperor uses).
+
+**Yellow Spring Ancestor (section 7)**
+- In phase 2, Forgotten Reflection should repeat your special or ultimate; it still repeats your last technique.
+- The ghost ferries hit and knock back but don't drag you along.
+
+**Nine-Tailed Fox (section 8)**
+- Ninefold Sovereignty: combining two or three tails into combos on the ninth life (today she uses her full kit faster).
+- A visual tell on Dreamweaver's fake sigils (today they look like the real ones).
+
+**Supporting entries (section 12), found while checking**
+- Hero finales (`heroFinale`) and Tally Wall entries for the six new bosses (Rabbit, Life Tree, Ancestor, Fox, Venerables, plus the reworked Emperor's finale is still the old one).
+- The sandbox boss list ([main.js:749](../js/main.js)) doesn't include the new bosses.
+- The level curve hasn't been checked against the ~25 new foe types.
+- README sections describing the new bosses, foes and the forest (only the tier table is updated).
+- The Rabbit's Codex line is not yet hidden until the Black Sea.
+- Status `petrify` (Killing Stones only poison today).
+
+**Not started: build steps 9 and 10**
+- Section 16 late-game pass: Time Administrator buff; the Keeper of the Iterations (800 base HP); Yun Xi (1,000 HP, 80% cap, the Last Bet); Sword Immortal stage 3 (Sword Without a Head, the twisted moveset, Fourteenth Sword: Cut with the page and dimension reduction).
+- Section 13.3 ending rework: Ending three, The Die; Ending two as the Sword Emperor.
+- Section 13: the Thousand Skins collection, the Four Symbols secret, and the secret ending with the lobby's open sky.
+
+### Dropped by Tom (not wanted)
+- A perfect parry flipping the Venerables' dial early.
+- Dried springs becoming safe ground in the Ancestor's final wave.
+- Moving the forest's long-necked dinosaurs out from behind the treeline.
+- Checking the Emperor's pearl at its wider orbit.
+- The Fox's optional Killing Stone death flourish (D7).
+
+---
+
 ## 1. What changes at a glance
 
 | Tier | World | Bosses (in order) | Change |
