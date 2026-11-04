@@ -203,6 +203,7 @@ for (const type of [...BOSSES_NEW, 'timeadmin']) {
   const [s, q] = duel('zergqueen');
   const brood = s.enemies.filter(m => m.summoner === q.id);
   assert.ok(brood.length >= 4);
+  q.def = { ...q.def, phaseGate: false }; // the brood's hold, not the phase gate, is what this checks
   s.receiveHit(q, s.p, { dmg: 9999, trueDmg: true }, 1, 0); assert.equal(q.hp, 1); assert.ok(q.broodSpent);
   for (const m of brood) { m.hp = 0; } s.resolveFalls();
   s.receiveHit(q, s.p, { dmg: 999, trueDmg: true }, 1, 0); s.resolveFalls(); assert.ok(q.dead);

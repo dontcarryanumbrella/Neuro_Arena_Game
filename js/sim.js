@@ -781,7 +781,7 @@ const statusOf = o => { const s = {}; for (const k of STATUS_KEYS) if (o[k]) s[k
 // ---------- bosses: one per role, with a second phase at half health ----------
 const boss = (base, o) => {
   const b = ENEMY_TYPES[base];
-  return { ...b, boss: true, scale: 1, specials: b.specials.slice(), ...o };
+  return { ...b, boss: true, phaseGate: true, scale: 1, specials: b.specials.slice(), ...o }; // every boss shows every form
 };
 Object.assign(ENEMY_TYPES, {
   warlord: boss('berserker', {
