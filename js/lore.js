@@ -106,6 +106,16 @@ const CODEX_LORE = {
   dancer: 'Dances the last act at court. Nobody has ever seen her face, including her.',
   pknight: 'Swore an oath to a king without a face. The mask is the oath.',
   horror: 'The lake of cloud is deeper than it looks. This is the part of it that looks back.',
+  // the Red Dust Temple's monkeys and its sweeper
+  macaque: 'Stole peaches from the temple orchard for a hundred years. Learned the rest from the Great Sage.',
+  greatape: 'The Great Sage\'s largest shadow. It does not remember being a shadow.',
+  sweepingmonk: 'Has swept the same steps since before the Abbot arrived. Nobody remembers asking him to stop.',
+  // the Nine Heavens' cold and shadow
+  frostmaiden: 'Swept the Cold Palace\'s courts of frost. Found, at last, a floor that stayed cold.',
+  qilin: 'Walks without bending the grass. It came to bless the court, and has kept the blessing back for the court\'s sake.',
+  jadetoad: 'Sat under the moon\'s osmanthus beside the rabbit. Kept the cold when the rabbit went away.',
+  tiangou: 'The hound that bites the sun and moon. With no sun to bite, it bites at your shadow.',
+  shadeattendant: 'A courtier\'s shadow that outlasted the courtier. Still bowing.',
   // the Primordial Forest
   serpent: 'Coiled in a branch and waited for the world to end. It did, a little to the left.',
   roc: 'Cast a shadow over the whole forest. The lid cast a bigger one.',

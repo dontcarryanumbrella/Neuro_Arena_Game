@@ -845,6 +845,82 @@ Object.assign(ENEMY_TYPES, {
   }),
 });
 
+// ---------- the Red Dust Temple's monkeys and its sweeper; the Nine Heavens' cold and shadow ----------
+Object.assign(ENEMY_TYPES, {
+  macaque: foe('trickster', {
+    name: 'Temple Macaque', hp: 34, r: 4, speed: 66, mass: 0.7, postureMul: 1.2, aggr: 0.8, dodgeP: 0.4,
+    moves: moveSet({ strike: { dmg: 6, range: 12, wind: 0.1 } }),
+    passive: ['Peach Thief', 'Quick, cheeky, and never alone; dodges on instinct.'], active: ['Somersault, Stolen Fruit', 'A somersault kick over your guard, and a peach pit thrown at your head.'],
+    specials: [
+      { id: 'somersault', kind: 'pounce', minRange: 16, maxRange: 60, wind: 0.25, recover: 0.4, dmg: 8, kb: 80, lunge: 280, lungeTime: 0.22, cd: 2.6, breaksGuard: true, hitPosture: 12, parryPosture: 24 },
+      { id: 'peachpit', kind: 'shoot', proj: 'boulder', shots: 1, speed: 200, dmg: 5, minRange: 30, maxRange: 150, wind: 0.3, recover: 0.3, cd: 2.2, radius: 2 },
+    ],
+  }),
+  greatape: foe('bruiser', {
+    name: 'Mountain Ape', hp: 120, r: 7, speed: 40, mass: 3, postureMul: 0.6,
+    moves: moveSet({ strike: { dmg: 14, range: 16, wind: 0.32, kb: 120 }, heavy: { dmg: 24, range: 18 } }),
+    passive: ['Brute Strength', 'Big and heavy; its blows throw you back.'], active: ['Chest Beat, Leaping Smash', 'Beats its chest to hit harder, then leaps and smashes the ground.'],
+    specials: [
+      { id: 'apesmash', kind: 'pounce', minRange: 25, maxRange: 90, wind: 0.6, recover: 0.7, dmg: 18, kb: 200, lunge: 260, lungeTime: 0.4, cd: 4.5, hitPosture: 24, parryPosture: 36, shock: { radius: 20, dmg: 10 } },
+      { id: 'apeslam', kind: 'slam', radius: 22, wind: 0.55, recover: 0.6, dmg: 14, kb: 170, cd: 4, unblockable: true, hitPosture: 18, variant: 'quake' },
+    ],
+  }),
+  sweepingmonk: foe('duelist', {
+    name: 'Sweeping Monk', hp: 140, r: 5, speed: 46, mass: 1.6, postureMul: 0.4, parryP: 0.75, blockP: 0.5, counterP: 0.55, chainP: 0.5, maxChain: 3, riposte: true,
+    moves: moveSet({ strike: { dmg: 12, range: 24, wind: 0.16 }, heavy: { dmg: 24, range: 26 } }),
+    passive: ['Nothing to Prove', 'Parries almost everything, and answers a parry at once.'], active: ['The Broom, Dust Cloud', 'A sweep that clears the courtyard (and you with it), and a cloud of dust that hides him for a moment.'],
+    specials: [
+      { id: 'broomsweep', kind: 'slam', radius: 30, wind: 0.4, recover: 0.5, dmg: 14, kb: 180, cd: 4, hitPosture: 20, parryPosture: 30, variant: 'staffquake' },
+      { id: 'dustcloud', kind: 'vanish', minRange: 0, maxRange: 60, wind: 0.2, recover: 0, cd: 7 },
+      { id: 'broomthrust', kind: 'pounce', minRange: 22, maxRange: 80, wind: 0.35, recover: 0.45, dmg: 14, kb: 110, lunge: 280, lungeTime: 0.24, cd: 3, breaksGuard: true, hitPosture: 20, parryPosture: 34 },
+    ],
+  }),
+  frostmaiden: foe('caster', {
+    name: 'Frost Maiden of the Cold Palace', hp: 60, r: 5, speed: 38, mass: 1, postureMul: 1.1,
+    passive: ['Cold Palace', 'Her cold slows whatever it touches.'], active: ['Frost Lotus, Moonlit Shards', 'Lotuses of ice that bloom under you and freeze you, and shards of moonlit ice.'],
+    specials: [
+      { id: 'frostlotus', kind: 'sigil', maxRange: 180, wind: 0.5, recover: 0.5, dmg: 10, radius: 14, delay: 0.8, cd: 4, unblockable: true, variant: 'seal', slow: 2, freeze: 0.8 },
+      { id: 'iceshards', kind: 'shoot', proj: 'feather', shots: 3, spread: 0.25, speed: 190, dmg: 6, minRange: 25, maxRange: 170, wind: 0.35, recover: 0.35, cd: 2.4, slow: 1.2 },
+    ],
+  }),
+  qilin: foe('colossus', {
+    name: 'Qilin', hp: 180, r: 8, speed: 46, mass: 4, postureMul: 0.45,
+    moves: moveSet({ strike: { dmg: 15, range: 18, wind: 0.4, kb: 130 } }),
+    passive: ['Auspicious', 'Walks without bending the grass; a glow about it.'], active: ['Thunder Hooves, Trample', 'A charging gallop that leaves thunder in its hoofprints, and a trampling stomp.'],
+    specials: [
+      { id: 'thunderhooves', kind: 'pounce', minRange: 30, maxRange: 120, wind: 0.6, recover: 0.7, dmg: 18, kb: 220, lunge: 320, lungeTime: 0.4, cd: 4.5, breaksGuard: true, hitPosture: 26, parryPosture: 40, trail: 'hellfire' },
+      { id: 'trample', kind: 'slam', radius: 26, wind: 0.6, recover: 0.7, dmg: 16, kb: 180, cd: 4, unblockable: true, hitPosture: 20, variant: 'quake' },
+      { id: 'qilinbolt', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 14, radius: 11, delay: 0.9, cd: 6, unblockable: true, variant: 'goldlightning' },
+    ],
+  }),
+  jadetoad: foe('colossus', {
+    name: 'Jade Toad of the Cold Palace', hp: 170, r: 8, speed: 28, mass: 4.5, postureMul: 0.45,
+    moves: moveSet({ strike: { dmg: 14, range: 16, wind: 0.45, kb: 120 } }),
+    passive: ['Three-Legged', 'Hops instead of walking, and lands heavily.'], active: ['Frost Breath, Freezing Hop', 'A cone of frost that slows you, and a hop that freezes the ground where it lands.'],
+    specials: [
+      { id: 'frostbreath', kind: 'cone', range: 46, angle: 0.65, wind: 0.6, recover: 0.6, dmg: 12, kb: 60, hitPosture: 12, cd: 4.5, unblockable: true, variant: 'wind', slow: 2.5 },
+      { id: 'frosthop', kind: 'lob', proj: 'boulder', minRange: 30, maxRange: 140, flight: 0.7, height: 30, wind: 0.5, recover: 0.5, cd: 5, land: { r: 16, dmg: 14, kb: 120, slow: 2, zone: { variant: 'frost', r: 15, life: 3 } } },
+    ],
+  }),
+  tiangou: foe('trickster', {
+    name: 'Tiangou', hp: 58, r: 5, speed: 62, mass: 1.1, postureMul: 0.9, ai: 'circle', orbit: 40,
+    moves: moveSet({ strike: { dmg: 10, range: 14, wind: 0.14 } }),
+    passive: ['Eclipse Hound', 'Slips from shadow to shadow; hard to pin down.'], active: ['Shadow Step, Eclipse Bite', 'Vanishes and reappears beside you, then bites through your guard.'],
+    specials: [
+      { id: 'shadowstep', kind: 'vanish', minRange: 30, maxRange: 200, wind: 0.25, recover: 0, cd: 4 },
+      { id: 'eclipsebite', kind: 'pounce', minRange: 12, maxRange: 60, wind: 0.3, recover: 0.45, dmg: 13, kb: 70, lunge: 300, lungeTime: 0.22, cd: 2.8, breaksGuard: true, hitPosture: 16, parryPosture: 30 },
+    ],
+  }),
+  shadeattendant: foe('guardian', {
+    name: 'Shade Attendant', hp: 90, r: 5, speed: 42, mass: 1.3, postureMul: 0.7, dr: 0.15,
+    moves: moveSet({ strike: { dmg: 11, range: 16, wind: 0.24 }, heavy: { dmg: 20, range: 18 } }),
+    passive: ['Only a Shadow', 'Takes 15% less damage; blocks and counters.'], active: ['Bow, Long Shadow', 'Bows, and its shadow stretches across the floor and cuts.'],
+    specials: [
+      { id: 'longshadow', kind: 'sigil', pattern: 'line', count: 6, spacing: 12, step: 0.07, maxRange: 160, wind: 0.5, recover: 0.5, dmg: 12, radius: 8, delay: 0.5, cd: 4, unblockable: true, variant: 'soulspikes' },
+    ],
+  }),
+});
+
 // The Mutant's mutations: one more every 20% of health it loses.
 const MUTATIONS = {
   arm:      { name: 'Extra Arm', tal: { asura: 1 } },
@@ -1749,7 +1825,17 @@ Object.assign(HERO_ABILITIES, {
   elfspellweaver: { tags: 'a',  cost: 22, cd: 5,   name: 'Elven Roots', desc: 'Roots that pin a foe in place.', atk: { id: 'elfroots', kind: 'sigil', wind: 0.35, recover: 0.4, dmg: 10, radius: 15, delay: 0.7, root: 1.3, unblockable: true, variant: 'roots' } },
   treant:         { tags: 'r',  cost: 18, cd: 5,   name: 'Vine Lash', desc: 'A vine that drags a foe to you.', atk: { id: 'vinelash', kind: 'shoot', proj: 'tentacle', shots: 1, speed: 230, dmg: 9, wind: 0.3, recover: 0.35, pull: true, life: 0.5 } },
 });
-const MANUAL_TAGS ={ 1: '', 2: 'm', 3: 'ra', 4: 'r', 5: 'r', 6: 'a', 7: 'a', 8: 'a', 9: 'ra', 10: 'r', 11: 'r', 12: 'm' };
+Object.assign(HERO_ABILITIES, {
+  macaque:        { tags: 'm',  cost: 14, cd: 3,   name: 'Somersault Kick', desc: 'A flip over a guard.', atk: { id: 'somersault', kind: 'pounce', wind: 0.2, recover: 0.35, dmg: 8, kb: 80, lunge: 280, lungeTime: 0.22, breaksGuard: true, hitPosture: 12, parryPosture: 24 } },
+  greatape:       { tags: 'a',  cost: 22, cd: 5,   name: 'Ape Slam', desc: 'Both fists into the ground around you.', atk: { id: 'apeslam', kind: 'slam', radius: 22, wind: 0.4, recover: 0.5, dmg: 13, kb: 170, hitPosture: 18, unblockable: true, variant: 'quake' } },
+  sweepingmonk:   { tags: 'a',  cost: 20, cd: 4,   name: 'Courtyard Sweep', desc: 'A broad sweep that clears everything round you.', atk: { id: 'broomsweep', kind: 'slam', radius: 28, wind: 0.3, recover: 0.4, dmg: 12, kb: 170, hitPosture: 18, parryPosture: 28, variant: 'staffquake' } },
+  frostmaiden:    { tags: 'ra', cost: 22, cd: 5,   name: 'Frost Lotus', desc: 'Ice that blooms under a foe and slows it.', atk: { id: 'frostlotus', kind: 'sigil', wind: 0.35, recover: 0.4, dmg: 10, radius: 14, delay: 0.7, unblockable: true, variant: 'seal', slow: 2 } },
+  qilin:          { tags: 'm',  cost: 24, cd: 5,   name: 'Thunder Hooves', desc: 'A galloping charge that breaks guard.', atk: { id: 'thunderhooves', kind: 'pounce', wind: 0.4, recover: 0.5, dmg: 15, kb: 220, lunge: 320, lungeTime: 0.36, breaksGuard: true, hitPosture: 24, parryPosture: 40 } },
+  jadetoad:       { tags: 'a',  cost: 20, cd: 5,   name: 'Frost Breath', desc: 'A cone of frost that slows.', atk: { id: 'frostbreath', kind: 'cone', range: 44, angle: 0.65, wind: 0.4, recover: 0.5, dmg: 10, kb: 60, hitPosture: 12, unblockable: true, variant: 'wind', slow: 2.5 } },
+  tiangou:        { tags: 'm',  cost: 18, cd: 4,   name: 'Eclipse Bite', desc: 'A lunging bite through a guard.', atk: { id: 'eclipsebite', kind: 'pounce', wind: 0.22, recover: 0.4, dmg: 12, kb: 70, lunge: 300, lungeTime: 0.22, breaksGuard: true, hitPosture: 16, parryPosture: 30 } },
+  shadeattendant: { tags: 'r',  cost: 20, cd: 5,   name: 'Long Shadow', desc: 'Your shadow stretches out along the floor and cuts.', atk: { id: 'longshadow', kind: 'sigil', pattern: 'line', count: 6, spacing: 12, step: 0.07, wind: 0.35, recover: 0.4, dmg: 11, radius: 8, delay: 0.5, unblockable: true, variant: 'soulspikes' } },
+});
+const MANUAL_TAGS = { 1: '', 2: 'm', 3: 'ra', 4: 'r', 5: 'r', 6: 'a', 7: 'a', 8: 'a', 9: 'ra', 10: 'r', 11: 'r', 12: 'm' };
 for (let n = 1; n <= 12; n++) {
   const { adv, cd, ...atk } = swordOf(n);
   HERO_ABILITIES['sword' + n] = { tags: MANUAL_TAGS[n], cost: 10 + n * 2, cd: Math.max(3, cd * 0.9), manual: n, foe: 'swordsaint',

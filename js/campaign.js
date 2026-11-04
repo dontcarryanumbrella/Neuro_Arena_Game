@@ -66,7 +66,7 @@ const WORLDS = [
   {
     id: 'temple', name: 'Red Dust Temple', tier: 3, color: '#d9a441', bosses: ['abbot', 'wukong'],
     blurb: 'A mountain temple above the red dust, where every courtyard is a lesson in patience.',
-    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('staffmonk', 3, 4), p('arhat', 2, 1)],
+    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('staffmonk', 3, 4), p('arhat', 2, 1), p('macaque', 3, 4), p('greatape', 2, 1), p('sweepingmonk', 2, 1, { elite: true })],
   },
   {
     id: 'night', name: 'Night Country', tier: 2, color: '#9a2a3a', bosses: ['vampirelord', 'lich'],
@@ -107,7 +107,8 @@ const WORLDS = [
   {
     id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor'],
     blurb: 'The celestial court, nine layers up. Someone already tore through it once.',
-    pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2), p('general', 3, 3, { hp: 1.6, dmg: 1.2 })],
+    pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2), p('general', 3, 3, { hp: 1.6, dmg: 1.2 }),
+      p('frostmaiden', 2, 1), p('tiangou', 3, 2), p('shadeattendant', 2, 2), p('qilin', 2, 1, { elite: true }), p('jadetoad', 2, 1, { elite: true })],
   },
   {
     id: 'timestream', name: 'Timestream', tier: 5, color: '#5fe0e0', bosses: ['timeadmin'],
