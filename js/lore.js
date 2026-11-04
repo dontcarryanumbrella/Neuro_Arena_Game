@@ -145,6 +145,8 @@ const CODEX_LORE = {
   courtier: 'A puppet of the yellow court. Its strings go up into the dark.',
   inkdragon: 'Painted with one stroke. Hungry with every other.',
   // bosses
+  sunvenerable: 'Burned so the world could see. The world is gone, and he burns anyway. The two were one before there were two.',
+  moonvenerable: 'Cooled what the sun burned. Keeps the night for no one. Closing the lid made the two of them one again.',
   jaderabbit: 'Fell from a moon that no longer rises. Something dark and wet came up to meet it. It still pounds the medicine, for a moon that is gone.',
   lifetree: 'The elves planted themselves around it. It forgave them, and kept growing.',
   warlord: 'King of the badlands. He rang the town bell himself, the day it stopped.',

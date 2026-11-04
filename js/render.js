@@ -1145,6 +1145,51 @@ const SPRITES = {
     '..MM..MM..',
     '.mmm..mmm.',
   ],
+  // ---- the True Sun and True Moon Venerables, and the one they become ----
+  b_sunven: [
+    '...eeeee.....',
+    '..e.www.e....',
+    '..efkfkfe....',
+    '...ffff......',
+    '....ww.......',
+    '..rrSSSrr....',
+    '.rrSSoSSrr...',
+    '.fSSoooSSf...',
+    '..SSSoSSS....',
+    '..SSSSSSS....',
+    '.SSSSSSSSS...',
+    '.rrrrrrrrr...',
+    '..o.....o....',
+  ],
+  b_moonven: [
+    '.....bb......',
+    '....b........',
+    '...sssss.....',
+    '..sfkfks.....',
+    '...ffff......',
+    '..sUUUUUs....',
+    '.sUUbUUUs....',
+    '.fUUbbUUf....',
+    '..UUUbUU.....',
+    '..UUUUUUU....',
+    '.UUUUUUUUU...',
+    '.ssssssss....',
+    '..u.....u....',
+  ],
+  b_taiji: [
+    '...wwkkk.....',
+    '..wwwkkkk....',
+    '..wfkfkfk....',
+    '...ffff......',
+    '..wwwwkkkk...',
+    '.wwwkwkkkkk..',
+    '.fwwwkwkkkf..',
+    '..wwkwwkkk...',
+    '..wwwwkkkk...',
+    '.wwwwwkkkkk..',
+    '.wwwwwkkkkk..',
+    '..w.....k....',
+  ],
   // the Rabbit: harmless, a pestle and mortar; then the Black Sea's ink comes through
   b_rabbit: [
     '.w.w......',
@@ -3874,6 +3919,10 @@ class Renderer {
       }
       if (e.court && e.phase === 2) this.drawCourt(t);
       if (e.rainT > 0) this.drawRain(t, Math.min(1, e.rainT));
+      if (e.def.venerable === 'sun' && sim.taijiDial && !e.dead) { // the dial: a warm day or a deep blue night over the whole court
+        const g = this.g, T = sim.taijiDial, k = Math.min(1, (12 - T.t) / 0.8);
+        g.globalAlpha = T.day ? 0.1 * k : 0.45 * k; g.fillStyle = T.day ? '#ffd890' : '#0a1440'; g.fillRect(0, 13, W, H - 13); g.globalAlpha = 1;
+      }
       if (e.apparitionT > 0) this.drawThousandHands(sim, e);
     }
   }
@@ -5768,7 +5817,20 @@ class Renderer {
       g.fillRect(x0, y0 + 12, 15, 1);
     }
     const b = sim.enemies.find(e => e.def.boss && e.state !== 'spawn');
-    if (b) {
+    if (b && b.def.venerable && b.partner && !b.partner.dead && !b.taiji && !b.dead) { // the pair: two bars, sun on the left, moon on the right
+      const g = this.g, pair = [b, b.partner].sort((p, q) => (p.def.venerable === 'sun' ? -1 : 1) - (q.def.venerable === 'sun' ? -1 : 1));
+      g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(48, 132, 160, 10);
+      g.font = '8px "Press Start 2P", monospace'; g.textBaseline = 'top';
+      pair.forEach((v, i) => {
+        const x = 50 + i * 80;
+        g.fillStyle = '#3a1410'; g.fillRect(x, 138, 76, 3);
+        g.fillStyle = v.def.venerable === 'sun' ? '#ffb040' : '#b8c8ff'; g.fillRect(x, 138, Math.round(76 * Math.max(0, v.hp) / v.maxHp), 3);
+        g.fillStyle = INK.gold; g.fillRect(x, 141, Math.round(76 * v.posture / v.postureMax), 1);
+        g.textAlign = 'center'; g.fillStyle = v.def.color; g.fillText(v.def.venerable === 'sun' ? 'SUN' : 'MOON', x + 38, 129);
+      });
+      const T = sim.taijiDial; // the dial between the bars: a little taiji, turned toward whoever is ascendant
+      if (T) { const a = T.day ? 0 : Math.PI; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(128, 139, 3, a - Math.PI / 2, a + Math.PI / 2); g.fill(); g.fillStyle = '#141414'; g.beginPath(); g.arc(128, 139, 3, a + Math.PI / 2, a + Math.PI * 1.5); g.fill(); }
+    } else if (b) {
       const g = this.g;
       g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(48, 132, 160, 10);
       g.fillStyle = '#3a1410'; g.fillRect(50, 138, 156, 3);

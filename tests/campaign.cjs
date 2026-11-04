@@ -16,7 +16,7 @@ for (const w of WORLDS) {
       const types = room.foes.map(foeType);
       assert.ok(types.length >= 1, w.id + ': an empty room');
       for (const t of types) assert.ok(isFoeType(t), w.id + ': not a world foe: ' + t);
-      if (room.kind === 'boss') { assert.equal(types.length, 1, w.id + ': bosses fight alone'); assert.ok(ENEMY_TYPES[types[0]].boss); continue; }
+      if (room.kind === 'boss') { const pair = ENEMY_TYPES[types[0]].companion; assert.equal(types.length, pair ? 2 : 1, w.id + ': bosses fight alone (a declared pair together)'); if (pair) assert.equal(types[1], pair); assert.ok(types.every(x => ENEMY_TYPES[x].boss)); continue; }
       assert.ok(types.every(t => !ENEMY_TYPES[t].boss), w.id + ': a boss in a normal room');
       const kinds = new Set(types);
       if (kinds.size === 1) assert.ok(types.length <= 4, w.id + ': more than 4 of one kind');
@@ -29,8 +29,8 @@ for (const w of WORLDS) {
   }
 }
 // every boss is a seal, and the hidden worlds hide until the keeper falls
-assert.equal(ALL_SEALS.length, 17);
-assert.equal(new Set(ALL_SEALS).size, 17);
+assert.equal(ALL_SEALS.length, 18);
+assert.equal(new Set(ALL_SEALS).size, 18);
 const c = freshCampaign();
 assert.ok(!WORLDS.filter(w => w.hidden).some(w => worldVisible(c, w)));
 c.seals.timeadmin = 1;

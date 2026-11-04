@@ -1209,6 +1209,52 @@ ENEMY_TYPES.lifetree = boss('golem', {
 ENEMY_TYPES.lifetree.ult2 = ENEMY_TYPES.lifetree.ult;
 for (const t of ['elfranger', 'elfsentinel', 'elfspellweaver']) ENEMY_TYPES[t].keepSkills = true; // the tree's guardians keep their arts
 
+// ---------- the True Sun and True Moon Venerables: one seal, two bodies, yin and yang ----------
+// They take turns: by day the Sun is ascendant, by night the Moon (Extremes Reverse: every 12s the dial flips, and
+// the one who was ascendant is left open for 3s). Near each other they shelter one another. Below 55% each breathes
+// the Five Phases. When either falls, it flows into the other, and the survivor becomes the Taiji Venerable.
+const TAIJI_PHASE3 = { at: -1, manual: true, dur: 2.5, speedMul: 1.25, cdMul: 0.55, dmgMul: 1.4, healTo: 0.5, flags: { r: 7, taiji: true }, replace: {}, add: [] };
+const BIRTH_OF_ALL_THINGS = { name: 'Birth of All Things', charge: 1.5, dur: 4.2, cd: 15, dark: 'rgba(10,10,10,0.55)',
+  steps: [...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [i * 0.45, 'beam', { variant: 'wx_' + v, len: 280, width: 14, dmg: 18, kb: 120, delay: 0.8, aimed: true, turn: i * 1.2566 }]),
+    [2.6, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 110 }], [3.2, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 140, offset: 0.2 }]] };
+const WUXING_SKILL = { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 4 };
+ENEMY_TYPES.sunvenerable = boss('paladin', {
+  name: 'True Sun Venerable', hp: 380, r: 6, mass: 2.5, speed: 44, postureMul: 0.4, floating: true, venerable: 'sun', companion: 'moonvenerable',
+  sprite: 'b_sunven', sprite2: 'b_sunven', form2: 'True Sun Venerable', form3: 'Taiji Venerable', color: '#ffb040', lore: 'THE SUN THAT WAS TAUGHT TO TAKE TURNS',
+  phase2At: 0.55, moves: moveSet({ strike: { dmg: 12, range: 18 }, heavy: { dmg: 22, range: 20 } }),
+  specials: [
+    { id: 'corona', kind: 'slam', radius: 30, wind: 0.6, recover: 0.6, dmg: 16, kb: 170, cd: 4.5, unblockable: true, hitPosture: 18, variant: 'sun', fire: true },                         // Corona
+    { id: 'goldcrow', kind: 'lob', proj: 'magma', minRange: 30, maxRange: 180, flight: 0.7, height: 30, wind: 0.5, recover: 0.4, cd: 4, land: { r: 13, dmg: 14, kb: 80, zone: { variant: 'fire', r: 14, life: 3, dps: 6 } } }, // Golden Crow Fire
+    { id: 'heaventhunder', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 16, radius: 12, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' }, // Heavenly Thunder
+    { id: 'solarflare', kind: 'cone', range: 50, angle: 0.6, wind: 0.5, recover: 0.6, dmg: 14, kb: 60, hitPosture: 12, cd: 4, unblockable: true, variant: 'fire' },                      // Solar Flare
+  ],
+  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {}, add: [WUXING_SKILL] },
+  phase3: TAIJI_PHASE3,
+  passive: ['Day, Mutual Shelter, Extremes Reverse', 'By day he is ascendant: harder hitting, harder to hurt. Near the Moon both take less. Every 12 seconds day turns to night, and whoever was ascendant is open for a moment.'],
+  active: ['Corona, Golden Crow, Heavenly Thunder, Solar Flare', 'A ring of sun-fire, burning crow-fire thrown down, golden lightning and a flare. Below half: the Five Phases. If the Moon falls, he takes it in and becomes the Taiji Venerable.'],
+  ult: { name: 'Nine Suns Fall', charge: 1.3, dur: 3.0, cd: 16, dark: 'rgba(60,30,0,0.45)',
+    steps: [0, 0.8, 1.6].map(t => [t, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 3, radius: 16, dmg: 22, delay: 1.0 }]) },
+});
+ENEMY_TYPES.moonvenerable = boss('ninja', {
+  name: 'True Moon Venerable', hp: 380, r: 6, mass: 2, speed: 50, postureMul: 0.45, floating: true, venerable: 'moon', companion: 'sunvenerable',
+  sprite: 'b_moonven', sprite2: 'b_moonven', form2: 'True Moon Venerable', form3: 'Taiji Venerable', color: '#b8c8ff', lore: 'THE MOON THAT KEEPS THE NIGHT FOR NO ONE',
+  phase2At: 0.55, moves: moveSet({ strike: { dmg: 11, range: 18, wind: 0.14 }, heavy: { dmg: 20, range: 20 } }),
+  specials: [
+    { id: 'frostlotus', kind: 'sigil', maxRange: 999, wind: 0.5, recover: 0.5, dmg: 12, radius: 14, delay: 0.8, cd: 4, unblockable: true, variant: 'seal', slow: 2, freeze: 0.8 },        // Frost Lotus
+    { id: 'moonstep', kind: 'vanish', minRange: 30, maxRange: 200, wind: 0.25, recover: 0, cd: 5 },                                                                                // Moon Shadow Step
+    { id: 'shadowtide', kind: 'zone', maxRange: 180, wind: 0.5, recover: 0.4, cd: 7, zone: { variant: 'frost', r: 22, life: 4 } },                                                   // Shadow Tide
+    { id: 'moonlance', kind: 'beam', variant: 'cut', len: 170, width: 8, maxRange: 170, wind: 0.55, recover: 0.4, dmg: 18, kb: 100, delay: 0.5, cd: 4.5, unblockable: true },          // Moonbeam Lance
+  ],
+  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {}, add: [WUXING_SKILL] },
+  phase3: TAIJI_PHASE3,
+  passive: ['Night, Mutual Shelter, Extremes Reverse', 'By night she is ascendant: harder hitting, harder to hurt. Near the Sun both take less. Every 12 seconds night turns to day, and whoever was ascendant is open for a moment.'],
+  active: ['Frost Lotus, Moon Shadow Step, Shadow Tide, Moonbeam Lance', 'Ice that blooms and freezes, a step through the shadows, a cold tide on the floor, a lance of moonlight. Below half: the Five Phases. If the Sun falls, she takes it in and becomes the Taiji Venerable.'],
+  ult: { name: 'Eternal Night', charge: 1.3, dur: 3.2, cd: 16, dark: 'rgba(0,4,30,0.7)',
+    steps: [[0, 'summonEdge', { type: 'shadeattendant', count: 2 }], [0.3, 'sigil', { variant: 'seal', pattern: 'scatter', count: 4, radius: 14, dmg: 14, delay: 0.9, slow: 2 }],
+      [1.2, 'radial', { count: 12, kind: 'orb', dmg: 10, speed: 100 }], [2.2, 'sigil', { variant: 'seal', pattern: 'scatter', count: 4, radius: 14, dmg: 14, delay: 0.9, slow: 2 }]] },
+});
+for (const t of ['sunvenerable', 'moonvenerable']) { ENEMY_TYPES[t].ult2 = ENEMY_TYPES[t].ult; ENEMY_TYPES[t].stage3Ult = BIRTH_OF_ALL_THINGS; }
+
 // ---------- the super boss: the Time Administrator ----------
 ENEMY_TYPES.timeadmin = boss('ninja', {
   name: 'Time Administrator', hp: 340, pastRevive: true, r: 9, scale: 1.2, mass: 2.5, speed: 50, postureMul: 0.4, superBoss: true, glitch: true, phasing: 0.3, phasing2: 0.5, evasive: false, timeImmune: true,
@@ -2522,6 +2568,8 @@ class Sim {
         this.emit('climbback', f.x, f.y);
         continue;
       }
+      // Yin and Yang Return to One: a fallen Venerable flows into the other (it still falls)
+      if (f.def && f.def.venerable && !f.taiji && f.partner && !f.partner.dead) this.taijiMerge(f);
       // Undying Heart: the Blind Gentleman rises four times, stronger each time and with half the life
       if (!fell && f.def && f.def.undyingHeart && (f.lives || 0) < f.def.undyingHeart) {
         f.lives = (f.lives || 0) + 1;
@@ -3202,6 +3250,7 @@ class Sim {
     if (t.mobileUlt) mult *= 1 - (t.mobileUlt.u.dr || 0);
     if (t.def && t.def.scales && atk.id === 'strike') mult *= 0.5;
     if (t.def && t.def.goldenBody && t.stage === 3) mult *= atk.id === 'strike' ? 0.6 : atk.id === 'heavy' ? 0.75 : 1; // the true body: strikes barely scratch it
+    if (this.taijiDial || (t.def && t.def.venerable) || (by && by.def && by.def.venerable)) mult *= this.taijiMult(t, by);
     if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
     if (t.def && t.def.resistProj && proj) mult *= t.def.resistProj;
     if (t.past) mult *= 0.5; // the past self is hard to change
@@ -3974,6 +4023,7 @@ class Sim {
       }
     }
     if (e.rainT > 0) this.updateRain(e);
+    if (def.venerable) this.updateTaiji(e);
     if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
       const P = def.pressure[Math.min(def.pressure.length, e.stage || (e.phase >= 2 ? 2 : 1)) - 1];
       for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < P.r + v.r) { v.pressure = P; v.pressureBy = e; v.pressureT = 0.3; }
@@ -4004,7 +4054,7 @@ class Sim {
     const d = t.def;
     if (!d || !d.phaseGate) return 0;
     if (t.phase === 1 && d.phase2) return Math.max(1, Math.ceil(t.maxHp * (d.phase2At || 0.5)) - 1);
-    if (t.phase === 2 && t.stage !== 3 && d.phase3 && !t.teacher) return Math.max(1, Math.ceil(t.maxHp * d.phase3.at) - 1);
+    if (t.phase === 2 && t.stage !== 3 && d.phase3 && !d.phase3.manual && !t.teacher) return Math.max(1, Math.ceil(t.maxHp * d.phase3.at) - 1);
     return 0;
   }
 
@@ -4022,6 +4072,8 @@ class Sim {
     for (const s of ph.add || []) { e.specials.push(s); e.cds[s.id] = 1; }
     Object.assign(e, ph.flags || {});
     if (ph.heal) { e.hp = Math.min(e.maxHp, e.hp + e.maxHp * ph.heal); this.emit('heal', e.x, e.y, { n: Math.round(e.maxHp * ph.heal) }); }
+    if (ph.healTo && e.hp < e.maxHp * ph.healTo) { this.emit('heal', e.x, e.y, { n: Math.round(e.maxHp * ph.healTo - e.hp) }); e.hp = e.maxHp * ph.healTo; }
+    if (third && e.taiji) e.spriteNow = 'b_taiji';
     if (def.ult) e.cds.ult = def.ult2Delay != null ? def.ult2Delay : 0.8; // the new form opens with its ultimate (unless it takes its time)
     // the shockwave of the transformation throws everyone nearby back
     for (const v of this.hostiles(e)) {
@@ -4367,6 +4419,48 @@ class Sim {
         break;
       case 'rain': this.startRain(e, o.dur); break;
     }
+  }
+
+  // The Venerables' dial: day (the Sun ascendant) or night (the Moon). Extremes Reverse: every 12s it turns, and the
+  // one who was ascendant is left open for 3s. Run by the Sun while both live (the Moon if the Sun is gone).
+  updateTaiji(e) {
+    if (e.partner === undefined) {
+      const o = this.enemies.find(m => m !== e && !m.dead && m.type === e.def.companion && m.team === e.team && !m.partner);
+      e.partner = o || null; if (o) o.partner = e;
+    }
+    const pair = e.partner && !e.partner.dead && !e.taiji;
+    if (!pair || (e.def.venerable === 'moon')) return;
+    const T = this.taijiDial = this.taijiDial || { day: true, t: 12, openT: 0, open: null };
+    T.t -= DT; T.openT -= DT;
+    if (T.t <= 0) { T.open = this.ascendant(); T.day = !T.day; T.t = 12; T.openT = 3; this.emit('taijiturn', e.x, e.y, { day: T.day }); }
+  }
+  ascendant() { const T = this.taijiDial; if (!T) return null; return this.enemies.find(m => !m.dead && m.def.venerable === (T.day ? 'sun' : 'moon') && !m.taiji) || null; }
+  // what the pair does to a blow: the ascendant hits harder and takes less; the one just turned is open; near each other both are sheltered
+  taijiMult(t, by) {
+    let m = 1;
+    const T = this.taijiDial;
+    if (by && by.def && by.def.venerable && !by.taiji && T && this.ascendant() === by) m *= 1.3;
+    if (t.def && t.def.venerable && !t.taiji && t.partner && !t.partner.dead) {
+      if (T && this.ascendant() === t) m *= 0.75;
+      if (T && T.openT > 0 && T.open === t) m *= 1.5;
+      if (Math.hypot(t.x - t.partner.x, t.y - t.partner.y) < 70) m *= 0.7; // Mutual Shelter
+    }
+    return m;
+  }
+  // Yin and Yang Return to One: the fallen flows into the survivor, who takes both arts and becomes the Taiji Venerable
+  taijiMerge(fallen) {
+    const s = fallen.partner;
+    if (!s || s.dead || s.taiji) return false;
+    if (s.hp <= 0) s.hp = 1; // both struck down at once: the merge still plays
+    const seen = new Set(s.specials.map(x => x.id));
+    for (const sp of fallen.specials) if (!seen.has(sp.id)) { s.specials.push({ ...sp }); s.cds[sp.id] = 1.5; }
+    if (!s.specials.some(x => x.id === 'wuxing')) { s.specials.push({ ...WUXING_SKILL }); s.cds.wuxing = 1; }
+    s.phase = 1.5; s.toStage = 3; s.state = 'transform'; s.st = s.def.phase3.dur; s.guard = false; s.plan = null; s.ult = null;
+    s.invulnT = Math.max(s.invulnT || 0, s.def.phase3.dur);
+    this.taijiDial = null;
+    this.emit('taijimerge', fallen.x, fallen.y, { tx: s.x, ty: s.y, color: fallen.def.color });
+    this.emit('transformStart', s.x, s.y, { color: '#ffffff', name: s.def.form3, stage: 3 });
+    return true;
   }
 
   // Calling Wind and Rain: while it falls everyone he fights is soaked (his thunder bites harder), and he heals in it.

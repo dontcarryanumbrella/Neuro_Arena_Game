@@ -26,7 +26,7 @@ const BOSS_TUNE = {
   warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
   abbot: { hp: 0.9, dmg: 0.9 }, jaderabbit: { hp: 0.9, dmg: 0.8 }, lifetree: { hp: 0.95, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
   swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 },
-  blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
+  blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, sunvenerable: { hp: 1, dmg: 1 }, moonvenerable: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
   timeadmin: { hp: 1.15, dmg: 1.1 },
   gojo: { hp: 1.1, dmg: 1.1 }, mahoraga: { hp: 1.05, dmg: 1.05 }, scholar: { hp: 1.1, dmg: 1 }, yellowking: { hp: 1.1, dmg: 1.1 },
 };
@@ -105,7 +105,7 @@ const WORLDS = [
     pool: [p('samurai', 4, 3), p('ninja', 3, 4), p('oni', 2, 1), p('magician', 2, 1), p('hydra', 1, 1), p('shifter', 2, 1), p('yukionna', 2, 1), p('tengu', 2, 2)],
   },
   {
-    id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor'],
+    id: 'heavens', name: 'The Nine Heavens', tier: 4, color: '#ffd84a', bosses: ['emperor', 'sunvenerable'],
     blurb: 'The celestial court, nine layers up. Someone already tore through it once.',
     pool: [p('angel', 3, 2), p('paladin', 3, 2), p('phoenix', 1, 1), p('eastdragon', 1, 1), p('djinn', 2, 2), p('general', 3, 3, { hp: 1.6, dmg: 1.2 }),
       p('frostmaiden', 2, 1), p('tiangou', 3, 2), p('shadeattendant', 2, 2), p('qilin', 2, 1, { elite: true }), p('jadetoad', 2, 1, { elite: true })],
@@ -255,7 +255,9 @@ function buildRun(worldId, seed, cycle = 0) {
   const rooms = campaignPlan(w, cycle).map(([kind, x, stretch]) => {
     if (kind === 'boss') {
       const t = BOSS_TUNE[x] || {};
-      return { kind, boss: x, foes: [{ type: x, hp: (t.hp || 1) * (1 + cycle * 0.15), dmg: (t.dmg || 1) * (1 + cycle * 0.15), teacher: w.teacher === x || undefined }], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
+      const one = type => ({ type, hp: ((BOSS_TUNE[type] || t).hp || 1) * (1 + cycle * 0.15), dmg: ((BOSS_TUNE[type] || t).dmg || 1) * (1 + cycle * 0.15), teacher: w.teacher === type || undefined });
+      const pair = ENEMY_TYPES[x].companion; // a pair (the Venerables) is one seal and one room
+      return { kind, boss: x, foes: pair ? [one(x), one(pair)] : [one(x)], time: w.tier >= 6 ? HIDDEN_BOSS_TIME : BOSS_TIME };
     }
     const foes = rollRoom(w, kind, x * (1 + cycle * 0.1), stretch, rand).map(f => { const o = typeof f === 'string' ? { type: f } : { ...f }; o.hp = (o.hp || 1) * (1 + cycle * 0.15); o.dmg = (o.dmg || 1) * (1 + cycle * 0.15); if (cycle >= 3) o.modifier = ['shielded', 'swift', 'vampiric', 'explosive'][Math.floor(rand() * 4)]; return o; });
     return { kind, foes, time: ROOM_TIME };
