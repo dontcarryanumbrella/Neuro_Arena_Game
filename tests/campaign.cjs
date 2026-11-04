@@ -29,14 +29,14 @@ for (const w of WORLDS) {
   }
 }
 // every boss is a seal, and the hidden worlds hide until the keeper falls
-assert.equal(ALL_SEALS.length, 15);
-assert.equal(new Set(ALL_SEALS).size, 15);
+assert.equal(ALL_SEALS.length, 17);
+assert.equal(new Set(ALL_SEALS).size, 17);
 const c = freshCampaign();
 assert.ok(!WORLDS.filter(w => w.hidden).some(w => worldVisible(c, w)));
 c.seals.timeadmin = 1;
 assert.ok(WORLDS.filter(w => w.hidden).every(w => worldVisible(c, w)));
 // the promoted foes: real foes now, with words for the Codex and their boost in the rooms
-assert.deepEqual(PROMOTED.slice().sort(), ['bloater', 'brute', 'butcher', 'chessist', 'coffinbearer', 'courtier', 'flutist', 'general', 'inkdragon', 'lampbearer', 'spitter', 'zergling']);
+assert.deepEqual(PROMOTED.slice().sort(), ['bear', 'bloater', 'brute', 'bunny', 'butcher', 'chessist', 'coffinbearer', 'courtier', 'flutist', 'general', 'inkdragon', 'lampbearer', 'spitter', 'tiger', 'zergling']);
 for (const t of PROMOTED) assert.ok(ENEMY_TYPES[t].passive && ENEMY_TYPES[t].active, t + ' needs Codex text');
 assert.ok(buildRun('abyss', 3).rooms.some(r => r.foes.some(f => typeof f === 'object' && ['zergling', 'spitter', 'bloater', 'brute'].includes(f.type) && f.hp > 1)) || [1, 2, 4, 5, 6].some(s => buildRun('abyss', s).rooms.some(r => r.foes.some(f => typeof f === 'object' && f.type === 'zergling'))), 'the brood arrives boosted');
 // the story: every world has a vignette, every foe a Codex line, and the fragment tracks fit the worlds

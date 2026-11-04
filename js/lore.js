@@ -1,7 +1,7 @@
 // The story of the jar: what each conquered world gives back, what it was, and what the Codex remembers of each foe.
 // Plain data, no DOM. Loaded after campaign.js. (docs/campaign-plan.md, section 1, has the whole truth.)
 
-// Fragments come in the order worlds are conquered, on three tracks: the seven outer worlds (any order), the
+// Fragments come in the order worlds are conquered, on three tracks: the eight outer worlds (any order), the
 // Timestream (always the same revelation), and the three hidden worlds (always after the Timestream).
 const FRAGMENTS = {
   o1: 'The world you cleared did not end when you won. It ended long before you arrived. You only walked through its memory. On the way there, the gate opened onto dark water for a moment before the road appeared.',
@@ -10,19 +10,21 @@ const FRAGMENTS = {
   o4: 'Under your tallies there are older ones, in a different hand. And under those, others. All of them crossed out.',
   o5: 'A word is carved beside the oldest marks: 蛊. A jar. Poisons sealed in together until one remains.',
   o6: 'The worlds were taken from somewhere else. In an old drawing scratched beside the gate, a line runs across dark water from one circle to another. Someone has marked the circles with names.',
+  o8: 'At the edge of a path, something small and white sat pounding at nothing with a stick, as if grinding medicine for someone who had gone. It was wet, though it had not rained. When you looked again, only the ink was left.',
   o7: 'You have seen the woman in the black coat before. She stood at the door, with her hand on it, and she did not open it.',
   t: 'In the keeper\'s hand, a broken watch. Engraved on its back: your Lives, and a number you have not reached yet. It fought with your openings, and it learned them first. When the gate opens again, there is no road. Across black water, lights burn at distances you cannot judge. Then the familiar paths return, along with three you have never seen.',
   h1: 'Under her tallies is a name, the only one in the jar that is not crossed out: 云汐. Yun Xi.',
   h2: 'The dice. You remember her teaching you to read them, in a life you do not remember living.',
   h3: 'You have crossed the water and come back. The mark over your heart still aches when you reach for the lid. The seals will not let it open yet.',
 };
-const FRAGMENT_TRACKS = { outer: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o7'], hidden: ['h1', 'h2', 'h3'] };
+const FRAGMENT_TRACKS = { outer: ['o1', 'o2', 'o3', 'o4', 'o5', 'o6', 'o8', 'o7'], hidden: ['h1', 'h2', 'h3'] };
 
 // What each world was, and how it ended: shown when it is conquered, kept on the Tally Wall.
 const WORLD_VIGNETTES = {
   frontier: 'A dry country where the law ran out and the road kept going. Its outlaws took everything that wasn\'t nailed down, then the nails. The last town at the end of the road held out the longest. One noon its bell stopped ringing, and the dust settled over everything at once, as if a lid had closed.',
   temple: 'A temple above the red dust, where monks spent lifetimes learning to be still. They were the only ones who noticed the sky growing round and close. They kept sweeping the courtyards anyway. In the great hall sat the Victorious Fighting Buddha, who had once torn through heaven and still could not stop fighting. The Abbot said a broom does not argue with the weather. The monkey argued anyway.',
   night: 'A country where the sun stopped rising, and the lords of the dark were glad of it for a while. They held court for a century of midnights. Then the stars went out one by one, and even they understood that something larger was eating the night.',
+  forest: 'A forest older than the names of its trees, where the beasts were never afraid and the elves were never alone. When the jar came, the roots drank the last of the sky and held. The elves still tend the great tree, and it still tends them. Only something small and white at the edge of the wood learned a different way to be afraid.',
   peaks: 'Ten thousand peaks, a sword on every one, and on the highest an old master who had written a manual that ended with Heaven itself. When the world was taken, he alone looked up at the lid and recognised it. He went on teaching. He is still teaching.',
   abyss: 'A world of pits beneath pits, where the old demons and dragons went to sleep. Then a brood came up from beneath even that, eating as it climbed. By the end there was nothing left in the Netherworld that was not the swarm, or its queen.',
   isles: 'Islands of falling petals and old blades. A blind swordsman lived there who could hear a leaf decide to fall. On the last day he drew once at the sky, and the sky did not bleed. It was clay.',
@@ -104,6 +106,21 @@ const CODEX_LORE = {
   dancer: 'Dances the last act at court. Nobody has ever seen her face, including her.',
   pknight: 'Swore an oath to a king without a face. The mask is the oath.',
   horror: 'The lake of cloud is deeper than it looks. This is the part of it that looks back.',
+  // the Primordial Forest
+  serpent: 'Coiled in a branch and waited for the world to end. It did, a little to the left.',
+  roc: 'Cast a shadow over the whole forest. The lid cast a bigger one.',
+  drake: 'Not quite a dragon, not quite sorry. The embers in its throat are older than the forest.',
+  tortoise: 'Carries the north on its back, coiled round by a snake that has never once let go.',
+  raptor: 'Hunts in a pack because one was never enough, and trusts none of the others to know it.',
+  triceratops: 'Lowers its horns at everything, on principle. The principle is the lid.',
+  trex: 'The forest\'s oldest argument, still settling it with its jaws.',
+  elfranger: 'Her arrows leave the string before you hear the wind. She counts the trees that still stand.',
+  elfsentinel: 'Guards a grove that was never threatened from outside. That was the whole mistake.',
+  elfspellweaver: 'Sings the forest to grow. It listens, mostly.',
+  treant: 'Rooted since before the elves came, and has opinions about both.',
+  tiger: 'Walked out of the forest to see what was making the sky so close. Stayed to find out.',
+  bear: 'Slept through the end of its world. Woke up hungry anyway.',
+  bunny: 'Nibbles at your boots. The forest raised it to be polite about it.',
   // promoted from the bosses' retinues
   general: 'A heavenly general from the gates of the ninth heaven, still waiting for the enemy that never had to come in.',
   zergling: 'The brood\'s smallest mouth. There are always more.',
@@ -118,6 +135,8 @@ const CODEX_LORE = {
   courtier: 'A puppet of the yellow court. Its strings go up into the dark.',
   inkdragon: 'Painted with one stroke. Hungry with every other.',
   // bosses
+  jaderabbit: 'Fell from a moon that no longer rises. Something dark and wet came up to meet it. It still pounds the medicine, for a moon that is gone.',
+  lifetree: 'The elves planted themselves around it. It forgave them, and kept growing.',
   warlord: 'King of the badlands. He rang the town bell himself, the day it stopped.',
   deadeye: 'Never misses, and has never been seen clearly. In the heat haze he looks a little like you.',
   abbot: '"A broom does not argue with the weather." He has been sweeping the same courtyard since the lid closed.',

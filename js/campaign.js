@@ -24,7 +24,7 @@ const isColossus = t => ENEMY_TYPES[t].role === 'colossus';
 // The Sword Immortal of the Myriad Sword Peaks is a teacher: he holds back (see Sim.makeTeacher).
 const BOSS_TUNE = {
   warlord: { hp: 0.8, dmg: 0.75 }, deadeye: { hp: 0.85, dmg: 0.8 },
-  abbot: { hp: 0.9, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
+  abbot: { hp: 0.9, dmg: 0.9 }, jaderabbit: { hp: 0.9, dmg: 0.8 }, lifetree: { hp: 0.95, dmg: 0.9 }, vampirelord: { hp: 0.95, dmg: 0.9 }, lich: { hp: 0.95, dmg: 0.9 },
   swordsaint: { hp: 0.8, dmg: 0.6 }, zergqueen: { hp: 1, dmg: 1 },
   blind: { hp: 1, dmg: 0.95 }, emperor: { hp: 1, dmg: 1 }, wukong: { hp: 0.9, dmg: 0.9 },
   timeadmin: { hp: 1.15, dmg: 1.1 },
@@ -66,12 +66,27 @@ const WORLDS = [
   {
     id: 'temple', name: 'Red Dust Temple', tier: 3, color: '#d9a441', bosses: ['abbot', 'wukong'],
     blurb: 'A mountain temple above the red dust, where every courtyard is a lesson in patience.',
-    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('druid', 2, 1), p('staffmonk', 3, 4), p('arhat', 2, 1)],
+    pool: [p('buddhist', 3, 3), p('taichi', 3, 2), p('drunk', 2, 2), p('staffmonk', 3, 4), p('arhat', 2, 1)],
   },
   {
     id: 'night', name: 'Night Country', tier: 2, color: '#9a2a3a', bosses: ['vampirelord', 'lich'],
     blurb: 'A country where the sun stopped rising. Its lords are still at court.',
     pool: [p('zombie', 4, 4), p('werewolf', 2, 2), p('vampire', 2, 2), p('necromancer', 2, 1), p('spider', 2, 1), p('gargoyle', 2, 1), p('ghoul', 3, 4)],
+  },
+  {
+    id: 'forest', name: 'Primordial Forest', tier: 2, color: '#7ab86a',
+    blurb: 'A forest older than names: beasts, giants out of deep time, and the elves who keep the Life Tree.',
+    pool: [
+      p('raptor', 4, 4, { stretch: 'wildwood' }), p('serpent', 3, 3, { stretch: 'wildwood' }), p('roc', 2, 2, { stretch: 'wildwood' }),
+      p('tiger', 3, 3, { stretch: 'wildwood', hp: 1.4, dmg: 1.1 }), p('bear', 2, 2, { stretch: 'wildwood', hp: 1.4, dmg: 1.1 }), p('bunny', 2, 4, { stretch: 'wildwood', hp: 2 }),
+      p('druid', 2, 1, { stretch: 'wildwood' }), p('triceratops', 1, 1, { stretch: 'wildwood' }),
+      p('drake', 2, 1, { stretch: 'wildwood', elite: true }), p('trex', 2, 1, { stretch: 'wildwood', elite: true }), p('tortoise', 2, 1, { stretch: 'wildwood', elite: true }),
+      p('elfranger', 3, 3, { stretch: 'grove' }), p('elfsentinel', 3, 2, { stretch: 'grove' }), p('elfspellweaver', 2, 1, { stretch: 'grove' }),
+      p('tiger', 1, 2, { stretch: 'grove', hp: 1.4, dmg: 1.1 }), p('treant', 2, 1, { stretch: 'grove', elite: true }),
+    ],
+    // the Wildwood of beasts and giants, the Rabbit at its edge; then the Elven Grove, and the tree at its heart
+    rooms: [['skirmish', 2.6, 'wildwood'], ['pack', 4.6, 'wildwood'], ['warband', 4.2, 'wildwood'], ['elite', 4.4, 'wildwood'], ['boss', 'jaderabbit'],
+      ['skirmish', 3.4, 'grove'], ['pack', 5, 'grove'], ['warband', 4.6, 'grove'], ['elite', 4.8, 'grove'], ['boss', 'lifetree']],
   },
   {
     id: 'peaks', name: 'Myriad Sword Peaks', tier: 3, color: '#9fd8ff', bosses: ['swordsaint'],
@@ -146,6 +161,9 @@ const PROMOTED_TEXT = {
   coffinbearer: [['Pallbearer', 'Hides behind its coffin.'], ['Coffin Slam', 'Brings the coffin down on you.']],
   flutist: [['The Song', 'Plays from afar; the painting listens.'], ['Melody', 'Notes that cut.']],
   courtier: [['Marionette', 'Latches onto a nearby enemy and drains health.'], ['Yellow Strings', 'Drains 2 health every 0.5s while attached; fades after 10s.']],
+  tiger: [['Striped Hunter', 'Circles, then pounces through your guard.'], ['Pounce', 'A leap that breaks guard.']],
+  bear: [['Heavy Paws', 'Slow, and hits like a falling tree.'], ['Maul', 'Big swings that throw you back.']],
+  bunny: [['Quick', 'Small and fast; never alone.'], ['Nibble', 'Tiny bites that add up.']],
   inkdragon: [['One Stroke', 'A dragon painted in one stroke of ink.'], ['Ink Breath', 'Breathes a cone of black ink.']],
 };
 for (const t of PROMOTED) { const tx = PROMOTED_TEXT[t]; if (tx && !ENEMY_TYPES[t].passive) { ENEMY_TYPES[t].passive = tx[0]; ENEMY_TYPES[t].active = tx[1]; } }

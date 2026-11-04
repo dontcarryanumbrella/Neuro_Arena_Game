@@ -837,6 +837,8 @@ function loadCampaign(saved, killCounts) {
   c.snapshots = (Array.isArray(saved.snapshots) ? saved.snapshots : []).filter(x => x && validAgentJSON(x.agent) && Number.isFinite(x.lives) && (legacyFinale || WORLD_MILESTONES.includes(x.worldMilestone))).slice(-6)
     .map(x => ({ ...x, agent: compactBrain(x.agent) }));
   c.endingReady = !!saved.endingReady; c.endingSeen = !!saved.endingSeen;
+  // A save that already reached the door keeps it: seals added to the jar since then count as broken.
+  if (c.endingReady || c.endingSeen) for (const b of ALL_SEALS) c.seals[b] = 1;
   c.fourteenthPage = !!saved.fourteenthPage; c.swordUpgrade = !!saved.swordUpgrade;
   c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? { ...saved.previousSelf, agent: compactBrain(saved.previousSelf.agent) } : null;
   c.finalVictorySnapshot = saved.finalVictorySnapshot && validAgentJSON(saved.finalVictorySnapshot.agent) ? { ...saved.finalVictorySnapshot, agent: compactBrain(saved.finalVictorySnapshot.agent) } : null;

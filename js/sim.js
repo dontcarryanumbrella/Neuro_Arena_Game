@@ -745,6 +745,106 @@ const SHIFT_FORMS = {
     ] },
 };
 
+// ---------- the Primordial Forest: wild beasts (the forms Thousand Skins borrows, still wild), dinosaurs, the elves ----------
+const wild = (f, scale) => f.specials.map(s => ({ ...s, dmg: s.dmg && Math.round(s.dmg * scale), cd: s.cd * 1.25, ...(s.land ? { land: { ...s.land, dmg: Math.round(s.land.dmg * scale) } } : {}) }));
+Object.assign(ENEMY_TYPES, {
+  serpent: foe('beast', {
+    name: 'Serpent', hp: 52, r: 5, speed: 50, mass: 1.2, postureMul: 0.9, ai: 'circle', orbit: 34, sprite: 'sf_serpent',
+    moves: moveSet({ strike: { dmg: 8, range: 16, wind: 0.18, poison: 3, poisonT: 3 } }),
+    passive: ['Venom', 'Its bite poisons.'], active: ['Spit and Strike', 'Spits venom from range, lunges with its fangs, and lobs a poison cloud.'],
+    specials: wild(SHIFT_FORMS.serpent, 0.75),
+  }),
+  roc: foe('beast', {
+    name: 'Roc', hp: 66, r: 6, speed: 52, mass: 1.8, postureMul: 0.85, floating: true, ai: 'circle', orbit: 52, sprite: 'sf_roc',
+    moves: moveSet({ strike: { dmg: 10, range: 15, wind: 0.22 } }),
+    passive: ['Sky Hunter', 'Flies, and cannot be ringed out.'], active: ['Gust, Dive, Feathers', 'A gust that shoves you toward the edge, a diving strike, and a spread of feathers.'],
+    specials: wild(SHIFT_FORMS.roc, 0.75),
+  }),
+  drake: foe('colossus', {
+    name: 'Ember Drake', hp: 140, r: 7, speed: 36, mass: 2.6, postureMul: 0.55, sprite: 'sf_drake',
+    moves: moveSet({ strike: { dmg: 14, range: 18, wind: 0.34, kb: 100 } }),
+    passive: ['Hot Blood', 'Its scales shrug off a flinch.'], active: ['Breath, Tail, Magma', 'A fire breath, a tail swipe, and lobbed magma that leaves burning ground.'],
+    noFlinch: true, specials: wild(SHIFT_FORMS.drake, 0.8),
+  }),
+  tortoise: foe('colossus', {
+    name: 'Mossback Tortoise', hp: 170, r: 8, speed: 22, mass: 6, postureMul: 0.35, harden: true, ai: 'golem',
+    moves: moveSet({ strike: { dmg: 14, range: 18, wind: 0.5, kb: 120 } }),
+    passive: ['Mossback', 'Standing still, its shell hardens, layer on layer; moving sheds them, and heavies and kicks crack them.'],
+    active: ['Shell Slam, Serpent Tail, Tide', 'Drops its whole weight on the ground, bites with the snake coiled round its tail, and breathes a tide that soaks you.'],
+    specials: [
+      { id: 'shellslam', kind: 'slam', radius: 26, wind: 0.8, recover: 0.9, dmg: 18, kb: 170, cd: 5, unblockable: true, hitPosture: 22, variant: 'quake' },
+      { id: 'tailbite', kind: 'pounce', minRange: 12, maxRange: 50, wind: 0.35, recover: 0.5, dmg: 10, kb: 40, lunge: 220, lungeTime: 0.2, cd: 3, poison: 4, poisonT: 3, hitPosture: 10 },
+      { id: 'tide', kind: 'cone', range: 46, angle: 0.7, wind: 0.6, recover: 0.6, dmg: 6, kb: 200, hitPosture: 12, cd: 6, unblockable: true, variant: 'wind', wet: 5 },
+    ],
+  }),
+  raptor: foe('beast', {
+    name: 'Raptor', hp: 36, r: 4, speed: 68, mass: 0.9, postureMul: 1.1, ai: 'circle', orbit: 34,
+    moves: moveSet({ strike: { dmg: 7, range: 13, wind: 0.12 } }),
+    passive: ['Pack Hunter', 'Hunts in packs and circles before it strikes.'], active: ['Leap and Rake', 'A leaping kick with its sickle claw, then a quick flurry.'],
+    specials: [
+      { id: 'raptorleap', kind: 'pounce', minRange: 18, maxRange: 70, wind: 0.32, recover: 0.5, dmg: 10, kb: 90, lunge: 300, lungeTime: 0.24, cd: 2.4, hitPosture: 14, parryPosture: 30 },
+      { id: 'rake', kind: 'flurry', reach: 14, range: 13, arc: 0.8, hits: 3, interval: 0.12, step: 50, wind: 0.25, recover: 0.45, dmg: 4, kb: 20, hitPosture: 6, cd: 4 },
+    ],
+  }),
+  triceratops: foe('colossus', {
+    name: 'Triceratops', hp: 160, r: 8, speed: 30, mass: 5, postureMul: 0.45,
+    moves: moveSet({ strike: { dmg: 14, range: 18, wind: 0.45, kb: 140 } }),
+    passive: ['Frill', 'Hard to stagger from the front.'], active: ['Charge, Horn Toss', 'Lowers its horns and charges through your guard; tosses whatever is close.'],
+    specials: [
+      { id: 'tricharge', kind: 'pounce', minRange: 30, maxRange: 120, wind: 0.75, recover: 0.8, dmg: 20, kb: 260, lunge: 280, lungeTime: 0.45, cd: 5, breaksGuard: true, hitPosture: 30, parryPosture: 40 },
+      { id: 'horntoss', kind: 'slam', radius: 20, wind: 0.5, recover: 0.6, dmg: 12, kb: 220, cd: 3.5, hitPosture: 18 },
+    ],
+  }),
+  trex: foe('colossus', {
+    name: 'Tyrant Lizard', hp: 230, r: 9, scale: 1.2, speed: 34, mass: 7, postureMul: 0.35, noFlinch: true,
+    moves: moveSet({ strike: { dmg: 18, range: 20, wind: 0.5, kb: 150 } }),
+    passive: ['Apex', 'Nothing flinches it.'], active: ['Roar, Crushing Bite, Stomp', 'A roar that sends you running, a lunging bite that breaks guard, and a stomp that shakes the ground.'],
+    specials: [
+      { id: 'roar', kind: 'cone', range: 60, angle: 0.9, wind: 0.7, recover: 0.6, dmg: 2, kb: 60, hitPosture: 10, cd: 9, unblockable: true, variant: 'wind', fear: 1.2 },
+      { id: 'crushbite', kind: 'pounce', minRange: 14, maxRange: 60, wind: 0.6, recover: 0.7, dmg: 26, kb: 160, lunge: 260, lungeTime: 0.28, cd: 3.5, breaksGuard: true, hitPosture: 30, parryPosture: 50 },
+      { id: 'tstomp', kind: 'slam', radius: 30, wind: 0.85, recover: 0.8, dmg: 18, kb: 180, cd: 5, unblockable: true, hitPosture: 22, variant: 'quake' },
+    ],
+  }),
+  elfranger: foe('marksman', {
+    name: 'Elf Ranger', hp: 60, r: 5, speed: 56, mass: 0.9, postureMul: 1, near: 70, far: 140, dodgeP: 0.4, kickP: 0.1, parryP: 0.3, blockP: 0.3, aggr: 0.5,
+    moves: moveSet({ strike: { dmg: 10, range: 13, wind: 0.1, recover: 0.2 } }),
+    passive: ['Among the Trees', 'Keeps its distance, and slips out of sight when you close in.'], active: ['Volley', 'Three arrows at once, and a long aimed shot.'],
+    specials: [
+      { id: 'leafstep', kind: 'vanish', minRange: 0, maxRange: 40, wind: 0.2, recover: 0, cd: 6 },
+      { id: 'elfvolley', kind: 'shoot', proj: 'arrow', shots: 3, spread: 0.22, speed: 270, dmg: 7, minRange: 30, maxRange: 200, wind: 0.4, recover: 0.35, cd: 2.4 },
+      { id: 'aimedshot', kind: 'shoot', proj: 'bigarrow', shots: 1, speed: 380, dmg: 18, minRange: 40, maxRange: 240, wind: 0.75, recover: 0.4, laser: true, pierce: true, kb: 100, hitPosture: 18, cd: 5, radius: 3 },
+    ],
+  }),
+  elfsentinel: foe('guardian', {
+    name: 'Elf Sentinel', hp: 92, r: 5, speed: 44, mass: 1.4, postureMul: 0.7,
+    moves: moveSet({ strike: { dmg: 11, range: 24, wind: 0.22 }, heavy: { dmg: 20, range: 26 } }),
+    passive: ['Leafshield', 'Holds a shield up, and counters off a block.'], active: ['Spear Line', 'A long spear thrust that crosses the gap, and a sweep that keeps you out.'],
+    specials: [
+      { id: 'spearline', kind: 'pounce', minRange: 22, maxRange: 72, wind: 0.42, recover: 0.5, dmg: 13, kb: 100, lunge: 260, lungeTime: 0.24, cd: 3.5, hitPosture: 16, parryPosture: 30 },
+      { id: 'spearsweep', kind: 'slam', radius: 26, wind: 0.45, recover: 0.6, dmg: 9, kb: 130, cd: 4.5, hitPosture: 14, parryPosture: 24 },
+    ],
+  }),
+  elfspellweaver: foe('caster', {
+    name: 'Elf Spellweaver', hp: 54, r: 5, speed: 36, mass: 1, postureMul: 1.1, blessing: true,
+    passive: ['Song of Growing', 'Heals nearby allies every second.'], active: ['Roots and Thorns', 'Roots that pin you, and a spray of thorns.'],
+    specials: [
+      { id: 'elfroots', kind: 'sigil', maxRange: 180, wind: 0.45, recover: 0.5, dmg: 10, radius: 15, delay: 0.75, root: 1.3, cd: 4, unblockable: true, variant: 'roots' },
+      { id: 'thorns', kind: 'shoot', proj: 'feather', shots: 4, spread: 0.3, speed: 180, dmg: 5, minRange: 20, maxRange: 160, wind: 0.35, recover: 0.35, cd: 2.6 },
+    ],
+  }),
+  treant: foe('colossus', {
+    name: 'Elder Treant', hp: 210, r: 9, scale: 1.2, speed: 20, mass: 7, postureMul: 0.35, harden: true, ai: 'golem',
+    moves: moveSet({ strike: { dmg: 16, range: 20, wind: 0.55, kb: 140 } }),
+    passive: ['Barkskin', 'Rooted, its bark thickens, layer on layer; moving sheds it, and heavies and kicks crack it.'],
+    active: ['Grasping Roots, Vine Lash', 'Roots burst up under you and pin you; a vine lashes out and drags you in.'],
+    specials: [
+      { id: 'grasp', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 200, wind: 0.6, recover: 0.6, dmg: 12, radius: 13, delay: 0.85, root: 1.4, cd: 5, unblockable: true, variant: 'roots' },
+      { id: 'vinelash', kind: 'shoot', proj: 'tentacle', shots: 1, speed: 230, dmg: 9, minRange: 18, maxRange: 90, wind: 0.4, recover: 0.45, cd: 4, pull: true, life: 0.5 },
+      { id: 'treeslam', kind: 'slam', radius: 26, wind: 0.85, recover: 0.9, dmg: 18, kb: 180, cd: 5, unblockable: true, hitPosture: 22, variant: 'quake' },
+    ],
+  }),
+});
+
 // The Mutant's mutations: one more every 20% of health it loses.
 const MUTATIONS = {
   arm:      { name: 'Extra Arm', tal: { asura: 1 } },
@@ -951,6 +1051,48 @@ for (const [b, ph] of Object.entries(PHASE2)) {
   p2.add = (p2.add || []).concat(ph.add || []);
   ENEMY_TYPES[b].ult2 = ph.ult;
 }
+
+// ---------- the Primordial Forest's bosses: a rabbit, and the tree the elves keep ----------
+ENEMY_TYPES.jaderabbit = boss('tiger', {
+  name: 'Rabbit', summon: false, hp: 230, r: 4, scale: 1.4, mass: 0.8, speed: 74, postureMul: 0.7, ai: 'circle', orbit: 30, strange: true,
+  sprite: 'b_rabbit', sprite2: 'b_rabbit2', form2: 'Ink-Stained Jade Rabbit', color: '#e8e8f0', lore: 'IT FELL FROM THE MOON',
+  moves: moveSet({ strike: { dmg: 4, range: 11, wind: 0.12 } }),
+  specials: [
+    { id: 'pestle', kind: 'slam', radius: 16, hits: 2, interval: 0.25, wind: 0.4, recover: 0.5, dmg: 6, kb: 80, cd: 3, hitPosture: 8, variant: 'quake' },
+    { id: 'hop', kind: 'pounce', minRange: 18, maxRange: 70, wind: 0.25, recover: 0.4, dmg: 5, kb: 60, lunge: 300, lungeTime: 0.22, cd: 2.4, hitPosture: 8 },
+  ],
+  phase2: { speedMul: 1.25, cdMul: 0.6, dmgMul: 1.3, heal: 0.2, flags: {},
+    replace: { pestle: { id: 'pestle', kind: 'slam', radius: 20, hits: 3, interval: 0.2, wind: 0.35, recover: 0.45, dmg: 8, kb: 110, cd: 3, hitPosture: 12, variant: 'quake' } },
+    add: [
+      { id: 'inkblots', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 12, radius: 11, delay: 0.8, cd: 4, unblockable: true, variant: 'inkrain' },
+      { id: 'moonbite', kind: 'pounce', minRange: 10, maxRange: 60, wind: 0.7, recover: 0.6, dmg: 6, maxHpPct: 0.08, kb: 120, lunge: 320, lungeTime: 0.22, cd: 5, breaksGuard: true, hitPosture: 20, parryPosture: 40 },
+    ] },
+  passive: ['Harmless', 'Small, fast and polite. Its second form is none of those: ink comes through the fur, and its bite takes a share of your health.'],
+  active: ['Pounding the Elixir, Moon-Devouring Bite', 'A pestle that shakes the ground, a hop. Then ink blots that burst where you stand, and a bite with a twitch of the ears before it.'],
+  ult: { name: 'Elixir of the Moon', charge: 1.0, dur: 2.0, cd: 16, dark: 'rgba(20,20,40,0.35)',
+    steps: [[0, 'radial', { count: 8, kind: 'orb', dmg: 8, speed: 100 }], [1.0, 'radial', { count: 8, kind: 'orb', dmg: 8, speed: 100, offset: 0.39 }]] },
+  ult2: { name: 'The Moon Devoured', charge: 1.1, dur: 2.8, cd: 15, dark: 'rgba(0,0,0,0.5)',
+    steps: [[0, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 5, radius: 12, dmg: 14, delay: 0.8 }], [0.9, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 5, radius: 12, dmg: 14, delay: 0.8 }],
+      [1.8, 'dash', { ...DASH, dmg: 14, speed: 380 }]] },
+});
+ENEMY_TYPES.lifetree = boss('golem', {
+  name: 'The Life Tree', hp: 300, r: 13, mass: 99, speed: 0, postureMul: 0.25, kbOut: 0.6, noFlinch: true, harden: false, blessing: true,
+  sprite: 'b_lifetree', sprite2: 'b_lifetree2', form2: 'The World Tree Awakens', color: '#a8e070', lore: 'THE ELVES PLANTED THEMSELVES AROUND IT',
+  moves: moveSet({ strike: { dmg: 14, range: 24, wind: 0.5, kb: 160 } }),
+  specials: [
+    { id: 'grasp', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.6, recover: 0.6, dmg: 12, radius: 13, delay: 0.85, root: 1.3, cd: 4.5, unblockable: true, variant: 'roots' },
+    { id: 'vinelash', kind: 'shoot', proj: 'tentacle', shots: 1, speed: 240, dmg: 9, minRange: 20, maxRange: 140, wind: 0.4, recover: 0.45, cd: 3.5, pull: true, life: 0.7 },
+    { id: 'guardians', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['elfsentinel', 'elfranger'], cap: 2 },
+  ],
+  phase2: { speedMul: 1, cdMul: 0.6, dmgMul: 1.25, heal: 0.2, flags: {}, replace: {},
+    add: [{ id: 'rootline', kind: 'sigil', pattern: 'line', count: 8, spacing: 12, step: 0.06, maxRange: 999, wind: 0.45, recover: 0.5, dmg: 14, radius: 9, delay: 0.55, root: 0.9, cd: 3.5, unblockable: true, variant: 'roots' }] },
+  passive: ['Rooted, Spring Blessing', 'It never moves and cannot be thrown; it heals its elves every second.'],
+  active: ['Grasping Roots, Vine Lash, Guardians', 'Roots that pin you, a vine that drags you in, and elves that come to its defence. Awake, roots erupt in lines across the floor.'],
+  ult: { name: 'Spring Returns to the Earth', charge: 1.2, dur: 2.8, cd: 18, dark: 'rgba(20,40,10,0.35)',
+    steps: [[0, 'summon', { minions: ['elfspellweaver', 'elfsentinel'] }], [0.4, 'sigil', { variant: 'roots', pattern: 'scatter', count: 6, radius: 13, dmg: 12, delay: 0.8 }], [1.6, 'radial', { count: 12, kind: 'feather', dmg: 7, speed: 140 }]] },
+});
+ENEMY_TYPES.lifetree.ult2 = ENEMY_TYPES.lifetree.ult;
+for (const t of ['elfranger', 'elfsentinel', 'elfspellweaver']) ENEMY_TYPES[t].keepSkills = true; // the tree's guardians keep their arts
 
 // ---------- the super boss: the Time Administrator ----------
 ENEMY_TYPES.timeadmin = boss('ninja', {
@@ -1593,7 +1735,21 @@ Object.assign(HERO_ABILITIES, {
   pknight:      { tags: 'a',  cost: 24, cd: 6,   name: 'Tarnished Blade', desc: 'Two wide cleaves that break guard.', atk: { id: 'tarnished', kind: 'flurry', reach: 20, range: 20, arc: 1.1, hits: 2, interval: 0.35, step: 30, wind: 0.35, recover: 0.5, dmg: 13, kb: 90, breaksGuard: true, hitPosture: 16, parryPosture: 30 } },
   horror:       { tags: 'ra', cost: 26, cd: 6,   name: 'Tentacles', desc: 'Tentacles rise at the edge of the stage near the target and drag it toward the edge.', atk: { id: 'edgetentacles', kind: 'edgetentacles', count: 3, dmg: 14, radius: 12, delay: 0.9, wind: 0.4, recover: 0.4 } },
 });
-const MANUAL_TAGS = { 1: '', 2: 'm', 3: 'ra', 4: 'r', 5: 'r', 6: 'a', 7: 'a', 8: 'a', 9: 'ra', 10: 'r', 11: 'r', 12: 'm' };
+// the Primordial Forest's techniques
+Object.assign(HERO_ABILITIES, {
+  serpent:        { tags: 'r',  cost: 16, cd: 4,   name: 'Venom Spit', desc: 'Three globs of venom that poison.', atk: { id: 'venomspit', kind: 'shoot', proj: 'venom', shots: 3, spread: 0.2, speed: 160, dmg: 5, wind: 0.3, recover: 0.3, poison: 4, poisonT: 3 } },
+  roc:            { tags: 'a',  cost: 20, cd: 6,   name: 'Roc Gust', desc: 'A gust that throws foes toward the edge.', atk: { id: 'rocgust', kind: 'cone', range: 55, angle: 0.8, wind: 0.4, recover: 0.5, dmg: 4, kb: 300, hitPosture: 15, unblockable: true, variant: 'wind' } },
+  drake:          { tags: 'a',  cost: 22, cd: 5,   name: 'Drake Breath', desc: 'A short cone of fire.', atk: { id: 'drakebreath', kind: 'cone', range: 40, angle: 0.55, wind: 0.45, recover: 0.5, dmg: 13, kb: 50, hitPosture: 10, unblockable: true, variant: 'fire' } },
+  tortoise:       { tags: 'a',  cost: 24, cd: 6,   name: 'Shell Slam', desc: 'Drop your whole weight on the ground around you.', atk: { id: 'shellslam', kind: 'slam', radius: 24, wind: 0.5, recover: 0.6, dmg: 14, kb: 160, hitPosture: 20, unblockable: true, variant: 'quake' } },
+  raptor:         { tags: 'm',  cost: 15, cd: 3.5, name: 'Raptor Leap', desc: 'A leaping sickle-claw kick.', atk: { id: 'raptorleap', kind: 'pounce', wind: 0.22, recover: 0.4, dmg: 10, kb: 90, lunge: 300, lungeTime: 0.24, hitPosture: 14, parryPosture: 30 } },
+  triceratops:    { tags: 'm',  cost: 26, cd: 6,   name: 'Horn Charge', desc: 'A charge that breaks guard and throws.', atk: { id: 'tricharge', kind: 'pounce', wind: 0.45, recover: 0.6, dmg: 16, kb: 240, lunge: 280, lungeTime: 0.4, breaksGuard: true, hitPosture: 28, parryPosture: 40 } },
+  trex:           { tags: 'a',  cost: 28, cd: 9,   name: 'Apex Roar', desc: 'A roar that sends foes running.', atk: { id: 'roar', kind: 'cone', range: 55, angle: 0.9, wind: 0.4, recover: 0.5, dmg: 2, kb: 60, hitPosture: 10, unblockable: true, variant: 'wind', fear: 1.2 } },
+  elfranger:      { tags: 'r',  cost: 16, cd: 3,   name: 'Elven Volley', desc: 'Three arrows at once.', atk: { id: 'elfvolley', kind: 'shoot', proj: 'arrow', shots: 3, spread: 0.22, speed: 270, dmg: 7, wind: 0.3, recover: 0.3 } },
+  elfsentinel:    { tags: 'm',  cost: 18, cd: 4,   name: 'Spear Line', desc: 'A long spear thrust across the gap.', atk: { id: 'spearline', kind: 'pounce', wind: 0.3, recover: 0.4, dmg: 12, kb: 100, lunge: 260, lungeTime: 0.24, hitPosture: 16, parryPosture: 30 } },
+  elfspellweaver: { tags: 'a',  cost: 22, cd: 5,   name: 'Elven Roots', desc: 'Roots that pin a foe in place.', atk: { id: 'elfroots', kind: 'sigil', wind: 0.35, recover: 0.4, dmg: 10, radius: 15, delay: 0.7, root: 1.3, unblockable: true, variant: 'roots' } },
+  treant:         { tags: 'r',  cost: 18, cd: 5,   name: 'Vine Lash', desc: 'A vine that drags a foe to you.', atk: { id: 'vinelash', kind: 'shoot', proj: 'tentacle', shots: 1, speed: 230, dmg: 9, wind: 0.3, recover: 0.35, pull: true, life: 0.5 } },
+});
+const MANUAL_TAGS ={ 1: '', 2: 'm', 3: 'ra', 4: 'r', 5: 'r', 6: 'a', 7: 'a', 8: 'a', 9: 'ra', 10: 'r', 11: 'r', 12: 'm' };
 for (let n = 1; n <= 12; n++) {
   const { adv, cd, ...atk } = swordOf(n);
   HERO_ABILITIES['sword' + n] = { tags: MANUAL_TAGS[n], cost: 10 + n * 2, cd: Math.max(3, cd * 0.9), manual: n, foe: 'swordsaint',
