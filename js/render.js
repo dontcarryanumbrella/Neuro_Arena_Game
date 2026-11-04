@@ -2594,7 +2594,7 @@ const SIGIL_SOUND = { lightning: 'thunder', lance: 'holy', spikes: 'slash', root
 const EASTERN_DRAGONS = {
   eastdragon: () => ({ body: '#3f8a4a', dark: '#2a5e33', belly: '#d9c27a', mane: '#e8c34a', horn: '#ece4d2', eye: '#ffe14d', len: 30, th: 4 }),
   emperor: e => e.stage === 3
-    ? { body: '#ffcc40', dark: '#c8901c', belly: '#fff3c0', mane: '#ff7a2a', horn: '#ffffff', eye: '#ff3030', len: 74, th: 10 } // the true body: five-clawed, gold, vast
+    ? { body: '#ffcc40', dark: '#c8901c', belly: '#fff3c0', mane: '#ff7a2a', horn: '#ffffff', eye: '#ff3030', len: 46, th: 6, big: 3.2 } // the true body: the dragon's own proportions, three times over
     : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6 },  // the Celestial Dragon: azure and gold
   inkdragon: () => ({ body: '#1e1e24', dark: '#0a0a0e', belly: '#4a4a52', mane: '#5a5f66', horn: '#8a8f9c', eye: '#ff2a2a', len: 28, th: 4 }),
 };
@@ -5018,7 +5018,7 @@ class Renderer {
   // The true body's pearl: a pale-gold orb circling the dragon, dim for a moment after an ultimate is spent
   drawDragonPearl(sim, e, lift) {
     const t = sim.t, dim = e.pearlOpenFrom && t >= e.pearlOpenFrom && t < e.pearlOpenFrom + 3;
-    const x = sx(e.x) + Math.cos(t * 1.6) * 22, y = sy(e.y) - lift - 22 + Math.sin(t * 1.6) * 6, a = dim ? 0.35 : 1;
+    const x = sx(e.x) + Math.cos(t * 1.6) * 60, y = sy(e.y) - lift - 40 + Math.sin(t * 1.6) * 10, a = dim ? 0.35 : 1;
     const g = this.g;
     for (const [r, al] of [[9, 0.12], [6, 0.2], [4.5, 0.3]]) { g.globalAlpha = al * a; g.fillStyle = '#fff2b0'; g.beginPath(); g.arc(x, y, dim ? r * 0.6 : r, 0, 6.2832); g.fill(); }
     g.globalAlpha = a;
@@ -5028,26 +5028,35 @@ class Renderer {
   }
 
   drawEasternDragon(sim, e, P, jx, lift, flash, scale) {
-    const g = this.g, t = sim.t, F = e.fx < 0 ? -1 : 1, X = sx(e.x + jx), base = sy(e.y) - lift - 5, L = P.len * scale, th0 = P.th * scale, n = Math.round(L / 1.5);
+    scale *= P.big || 1; // a bigger dragon is the same dragon, scaled whole: head, legs, crest and whiskers with the body
+    const d = Math.max(1, Math.round(scale)); // the size of its finest details
+    const g = this.g, t = sim.t, F = e.fx < 0 ? -1 : 1, X = sx(e.x + jx), base = sy(e.y) - lift - 5 * scale, L = P.len * scale, th0 = P.th * scale, n = Math.round(L / 1.5);
     if (flash) P = { body: '#ffffff', dark: '#ffffff', belly: '#ffffff', mane: '#ffffff', horn: '#ffffff', eye: '#ffffff' };
     const pts = [];
-    for (let i = 0; i <= n; i++) { const u = i / n; pts.push([X + F * (L * 0.45 - u * L), base + Math.sin(t * 3.5 + e.id - u * 6) * 3 * scale + u * 1.5]); }
+    for (let i = 0; i <= n; i++) { const u = i / n; pts.push([X + F * (L * 0.45 - u * L), base + Math.sin(t * 3.5 + e.id - u * 6) * 3 * scale + u * 1.5 * scale]); }
+    const every = k => i => Math.round(i / scale) % k === 0 && (i % d === 0); // details spaced along the body as on a small dragon
     for (let i = n; i >= 0; i--) { // the body, tail first so the head sits on top
-      const [x, y] = pts[i], u = i / n, th = Math.max(1, th0 * (1 - u * 0.75) * (u < 0.08 ? 0.8 : 1));
+      const [x, y] = pts[i], u = i / n, th = Math.max(1, th0 * (1 - u * 0.75) * (u < 0.08 ? 0.8 : 1)), j = Math.round(i / scale);
       g.fillStyle = P.body; g.fillRect(Math.round(x), Math.round(y - th / 2), 2, Math.ceil(th));
-      g.fillStyle = P.belly; g.fillRect(Math.round(x), Math.round(y + th / 2) - 1, 2, 1);
-      if (i % 3 === 0) { g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y), 1, 1); } // scales
-      if (i % 4 === 1 && u < 0.92) { g.fillStyle = P.mane; g.fillRect(Math.round(x), Math.round(y - th / 2) - 1 - (i % 8 === 1 ? 1 : 0), 1, i % 8 === 1 ? 2 : 1); } // the dorsal crest
+      g.fillStyle = P.belly; g.fillRect(Math.round(x), Math.round(y + th / 2) - d, 2, d);
+      if (every(3)(i)) { g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y), d, d); } // scales
+      if (j % 4 === 1 && i % d === 0 && u < 0.92) { g.fillStyle = P.mane; const h = (j % 8 === 1 ? 2 : 1) * d; g.fillRect(Math.round(x), Math.round(y - th / 2) - h, d, h); } // the dorsal crest
     }
-    const [tx, ty] = pts[n]; g.fillStyle = P.mane; g.fillRect(Math.round(tx) - 1, Math.round(ty) - 2, 2, 4); // the tail tuft
+    const [tx, ty] = pts[n]; g.fillStyle = P.mane; g.fillRect(Math.round(tx) - d, Math.round(ty) - 2 * d, 2 * d, 4 * d); // the tail tuft
     for (const k of [0.22, 0.62]) { // clawed legs, paddling at the air
       const i = Math.round(k * n), [x, y] = pts[i], sw = Math.sin(t * 6 + k * 9) * 2 * scale, th = th0 * (1 - k * 0.75);
-      for (const side of [0, 1]) { const lx = x + (side ? 2 : -1) * scale + sw * (side ? 1 : -1), ly = y + th / 2 + 3 * scale; this.pline(x + side * 2, y + th / 2, lx, ly, P.dark); g.fillStyle = P.horn; g.fillRect(Math.round(lx) - 1, Math.round(ly), 3, 1); }
+      for (const side of [0, 1]) {
+        const lx = x + (side ? 2 : -1) * scale + sw * (side ? 1 : -1), ly = y + th / 2 + 3 * scale;
+        if (d === 1) this.pline(x + side * 2, y + th / 2, lx, ly, P.dark);
+        else { g.strokeStyle = P.dark; g.lineWidth = d; g.beginPath(); g.moveTo(x + side * 2 * scale, y + th / 2); g.lineTo(lx, ly); g.stroke(); }
+        g.fillStyle = P.horn; g.fillRect(Math.round(lx - scale), Math.round(ly), Math.round(3 * scale), d); // the claws
+      }
     }
     const [hx, hy] = pts[0];
     this.dragonHead(hx, hy, F, P, scale, Math.floor(t * 2 + e.id) % 5 === 0 || e.state === 'wind' ? 1 : 0);
     // whiskers trailing back from the snout
-    for (const o of [-1, 1]) { let x = hx + F * 5 * scale, y = hy + o * scale; for (let k = 0; k < 8; k++) { x -= F * 1.2; y += Math.sin(t * 5 + k * 0.8 + o) * 0.6 + o * 0.25; this.pix(x, y, P.mane); } }
+    g.fillStyle = P.mane;
+    for (const o of [-1, 1]) { let x = hx + F * 5 * scale, y = hy + o * scale; for (let k = 0; k < 8; k++) { x -= F * 1.2 * scale; y += (Math.sin(t * 5 + k * 0.8 + o) * 0.6 + o * 0.25) * scale; g.fillRect(Math.round(x), Math.round(y), d, d); } }
   }
 
   // World Within a Painting: everything drained to ink on paper (the dragon's red eye stays red)

@@ -23,7 +23,7 @@ const ids = e => e.specials.map(x => x.id).sort().join(',');
   s.dealDamage(e, 99999, s.p, 0, 0, 0);
   assert.ok(e.hp > 0 && e.hp < e.maxHp * 0.3, 'gated at 30%');
   run(s, 3);
-  assert.equal(e.stage, 3); assert.ok(e.giant && e.r === 20);
+  assert.equal(e.stage, 3); assert.ok(e.giant && e.r === 26);
   for (const id of ['wuxing', 'pearlorbs', 'ninesons']) assert.ok(e.specials.some(x => x.id === id), 'stage 3 has ' + id);
   e.cds.ult = 0; e.state = 'idle'; s.startUlt(e);
   assert.equal(e.ult.name, 'Dragon Pearl Transforms the Five Phases');

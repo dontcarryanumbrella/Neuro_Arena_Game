@@ -1020,7 +1020,7 @@ Object.assign(ENEMY_TYPES, {
       { id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general'], cap: 2 },                                                  // Summon Heavenly Soldiers
     ],
     phase2: { speedMul: 1.15, cdMul: 0.55, dmgMul: 1.25, heal: 0.2, add: [] },
-    phase3: { at: 0.3, dur: 2.2, speedMul: 1.1, cdMul: 0.45, dmgMul: 1.6, heal: 0.3, flags: { r: 20, mass: 30, giant: true }, replace: {},
+    phase3: { at: 0.3, dur: 2.2, speedMul: 1.1, cdMul: 0.45, dmgMul: 1.6, heal: 0.3, flags: { r: 26, mass: 40, giant: true }, replace: {},
       add: [
         { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 3 },                                                                           // Breath of the Five Phases
         { id: 'pearlorbs', kind: 'shoot', proj: 'orb', shots: 5, spread: 1.1, speed: 120, dmg: 10, minRange: 0, maxRange: 220, wind: 0.4, recover: 0.4, cd: 5, homing: 1.4 }, // Dragon Pearl Barrage
