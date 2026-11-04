@@ -643,16 +643,22 @@ const SPRITES = {
     '....E.E.E......',
     '.....E.E.......',
   ],
+  // the Dragon Emperor as a man: a jade crown, a gold robe with the dragon on its breast, a scepter, standing on a cloud
   b_emperor: [
-    '......................AA.A...',
-    '.....................jjjjjA..',
-    '..jjj...............jjejjjjy.',
-    '.jAAjj.......jjj...jjjjjj.y..',
-    'jjAAAjj.....jjAjj.jjjjAAyy...',
-    'jj...jjj...jjAAAjjjjAA.......',
-    '.......jjjjAAj..jjjAA........',
-    '........jAAjj....jj..........',
-    '.........kk.k....k.k.........',
+    '....hjjh......',
+    '...hhhhhh.....',
+    '....fkfk......',
+    '....ffff......',
+    '.....ww.......',
+    '...SSSSSS.....',
+    '..SSArrASS..h.',
+    '.SSSAyyASSSfh.',
+    '.fSSSyySSS..h.',
+    '..SSSSSSSS..h.',
+    '..SSSrrSSS..h.',
+    '..SSSSSSSS....',
+    '.wWwwWwwWww...',
+    'wwWwwwWwwWww..',
   ],
   b_emperor2: [
     '......................rr.r...',
@@ -2587,9 +2593,9 @@ const SIGIL_SOUND = { lightning: 'thunder', lance: 'holy', spikes: 'slash', root
 // Eastern dragons are drawn live: a horned, whiskered head, a scaled serpent body with a dorsal crest, and clawed legs.
 const EASTERN_DRAGONS = {
   eastdragon: () => ({ body: '#3f8a4a', dark: '#2a5e33', belly: '#d9c27a', mane: '#e8c34a', horn: '#ece4d2', eye: '#ffe14d', len: 30, th: 4 }),
-  emperor: e => e.phase === 2
-    ? { body: '#fff3c8', dark: '#e8c34a', belly: '#ffffff', mane: '#7fd0ff', horn: '#ffffff', eye: '#7fd0ff', len: 44, th: 6 }
-    : { body: '#e8c34a', dark: '#b8913c', belly: '#fff3b0', mane: '#c23b22', horn: '#ece4d2', eye: '#ff3030', len: 42, th: 6 },
+  emperor: e => e.stage === 3
+    ? { body: '#ffcc40', dark: '#c8901c', belly: '#fff3c0', mane: '#ff7a2a', horn: '#ffffff', eye: '#ff3030', len: 74, th: 10 } // the true body: five-clawed, gold, vast
+    : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6 },  // the Celestial Dragon: azure and gold
   inkdragon: () => ({ body: '#1e1e24', dark: '#0a0a0e', belly: '#4a4a52', mane: '#5a5f66', horn: '#8a8f9c', eye: '#ff2a2a', len: 28, th: 4 }),
 };
 // a dragon's head, facing right: h horn, M mane, B head, D shade, e eye, n nostril, w teeth, j jaw
@@ -3220,7 +3226,7 @@ class Renderer {
         }
         case 'phase':
           this.transform = null;
-          this.banner = { text: (ev.name || 'PHASE 2').toUpperCase(), life: ev.lore ? 3.4 : 2.0, small: true, color: ev.color, kicker: 'SECOND FORM', lore: ev.lore };
+          this.banner = { text: (ev.name || 'PHASE 2').toUpperCase(), life: ev.lore ? 3.4 : 2.0, small: true, color: ev.color, kicker: ev.stage === 3 ? 'THIRD FORM' : 'SECOND FORM', lore: ev.lore };
           for (let i = 0; i < 3; i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 4 + i * 6, r1: 60 + i * 25, life: 0.5 + i * 0.15, max: 0.5 + i * 0.15, color: i === 1 ? '#ffffff' : ev.color || INK.gold });
           burst(ev, 60, 300, [ev.color || INK.gold, '#ffffff', INK.verm], 0.9);
           this.flash('rgba(255,255,255,0.7)', 0.18); this.shake = Math.max(this.shake, 10);
@@ -3867,6 +3873,7 @@ class Renderer {
         g.globalAlpha = 1;
       }
       if (e.court && e.phase === 2) this.drawCourt(t);
+      if (e.rainT > 0) this.drawRain(t, Math.min(1, e.rainT));
       if (e.apparitionT > 0) this.drawThousandHands(sim, e);
     }
   }
@@ -4294,8 +4301,10 @@ class Renderer {
     if (e.liftT > 0) lift += Math.round(Math.min(1, (1 - e.liftT) * 4) * 10);
     if (egg) { mode = e.flash > 0 ? 'flash' : null; g.globalAlpha = 1; }
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'pre');
-    const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0);
+    const human = e.type === 'emperor' && !e.stage && e.phase !== 2; // the Emperor is a man until his first transformation completes
+    const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0) && !human;
     if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
+    if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
     else if (!(def.yellowKing && e.phase === 2)) this.sprite(pic, e.x + jx, e.y, flip && !egg, mode, lift, scale);
     g.globalAlpha = 1;
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'post');
@@ -4997,6 +5006,27 @@ class Renderer {
   }
 
   // an eastern dragon: the body follows a slow wave behind the head, tapering to the tail
+  // Calling Wind and Rain: slanting rain over the whole stage, a dark wash of cloud
+  drawRain(t, k) {
+    const g = this.g;
+    g.globalAlpha = 0.18 * k; g.fillStyle = '#1a2840'; g.fillRect(0, 13, W, H - 13);
+    g.globalAlpha = 0.45 * k; g.strokeStyle = '#b8d0ff'; g.lineWidth = 0.6; g.beginPath();
+    for (let i = 0; i < 70; i++) { const x = (i * 37 + t * 180) % (W + 30) - 15, y = 13 + ((i * 53 + t * 260) % (H - 13)); g.moveTo(x, y); g.lineTo(x - 2, y + 5); }
+    g.stroke(); g.globalAlpha = 1;
+  }
+
+  // The true body's pearl: a pale-gold orb circling the dragon, dim for a moment after an ultimate is spent
+  drawDragonPearl(sim, e, lift) {
+    const t = sim.t, dim = e.pearlOpenFrom && t >= e.pearlOpenFrom && t < e.pearlOpenFrom + 3;
+    const x = sx(e.x) + Math.cos(t * 1.6) * 22, y = sy(e.y) - lift - 22 + Math.sin(t * 1.6) * 6, a = dim ? 0.35 : 1;
+    const g = this.g;
+    for (const [r, al] of [[9, 0.12], [6, 0.2], [4.5, 0.3]]) { g.globalAlpha = al * a; g.fillStyle = '#fff2b0'; g.beginPath(); g.arc(x, y, dim ? r * 0.6 : r, 0, 6.2832); g.fill(); }
+    g.globalAlpha = a;
+    g.fillStyle = '#ffe9a0'; g.beginPath(); g.arc(x, y, 3, 0, 6.2832); g.fill();
+    g.fillStyle = '#ffffff'; g.fillRect(Math.round(x - 1.5), Math.round(y - 1.5), 1, 1);
+    g.globalAlpha = 1;
+  }
+
   drawEasternDragon(sim, e, P, jx, lift, flash, scale) {
     const g = this.g, t = sim.t, F = e.fx < 0 ? -1 : 1, X = sx(e.x + jx), base = sy(e.y) - lift - 5, L = P.len * scale, th0 = P.th * scale, n = Math.round(L / 1.5);
     if (flash) P = { body: '#ffffff', dark: '#ffffff', belly: '#ffffff', mane: '#ffffff', horn: '#ffffff', eye: '#ffffff' };
@@ -5350,7 +5380,8 @@ class Renderer {
       case 'reappear': burst(ev, 14, 80, ['#ff9ad8', '#ffffff'], 0.4); P.push({ kind: 'star', x: sx(ev.x), y: sy(ev.y) - 8, life: 0.15, max: 0.15, s: 2 }); this.snd('chime'); break;
       case 'truehit': P.push({ kind: 'star', x: sx(ev.x), y: sy(ev.y) - 5, life: 0.1, max: 0.1, color: '#ffb7d5', s: 1.5 }); break;
       case 'beamhit': {
-        const c = { riverwave: ['#9fd8ff', '#ffffff'], shadowcut: ['#ffffff', '#9fd8ff'], onethrust: ['#ffffff', '#9fd8ff'], onesword: ['#ffffff', '#bfe0ff'], inkstroke: ['#141414', '#ece4d2'], dragonstrike: ['#141414', '#5a5f66'], ruyi: ['#ffd84a', '#c23b22'], pillar: ['#ffd84a', '#ffffff'], cut: ['#ffffff', '#bfe8ff'], bigcut: ['#ffb7d5', '#ffffff'], sever: ['#ffffff', '#141414'], exterminate: ['#ffd84a', '#ffffff'] }[ev.variant] || ['#ffffff', '#ff5a3c'];
+        const c = { riverwave: ['#9fd8ff', '#ffffff'], shadowcut: ['#ffffff', '#9fd8ff'], onethrust: ['#ffffff', '#9fd8ff'], onesword: ['#ffffff', '#bfe0ff'], inkstroke: ['#141414', '#ece4d2'], dragonstrike: ['#141414', '#5a5f66'], ruyi: ['#ffd84a', '#c23b22'], pillar: ['#ffd84a', '#ffffff'], cut: ['#ffffff', '#bfe8ff'], bigcut: ['#ffb7d5', '#ffffff'], sever: ['#ffffff', '#141414'], exterminate: ['#ffd84a', '#ffffff'],
+          wx_wood: ['#5ac850', '#d8ffb0'], wx_fire: ['#ff5a1a', '#ffd08a'], wx_earth: ['#a8743a', '#f0d8a0'], wx_metal: ['#ffffff', '#ffd84a'], wx_water: ['#3a8ae0', '#c8e8ff'] }[ev.variant] || ['#ffffff', '#ff5a3c'];
         const big = ev.w >= 14;
         P.push({ kind: 'line', x0: sx(ev.x), y0: sy(ev.y) - 4, x1: sx(ev.x1), y1: sy(ev.y1) - 4, life: big ? 0.45 : 0.2, max: big ? 0.45 : 0.2, color: c[0], w: big ? 3 : 1 });
         if (big) P.push({ kind: 'line', x0: sx(ev.x), y0: sy(ev.y) - 3, x1: sx(ev.x1), y1: sy(ev.y1) - 3, life: 0.6, max: 0.6, color: c[1], w: 1 });
@@ -5736,7 +5767,7 @@ class Renderer {
       g.fillStyle = INK.gold; g.fillRect(50, 141, Math.round(156 * b.posture / b.postureMax), 1);
       g.font = '8px "Press Start 2P", monospace'; g.textAlign = 'center'; g.textBaseline = 'top';
       g.fillStyle = b.phase === 2 ? (b.def.color || INK.rice) : INK.rice;
-      g.fillText((b.phase === 2 ? b.def.form2 || b.def.name : b.def.name).toUpperCase(), 128, 129);
+      g.fillText((b.stage === 3 && b.def.form3 ? b.def.form3 : b.phase === 2 ? b.def.form2 || b.def.name : b.def.name).toUpperCase(), 128, 129);
     }
   }
 

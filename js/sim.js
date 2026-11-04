@@ -1004,11 +1004,30 @@ Object.assign(ENEMY_TYPES, {
     phase2: { speedMul: 1.15, cdMul: 0.55, dmgMul: 1.25, add: [ENEMY_TYPES.talisman.specials[1]] },
     passive: ['Raise Dead, Ward', 'Raises the fallen; a ward absorbs a hit every 8s.'], active: ['Bone Spikes, Sigils, Zombies', 'Adds homing talismans in phase two.'],
   }),
+  // Three stages: a man on a cloud, the Celestial Dragon, and the true body with the dragon pearl. A true bloodline:
+  // whatever stands near him is slower, softer and weaker against him (Dragon Majesty), and he is the bane of the
+  // dead and of things that should not be.
   emperor: boss('eastdragon', {
-    name: 'Dragon Emperor', hp: 416, r: 13, mass: 8, speed: 32, postureMul: 0.3, scales: true, sprite: 'b_emperor', sprite2: 'b_emperor2', form2: 'Celestial Dragon', color: '#ffd84a',
-    specials: [ENEMY_TYPES.eastdragon.specials[0], ENEMY_TYPES.westdragon.specials[1]],
-    phase2: { speedMul: 1.15, cdMul: 0.55, dmgMul: 1.25, add: [ENEMY_TYPES.westdragon.specials[0]] },
-    passive: ['Serpentine, Scales', 'Flies; strikes do half damage.'], active: ['Thunder, Fire Breath, Wing Gust', 'Adds the wing gust in phase two.'],
+    name: 'Dragon Emperor', hp: 900, r: 8, mass: 8, speed: 34, postureMul: 0.3, scales: true, sprite: 'b_emperor', sprite2: 'b_emperor2', form2: 'Celestial Dragon', form3: 'True Dragon, Golden Body', color: '#ffd84a',
+    phase2At: 0.65, rainHeal: 0.005, goldenBody: true,
+    pressure: [{ r: 80, dmg: 0.1, slow: 0.1, def: 0.1 }, { r: 130, dmg: 0.2, slow: 0.15, def: 0.15 }, { r: 999, dmg: 0.3, slow: 0.25, def: 0.25 }],
+    nemesis: [1.5, 1.75, 2],
+    specials: [
+      { ...ENEMY_TYPES.eastdragon.specials[0], id: 'thunder', variant: 'goldlightning' },                                                       // Heavenly Edict
+      { id: 'dragonclaw', kind: 'cone', range: 34, angle: 0.6, wind: 0.45, recover: 0.5, dmg: 14, kb: 90, hitPosture: 16, cd: 3, unblockable: true, variant: 'wind' }, // Dragon's Claw
+      { id: 'jadeseal', kind: 'slam', radius: 26, wind: 0.7, recover: 0.8, dmg: 20, kb: 190, cd: 5, unblockable: true, hitPosture: 24, variant: 'quake' },          // Jade Seal Suppresses the World
+      { id: 'clouds', kind: 'cloudhop', minRange: 30, maxRange: 160, wind: 0.35, recover: 0.5, dmg: 16, kb: 140, radius: 20, cd: 7, hitPosture: 20 },            // Riding the Clouds
+      { id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general'], cap: 2 },                                                  // Summon Heavenly Soldiers
+    ],
+    phase2: { speedMul: 1.15, cdMul: 0.55, dmgMul: 1.25, heal: 0.2, add: [] },
+    phase3: { at: 0.3, dur: 2.2, speedMul: 1.1, cdMul: 0.45, dmgMul: 1.6, heal: 0.3, flags: { r: 20, mass: 30, giant: true }, replace: {},
+      add: [
+        { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 3 },                                                                           // Breath of the Five Phases
+        { id: 'pearlorbs', kind: 'shoot', proj: 'orb', shots: 5, spread: 1.1, speed: 120, dmg: 10, minRange: 0, maxRange: 220, wind: 0.4, recover: 0.4, cd: 5, homing: 1.4 }, // Dragon Pearl Barrage
+        { id: 'ninesons', kind: 'summon', wind: 0.8, recover: 0.6, cd: 14, minions: ['eastdragon', 'eastdragon'], cap: 2 },                                        // Nine Sons of the Dragon
+      ] },
+    passive: ['Dragon Majesty, Mandate of Heaven, Thunder Scales, Golden Body', 'A true bloodline: near him you move slower, take more and deal less to him (the whole arena in his true body); he does extra damage to the undead and the strange. As a man his decrees cannot be interrupted. As the dragon he flies, strikes do half damage, lightning bites back and he heals while his rain falls. In his true body strikes barely scratch him, but when an ultimate ends his pearl dims and he is open.'],
+    active: ['Edict, Claw, Jade Seal, Clouds; Rain, Tide, Dragonfire; the Five Phases', 'As a man: golden lightning, a raking claw, the jade seal brought down, a leap across the clouds, heavenly soldiers. As the dragon: rain that soaks you for his thunder, a tide that throws you, dragonfire, a wing gust, generals and dragon guards. In his true body: the pearl breathes wood, fire, earth, metal and water in turn, its light hunts you, and the dragon\'s nine sons come down.'],
   }),
 });
 
@@ -1031,8 +1050,9 @@ const ULTS = {
       [1.7, 'radial', { count: 12, kind: 'bullet', dmg: 10, speed: 170 }]] },
   lich: { name: 'Night of the Dead', charge: 1.2, dur: 3.0, cd: 16, dark: 'rgba(0,30,15,0.55)',
     steps: [[0, 'summonEdge', { type: 'zombie', count: 2 }], [0.6, 'cross', { rot: 0 }], [1.4, 'cross', { rot: Math.PI / 4 }], [2.2, 'orbs', { count: 4, dmg: 14 }]] },
-  emperor: { name: 'Heavenly Tribulation', charge: 1.4, dur: 3.4, cd: 16, dark: 'rgba(0,0,20,0.6)',
-    steps: [[0, 'lightning', { count: 6 }], [0.8, 'lightning', { count: 6 }], [1.6, 'lightning', { count: 6 }], [2.4, 'breath', { range: 75, angle: 0.8, dmg: 26 }]] },
+  emperor: { name: 'Nine Heavens Thunder Tribulation', charge: 1.4, dur: 3.4, cd: 16, dark: 'rgba(0,0,20,0.6)',
+    steps: [[0, 'lightning', { count: 3, variant: 'goldlightning', dmg: 20 }], [0.5, 'lightning', { count: 3, variant: 'goldlightning', dmg: 20 }], [1.0, 'lightning', { count: 3, variant: 'goldlightning', dmg: 20 }],
+      [1.8, 'sigil', { variant: 'seal', radius: 24, dmg: 28, delay: 1.0, kb: 200 }]] },
 };
 for (const [b, u] of Object.entries(ULTS)) ENEMY_TYPES[b].ult = u;
 
@@ -1113,12 +1133,19 @@ const PHASE2 = {
         [3.0, 'dragonbreath', { range: 90, angle: 0.6, dmg: 20 }], [3.5, 'orbs', { count: 8, dmg: 14 }]] },
   },
   emperor: {
-    flags: { court: true },
-    replace: { thunder: { id: 'thunder', kind: 'sigil', pattern: 'scatter', count: 6, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 22, radius: 13, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' } },
-    add: [{ id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general'], cap: 2 }],
-    ult: { name: 'Wrath of the Celestial Court', charge: 1.4, dur: 4.0, cd: 16, dark: 'rgba(30,20,0,0.55)',
-      steps: [[0, 'summon', { minions: ['general', 'general'] }], [0.3, 'lightning', { count: 7, variant: 'goldlightning', dmg: 22 }], [1.1, 'lightning', { count: 7, variant: 'goldlightning', dmg: 22 }],
-        [1.9, 'lightning', { count: 7, variant: 'goldlightning', dmg: 22 }], [2.7, 'breath', { range: 80, angle: 0.85, dmg: 28, variant: 'gold' }]] },
+    flags: { court: true, r: 13 },
+    // the Celestial Dragon: the edict becomes a chain of thunder; the claw, the seal and the cloud-leap give way to rain, tide and fire
+    replace: {
+      thunder: { id: 'thunder', kind: 'sigil', pattern: 'scatter', count: 6, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 22, radius: 13, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' }, // Thunder Chain
+      dragonclaw: { id: 'tide', kind: 'cone', range: 56, angle: 0.75, wind: 0.6, recover: 0.6, dmg: 10, kb: 260, hitPosture: 14, cd: 5, unblockable: true, variant: 'wind', wet: 5 },              // Dragon Tide
+      jadeseal: { ...ENEMY_TYPES.westdragon.specials[1], id: 'dragonfire', dmg: 20 },                                                                                                           // Dragonfire
+      clouds: { id: 'rain', kind: 'rain', maxRange: 999, wind: 0.6, recover: 0.4, dur: 8, cd: 14 },                                                                                             // Calling Wind and Rain
+      court: { id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general', 'general', 'general'], cap: 4 },                                                   // generals and dragon guards
+    },
+    add: [ENEMY_TYPES.westdragon.specials[0]],
+    ult: { name: 'Overturning Rivers and Seas', charge: 1.4, dur: 4.2, cd: 16, dark: 'rgba(10,20,40,0.55)',
+      steps: [[0, 'rain', { dur: 8 }], [0.3, 'breath', { range: 90, angle: 0.95, dmg: 14, variant: 'wind', wet: 5 }], [1.0, 'lightning', { count: 9, variant: 'goldlightning', dmg: 20 }],
+        [1.8, 'lightning', { count: 9, variant: 'goldlightning', dmg: 20 }], [2.6, 'lightning', { count: 9, variant: 'goldlightning', dmg: 20 }], [3.4, 'breath', { range: 85, angle: 0.85, dmg: 28, variant: 'gold' }]] },
   },
 };
 for (const [b, ph] of Object.entries(PHASE2)) {
@@ -1127,6 +1154,18 @@ for (const [b, ph] of Object.entries(PHASE2)) {
   p2.add = (p2.add || []).concat(ph.add || []);
   ENEMY_TYPES[b].ult2 = ph.ult;
 }
+// The true body's ultimate: the pearl breathes all five phases from the four quarters and the centre, then one beam of its own light.
+ENEMY_TYPES.emperor.stage3Ult = { name: 'Dragon Pearl Transforms the Five Phases', charge: 1.6, dur: 4.0, cd: 16, dark: 'rgba(30,24,0,0.6)',
+  steps: [...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [i * 0.4, 'beam', { variant: 'wx_' + v, len: 300, width: 14, dmg: 18, kb: 120, delay: 0.8, aimed: true, turn: i * 1.2566 }]),
+    [2.6, 'beam', { variant: 'pillar', len: 320, width: 30, dmg: 34, kb: 220, delay: 0.9, aimed: true }]] };
+// what each of the five phases does when the pearl breathes it (Breath of the Five Phases, in generating order)
+const WUXING = [
+  ['wood', [['sigil', { variant: 'roots', pattern: 'scatter', count: 4, radius: 12, dmg: 12, delay: 0.8, root: 1.2 }]]],
+  ['fire', [['beam', { variant: 'wx_fire', len: 200, width: 12, dmg: 18, kb: 100, delay: 0.6, aimed: true, turn: 0.4 }], ['beam', { variant: 'wx_fire', len: 200, width: 12, dmg: 18, kb: 100, delay: 0.6, aimed: true, turn: -0.4 }]]],
+  ['earth', [['sigil', { variant: 'staffquake', pattern: 'scatter', count: 5, radius: 14, dmg: 16, delay: 0.85, kb: 160 }]]],
+  ['metal', [['beam', { variant: 'wx_metal', len: 320, width: 8, dmg: 22, kb: 80, delay: 0.5, aimed: true, pierceAll: true }]]],
+  ['water', [['beam', { variant: 'wx_water', len: 240, width: 22, dmg: 14, kb: 240, delay: 0.7, aimed: true }], ['breath', { range: 60, angle: 0.7, dmg: 6, variant: 'wind', wet: 5 }]]],
+];
 
 // ---------- the Primordial Forest's bosses: a rabbit, and the tree the elves keep ----------
 ENEMY_TYPES.jaderabbit = boss('tiger', {
@@ -3162,6 +3201,8 @@ class Sim {
     if (t.state === 'heroult') mult *= t.special && (t.special.stage || 1) >= 2 && ['tough', 'berserk'].some(k => (t.special.mods || []).includes(k)) ? 0.25 : 0.5; // the fighter's own special
     if (t.mobileUlt) mult *= 1 - (t.mobileUlt.u.dr || 0);
     if (t.def && t.def.scales && atk.id === 'strike') mult *= 0.5;
+    if (t.def && t.def.goldenBody && t.stage === 3) mult *= atk.id === 'strike' ? 0.6 : atk.id === 'heavy' ? 0.75 : 1; // the true body: strikes barely scratch it
+    if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
     if (t.def && t.def.resistProj && proj) mult *= t.def.resistProj;
     if (t.past) mult *= 0.5; // the past self is hard to change
     if (t.def && t.def.mystery && !t.lastStand) mult *= 1 - 0.9 * Math.max(0, 1 - t.hp / t.maxHp); // ???: the closer to the end, the less gets through (up to 90%)
@@ -3932,6 +3973,7 @@ class Sim {
         for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < e.r + 22) { v.lastHitBy = e; this.dealDamage(v, 1.5, null, 0, 0, 0); this.emit('burn', v.x, v.y); }
       }
     }
+    if (e.rainT > 0) this.updateRain(e);
     if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
       const P = def.pressure[Math.min(def.pressure.length, e.stage || (e.phase >= 2 ? 2 : 1)) - 1];
       for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < P.r + v.r) { v.pressure = P; v.pressureBy = e; v.pressureT = 0.3; }
@@ -3996,6 +4038,7 @@ class Sim {
       u = pool[Math.floor(this.rand() * pool.length)];
     }
     e.cds.ult = (e.def.anyUlt && e.phase === 2 ? 8 : u.cd) * e.cdMul;
+    if (e.def.goldenBody && e.stage === 3) e.pearlOpenFrom = this.t + u.charge + u.dur; // the pearl dims when the ultimate is spent
     if (u.untouchable) e.invulnT = Math.max(e.invulnT || 0, u.charge + u.dur); // nothing reaches him while he draws
     if (u.iframes) e.invulnT = Math.max(e.invulnT || 0, u.charge + u.iframes);
     if (e.def.manual && e.phase === 2) e.invulnT = Math.max(e.invulnT || 0, 1); // the Thirteenth Sword: untouchable for a moment as he draws
@@ -4318,11 +4361,30 @@ class Sim {
         for (const v of this.hostiles(e)) {
           const vx = v.x - e.x, vy = v.y - e.y, vd = Math.hypot(vx, vy) || 1;
           if (vd - v.r - e.r <= o.range && (vx * ux + vy * uy) / vd > Math.cos(o.angle) && !this.airborne(v)) {
-            this.receiveHit(v, e, { id: 'ultbreath', dmg: o.dmg, kb: 120, hitPosture: 20, unblockable: true }, vx / vd, vy / vd);
+            this.receiveHit(v, e, { id: 'ultbreath', dmg: o.dmg, kb: o.kb || 120, hitPosture: 20, unblockable: true, wet: o.wet, fire: (o.variant || 'fire') === 'fire' }, vx / vd, vy / vd);
           }
         }
         break;
+      case 'rain': this.startRain(e, o.dur); break;
     }
+  }
+
+  // Calling Wind and Rain: while it falls everyone he fights is soaked (his thunder bites harder), and he heals in it.
+  startRain(e, dur) { e.rainT = Math.max(e.rainT || 0, dur); e.rainTick = 0; this.emit('rain', e.x, e.y, { dur }); }
+  updateRain(e) {
+    if (!(e.rainT > 0)) return;
+    e.rainT -= DT; e.rainTick = (e.rainTick || 0) - DT;
+    if (e.rainTick > 0) return;
+    e.rainTick = 0.5;
+    for (const v of this.hostiles(e)) v.wetT = Math.max(v.wetT || 0, 1);
+    if (e.def.rainHeal && e.hp > 0 && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * e.def.rainHeal * 0.5);
+  }
+
+  // Breath of the Five Phases: the pearl breathes the next phase in generating order (wood, fire, earth, metal, water).
+  breatheWuxing(e, tgt) {
+    const [name, steps] = WUXING[(e.wuxing = ((e.wuxing ?? -1) + 1) % WUXING.length)];
+    this.emit('wuxing', e.x, e.y, { phase: name });
+    for (const [kind, o] of steps) this.ultStep(e, kind, o, tgt);
   }
 
   // Lunges, leaps and multi-hit spins.
@@ -4667,6 +4729,8 @@ class Sim {
           hitPosture: atk.hitPosture || 15, unblockable: atk.unblockable, breaksGuard: atk.breaksGuard, trueDmg: atk.trueDmg, team: e.team, src: e, abilityId: atk.abilityId });
         break;
       }
+      case 'rain': this.startRain(e, atk.dur || 8); break;
+      case 'wuxing': this.breatheWuxing(e, tgt); break;
       case 'cloudhop': { // the cloud somersault: over the target in one bound, and down behind it with the staff
         if (!tgt.id || atk.copy) break;
         this.emit('cloud', e.x, e.y, { tx: tgt.x, ty: tgt.y });
