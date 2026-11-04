@@ -208,7 +208,7 @@ for (const type of [...BOSSES_NEW, 'timeadmin']) {
   for (const m of brood) { m.hp = 0; } s.resolveFalls();
   s.receiveHit(q, s.p, { dmg: 999, trueDmg: true }, 1, 0); s.resolveFalls(); assert.ok(q.dead);
   // at death's door she spills broodlings, and they can't keep her alive
-  const [s3, q3] = duel('zergqueen');
+  const [s3, q3] = duel('zergqueen'); q3.def = { ...q3.def, phaseGate: false };
   s3.receiveHit(q3, s3.p, { dmg: 9999, trueDmg: true }, 1, 0); assert.ok(q3.broodSpent);
   const sp = q3.specials.find(x => x.desperate), br = q3.specials.find(x => x.id === 'brood'); q3.cds.desperation = 0; q3.cds.brood = 0;
   assert.ok(s3.canUseSpecial(q3, sp, 30, 20, s3.p) || s3.enemies.filter(m => m.summoner === q3.id).length >= sp.cap); assert.ok(!s3.canUseSpecial(q3, br, 30, 20, s3.p));
