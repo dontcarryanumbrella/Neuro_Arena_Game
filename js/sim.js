@@ -4040,7 +4040,7 @@ class Sim {
     if (def.phase2 && e.phase === 1 && e.hp < e.maxHp * (def.phase2At || 0.5) && e.state !== 'ult') {
       // the second form: invulnerable while it transforms
       e.phase = 1.5; e.state = 'transform'; e.st = 1.6; e.guard = false; e.plan = null; e.chainAt = 0;
-      this.emit('transformStart', e.x, e.y, { color: def.color, name: def.name, yellowKing: def.yellowKing });
+      this.emit('transformStart', e.x, e.y, { color: def.color, name: def.name, yellowKing: def.yellowKing, venerable: def.venerable });
     }
     if (def.phase3 && !e.teacher && e.phase === 2 && e.stage !== 3 && e.hp < e.maxHp * def.phase3.at && e.state !== 'ult' && e.state !== 'transform') {
       // a third stage: the same invulnerable turn, into whatever is under the second form
@@ -4080,7 +4080,7 @@ class Sim {
       const d = Math.hypot(v.x - e.x, v.y - e.y) || 1;
       if (d < 40) { v.kvx += (v.x - e.x) / d * 90; v.kvy += (v.y - e.y) / d * 90; }
     }
-    this.emit('phase', e.x, e.y, { name: (third && def.form3) || def.form2 || def.name, stage: e.stage, color: def.color, yellowKing: def.yellowKing, scholar: def.scholar, lore: def.lore });
+    this.emit('phase', e.x, e.y, { name: (third && def.form3) || def.form2 || def.name, stage: e.stage, venerable: def.venerable, taiji: !!e.taiji, color: e.taiji ? '#ffffff' : def.color, yellowKing: def.yellowKing, scholar: def.scholar, lore: def.lore });
   }
 
   startUlt(e) {
@@ -4459,7 +4459,7 @@ class Sim {
     s.invulnT = Math.max(s.invulnT || 0, s.def.phase3.dur);
     this.taijiDial = null;
     this.emit('taijimerge', fallen.x, fallen.y, { tx: s.x, ty: s.y, color: fallen.def.color });
-    this.emit('transformStart', s.x, s.y, { color: '#ffffff', name: s.def.form3, stage: 3 });
+    this.emit('transformStart', s.x, s.y, { color: '#ffffff', name: s.def.form3, stage: 3, venerable: s.def.venerable, taiji: true });
     return true;
   }
 

@@ -1145,50 +1145,80 @@ const SPRITES = {
     '..MM..MM..',
     '.mmm..mmm.',
   ],
-  // ---- the True Sun and True Moon Venerables, and the one they become ----
+  // the True Sun Venerable: long golden hair to the waist, a topknot, layered gold robes, one hand raised with a glyph
   b_sunven: [
-    '...eeeee.....',
-    '..e.www.e....',
-    '..efkfkfe....',
-    '...ffff......',
-    '....ww.......',
-    '..rrSSSrr....',
-    '.rrSSoSSrr...',
-    '.fSSoooSSf...',
-    '..SSSoSSS....',
-    '..SSSSSSS....',
-    '.SSSSSSSSS...',
-    '.rrrrrrrrr...',
-    '..o.....o....',
+    '......SS..........',
+    '.....SeeS.........',
+    '....SeeeeS........',
+    '...SeeyyeeS.......',
+    '...SeffffeS.......',
+    '..SSfkffkfSS...l..',
+    '..SefffFffeS..lel.',
+    '.SSeffffffeSS..l..',
+    '.SeSS.ff.SSeS..f..',
+    '.SeSyyiiyySeS.fF..',
+    '.Se.yeeieey.eSfF..',
+    'SSeyeeeieeyeffF...',
+    'Se.yeeeieeyy......',
+    'Se.yeeAieey.......',
+    'S..yeeAieey.......',
+    '..yeeeAieeey......',
+    '..yeeeAieeey......',
+    '.yyeeeAieeeyy.....',
+    '.yeeeeAieeeey.....',
+    'yyeeeeAieeeeyy....',
+    'yeeeeeAieeeeey....',
+    '.AAAAAAAAAAAA.....',
   ],
+  // the True Moon Venerable: a crown of rays, long dark hair, flowing pale robes and open sleeves, standing on a floating stone
   b_moonven: [
-    '.....bb......',
-    '....b........',
-    '...sssss.....',
-    '..sfkfks.....',
-    '...ffff......',
-    '..sUUUUUs....',
-    '.sUUbUUUs....',
-    '.fUUbbUUf....',
-    '..UUUbUU.....',
-    '..UUUUUUU....',
-    '.UUUUUUUUU...',
-    '.ssssssss....',
-    '..u.....u....',
+    '...w.w.w.w........',
+    '....wwwww.........',
+    '....MwwwM.........',
+    '...MMffffM........',
+    '...MfkffkM........',
+    '...MffFffM........',
+    '..MMMffffMM.......',
+    '..MM.ffff.MM......',
+    '.wwMwsiiswMww.....',
+    'wwWMwwiiwwMWww....',
+    'w.WMwwwwwwMW.w....',
+    'f..WwwwwwwW..f....',
+    '...WwwwwwwW.......',
+    '...WwwwwwwW.......',
+    '..wWwwwwwwWw......',
+    '..wwWwwwwWww......',
+    '.wwwWwwwwWwww.....',
+    '.wwwWwwwwWwww.....',
+    'wwwwWwwwwWwwww....',
+    '.sssssssssss......',
+    '..gggWgggWg.......',
+    '...mggggggm.......',
+    '....mggggm........',
+    '......mm..........',
   ],
+  // the Taiji Venerable: neither man nor woman, split down the middle: sun-gold hair and a white robe on one side,
+  // moon-black hair and a black robe on the other, a gold sash between, a small sun in one hand and a small moon in the other
   b_taiji: [
-    '...wwkkk.....',
-    '..wwwkkkk....',
-    '..wfkfkfk....',
-    '...ffff......',
-    '..wwwwkkkk...',
-    '.wwwkwkkkkk..',
-    '.fwwwkwkkkf..',
-    '..wwkwwkkk...',
-    '..wwwwkkkk...',
-    '.wwwwwkkkkk..',
-    '.wwwwwkkkkk..',
-    '..w.....k....',
+    '.....eeekk........',
+    '....eeeekkk.......',
+    '...eeffffkkk......',
+    '...efkffkfkk......',
+    '...effFffffk......',
+    '...ee.ffff.kk.....',
+    '..eewwwSkkkkkk....',
+    '.l.wwwwSkkkk..b...',
+    'lel.wwwSkkkk.bbb..',
+    '.lfwwwwSkkkkf.b...',
+    '...wwwwSkkkk......',
+    '...wwkwSkwkk......',
+    '...wwwwSkkkk......',
+    '..wwwwwSkkkkk.....',
+    '..wwkwwSkkwkk.....',
+    '.wwwwwwSkkkkkk....',
+    '.wwwwwwSkkkkkk....',
+    'wwwwwwwSkkkkkkk...',
+    '.SSSSSSSSSSSSS....',
   ],
   // the Rabbit: harmless, a pestle and mortar; then the Black Sea's ink comes through
   b_rabbit: [
@@ -3216,10 +3246,26 @@ class Renderer {
         case 'launch': this.parts.push({ kind: 'star', x: sx(ev.x), y: sy(ev.y) - 5, life: 0.06, max: 0.06, color: '#d8dde3' }); this.snd('zap'); break;
         case 'explode': this.recipe('boom', ev, ['#ffb04a', '#ff5a1a']); this.snd('boom'); break;
         case 'eliminated': num(ev, (ev.label || '').toUpperCase() + ' OUT', TEAM_COLORS[ev.team] || INK.rice, -10, 1.4); break;
+        case 'taijimerge': { // the fallen Venerable comes apart into streams of its colour that pour into the other
+          const x0 = sx(ev.x), y0 = sy(ev.y) - 8, x1 = sx(ev.tx), y1 = sy(ev.ty) - 8;
+          for (let i = 0; i < 90; i++) { const d = 0.6 + rand() * 1.4, sp = (rand() - 0.5) * 30; this.parts.push({ kind: 'px', x: x0 + (rand() - 0.5) * 10, y: y0 + (rand() - 0.5) * 12, vx: (x1 - x0) / d + sp, vy: (y1 - y0) / d + sp * 0.5, g: 0, life: d, max: d, color: [ev.color, '#ffffff', ev.color, '#141414'][i % 4] }); }
+          this.flash('rgba(255,255,255,0.6)', 0.2); this.shake = Math.max(this.shake, 8);
+          break;
+        }
+        case 'taijiturn': // day turns to night (or back): a soft flash of the new hour
+          this.flash(ev.day ? 'rgba(255,220,150,0.35)' : 'rgba(40,60,140,0.45)', 0.25);
+          break;
         case 'transformStart':
           this.transform = { x: ev.x, y: ev.y, color: ev.color, t: 1.6 };
           num(ev, 'TRANSFORMING', ev.color, -6, 1.5);
           this.snd(ev.yellowKing ? 'kingUnmask' : 'riser');
+          if (ev.venerable) { // the Venerables gather light: a flash, rings drawing in, motes of their own colours
+            const cols = ev.taiji ? ['#ffffff', '#141414', '#ffd84a', '#b8c8ff'] : ev.venerable === 'sun' ? ['#fff6c8', '#ffd84a', '#ff8a2a'] : ['#ffffff', '#d8e4ff', '#8aa0e0'];
+            this.flash(ev.taiji ? 'rgba(255,255,255,0.55)' : ev.venerable === 'sun' ? 'rgba(255,220,140,0.45)' : 'rgba(210,225,255,0.45)', 0.14);
+            for (let i = 0; i < 4; i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 70 - i * 14, r1: 4, life: 0.6 + i * 0.25, max: 0.6 + i * 0.25, color: cols[i % cols.length] });
+            for (let i = 0; i < 40; i++) { const a = rand() * 6.2832, d = 30 + rand() * 40; this.parts.push({ kind: 'px', x: sx(ev.x) + Math.cos(a) * d, y: sy(ev.y) - 10 + Math.sin(a) * d * 0.6, vx: -Math.cos(a) * d * 0.9, vy: -Math.sin(a) * d * 0.55, g: 0, life: 1.1, max: 1.1, color: cols[i % cols.length] }); }
+            this.venFx = { x: ev.x, y: ev.y, t: 0, dur: ev.taiji ? 2.5 : 1.6, venerable: ev.venerable, taiji: !!ev.taiji };
+          }
           break;
         case 'ultCharge':
           if (ev.clone) { this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 18, r1: 4, life: 0.4, max: 0.4, color: ev.color }); break; } // a clone's: no banner, no darkness, or they'd never stop
@@ -3276,6 +3322,13 @@ class Renderer {
           burst(ev, 60, 300, [ev.color || INK.gold, '#ffffff', INK.verm], 0.9);
           this.flash('rgba(255,255,255,0.7)', 0.18); this.shake = Math.max(this.shake, 10);
           if (ev.yellowKing) this.snd('kingUnveiled'); else { this.snd('ultboom'); this.snd('roar'); }
+          if (ev.venerable) { // and the light breaks: a second flash, wide rings of their colours, a shower of motes
+            const cols = ev.taiji ? ['#ffffff', '#141414', '#ffd84a', '#b8c8ff'] : ev.venerable === 'sun' ? ['#fff6c8', '#ffd84a', '#ff8a2a', '#ffffff'] : ['#ffffff', '#d8e4ff', '#8aa0e0', '#fff6c8'];
+            this.flash(ev.taiji ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.85)', 0.3);
+            for (let i = 0; i < 6; i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 6 + i * 4, r1: 90 + i * 22, life: 0.6 + i * 0.12, max: 0.6 + i * 0.12, color: cols[i % cols.length] });
+            burst(ev, ev.taiji ? 140 : 90, 380, cols, 1.2);
+            this.shake = Math.max(this.shake, ev.taiji ? 18 : 12); this.venFx = null;
+          }
           if (ev.scholar) { // his head comes off and rolls away; there is only the void now
             const X = Math.round(sx(ev.x)), Y = Math.round(sy(ev.y));
             this.parts.push({ kind: 'scholarhead', x: X, y: Y - 15, vx: 26 * (Math.random() < 0.5 ? -1 : 1), vy: -55, floor: Y, life: 3, max: 3 });
@@ -4350,6 +4403,7 @@ class Renderer {
     if (e.liftT > 0) lift += Math.round(Math.min(1, (1 - e.liftT) * 4) * 10);
     if (egg) { mode = e.flash > 0 ? 'flash' : null; g.globalAlpha = 1; }
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'pre');
+    if (e.def.venerable && !(e.polyT > 0)) this.drawVenerableHalo(sim, e, lift);
     const human = e.type === 'emperor' && !e.stage && e.phase !== 2; // the Emperor is a man until his first transformation completes
     const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0) && !human;
     if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
@@ -5062,6 +5116,39 @@ class Renderer {
     g.globalAlpha = 0.45 * k; g.strokeStyle = '#b8d0ff'; g.lineWidth = 0.6; g.beginPath();
     for (let i = 0; i < 70; i++) { const x = (i * 37 + t * 180) % (W + 30) - 15, y = 13 + ((i * 53 + t * 260) % (H - 13)); g.moveTo(x, y); g.lineTo(x - 2, y + 5); }
     g.stroke(); g.globalAlpha = 1;
+  }
+
+  // What hangs behind a Venerable: the Sun's turning sigil of gold, the Moon's full moon, the Taiji Venerable's yin and
+  // yang. While one transforms, rays of its light wheel round it and flicker.
+  drawVenerableHalo(sim, e, lift) {
+    const g = this.g, t = sim.t, x = sx(e.x), y = sy(e.y) - lift - 17, taiji = e.taiji || e.spriteNow === 'b_taiji', sun = e.def.venerable === 'sun';
+    const disc = (r, c, a) => { g.globalAlpha = a; g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill(); };
+    if (e.state === 'transform') { // light wheeling round it
+      const cols = taiji ? ['#ffffff', '#ffd84a'] : sun ? ['#fff2b0', '#ffd84a'] : ['#ffffff', '#c8d8ff'];
+      for (let i = 0; i < 10; i++) { const a = t * 2.4 + i * 0.628, L = 26 + Math.sin(t * 17 + i) * 8; g.globalAlpha = 0.25 + 0.25 * Math.sin(t * 23 + i * 3); g.strokeStyle = cols[i % 2]; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.75); g.stroke(); }
+      disc(16 + Math.sin(t * 20) * 2, cols[0], 0.18);
+    }
+    if (taiji) { // yin and yang, turning
+      const a = t * 0.9, r = 10;
+      disc(r + 3, '#ffffff', 0.12); disc(r + 1, '#888888', 0.6);
+      g.globalAlpha = 0.95; g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(x, y, r, a - Math.PI / 2, a + Math.PI / 2); g.fill();
+      g.fillStyle = '#141414'; g.beginPath(); g.arc(x, y, r, a + Math.PI / 2, a + Math.PI * 1.5); g.fill();
+      const cx = Math.cos(a), cy = Math.sin(a);
+      g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(x - cx * r / 2, y - cy * r / 2, r / 2, 0, 6.2832); g.fill();
+      g.fillStyle = '#141414'; g.beginPath(); g.arc(x + cx * r / 2, y + cy * r / 2, r / 2, 0, 6.2832); g.fill();
+      g.fillStyle = '#141414'; g.beginPath(); g.arc(x - cx * r / 2, y - cy * r / 2, 1.4, 0, 6.2832); g.fill();
+      g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(x + cx * r / 2, y + cy * r / 2, 1.4, 0, 6.2832); g.fill();
+    } else if (sun) { // a sigil of gold, its rings turning against each other
+      disc(14, '#ffd88a', 0.14); disc(10, '#fff2b0', 0.12);
+      g.globalAlpha = 0.85; g.strokeStyle = '#ffd84a'; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 11, 0, 6.2832); g.stroke();
+      g.globalAlpha = 0.6; g.beginPath(); g.arc(x, y, 7.5, 0, 6.2832); g.stroke();
+      for (let i = 0; i < 12; i++) { const a = t * 0.6 + i * 0.5236; g.globalAlpha = 0.8; g.beginPath(); g.moveTo(x + Math.cos(a) * 11, y + Math.sin(a) * 11); g.lineTo(x + Math.cos(a) * 13.5, y + Math.sin(a) * 13.5); g.stroke(); }
+      for (let i = 0; i < 6; i++) { const a = -t * 0.9 + i * 1.0472; g.globalAlpha = 0.9; g.fillStyle = '#fff6c8'; g.fillRect(Math.round(x + Math.cos(a) * 9.2), Math.round(y + Math.sin(a) * 9.2), 1, 1); }
+    } else { // the full moon, its seas faint on its face
+      disc(15, '#c8d8ff', 0.1); disc(12, '#e8eef8', 0.18); disc(10, '#eef2fa', 0.85);
+      for (const [dx, dy, r] of [[-3, -2, 2.4], [3, 2, 1.8], [1, -4, 1.2], [-2, 4, 1.4]]) { g.globalAlpha = 0.25; g.fillStyle = '#9aa8c8'; g.beginPath(); g.arc(x + dx, y + dy, r, 0, 6.2832); g.fill(); }
+    }
+    g.globalAlpha = 1;
   }
 
   // The true body's pearl: a pale-gold orb circling the dragon, dim for a moment after an ultimate is spent
