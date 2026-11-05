@@ -36,13 +36,13 @@ The fighter wakes in a sealed jar with no memory. The gate leads to worlds bound
 | Tier | Worlds | Bosses |
 | --- | --- | --- |
 | I | The Last Frontier | Bandit Warlord, Deadeye |
-| II | Night Country | Vampire Lord, Lich |
-| III | Red Dust Temple, Myriad Sword Peaks, Netherworld Abyss | Grand Abbot, Sun Wukong · Sword Immortal · Zerg Queen |
-| IV | Eastern Isles, The Nine Heavens | Blind Gentleman · Dragon Emperor |
+| II | Night Country, Primordial Forest | Vampire Lord, Lich · Rabbit, Life Tree |
+| III | Red Dust Temple, Myriad Sword Peaks, Netherworld Abyss | Grand Abbot, Sun Wukong · Sword Immortal · Zerg Queen, Yellow Spring Ancestor |
+| IV | Eastern Isles, The Nine Heavens | Tamamo-no-Mae, Blind Gentleman · Dragon Emperor, True Sun and True Moon Venerables (one seal) |
 | V (the gate) | Timestream | Time Administrator |
 | Hidden | Cursed Domain, Black Sea, The Pallid Kingdom | Gojo, Mahoraga · Headless Scholar · King in Yellow |
 
-- **Memories:** conquering a world for the first time gives a memory back: a card with what that world was and how it ended, and a fragment of who the fighter is. The fragments come in the order you conquer worlds, on three tracks (the seven outer worlds, the Timestream, and the three hidden worlds), so the story always unfolds in the right order. They can be re-read on the Tally Wall, and the lobby remembers too: after the fifth, the older tallies on the wall are crossed out and 蛊 is carved beside them; later, one group is not crossed out, and a name is carved under it.
+- **Memories:** conquering a world for the first time gives a memory back: a card with what that world was and how it ended, and a fragment of who the fighter is. The fragments come in the order you conquer worlds, on three tracks (the eight outer worlds, the Timestream, and the three hidden worlds), so the story always unfolds in the right order. They can be re-read on the Tally Wall, and the lobby remembers too: after the fifth, the older tallies on the wall are crossed out and 蛊 is carved beside them; later, one group is not crossed out, and a name is carved under it.
 - **The Codex** gives every foe and boss a line of its own.
 - **Promoted foes:** twelve creatures that used to appear only in a boss's retinue now hold worlds of their own, at full strength (boosted) and with their abilities: the Heavenly General in the Nine Heavens; the zergling, spitter, bloater and brute in the Netherworld Abyss; the Scholar's five heads (Chessboard Scholar, Lamp Bearer, Headsman Butcher, Coffin Bearer, Flutist) and the ink dragon as an elite in the Black Sea; the Faceless Courtier in the Pallid Kingdom. They count like any foe: met, felled, level and Codex.
 - **The teacher:** in the Myriad Sword Peaks the Sword Immortal is teaching, not killing. His swords are demonstrations: slower to draw, never true damage, never past every defence. His second form is a lesson (the Ninth to the Twelfth Swords, drawn smaller, no Unfinished Manual), and at a tenth of his health he yields. The fight stops and nothing moves while a short scene plays: he says "Enough.", the snow hangs still, and after a pause one flash of sword light leaves a line cut across the sky. The light fills everything; on the white, his words are written out, and when the Peaks return he is gone, the sky stays cut, and the room is won (Skip or Esc goes straight there). Everywhere else (the Pavilion, battles) he is the Sword Immortal at full strength.
@@ -187,11 +187,21 @@ Each boss has its own model and a second form it transforms into at half health 
 | Vampire Lord | Crimson Eclipse | Nosferatu | Bat-swarm lunge; homing bats that feed it. Once per fight it rises from death at 10% health with double lifesteal for 6s | Blood Moon: a 6s domain under a red moon; an illusion clone (30% health, half damage) fights until the moon sets; drains everyone nearby |
 | Deadeye | Dead Man's Hand | Reaper of the West | Form one: quickdraw, ricochet shots that bounce off the ring edge, a laser-sighted shot, and High Noon (a crosshair that hunts you, then fires). Form two: rides a hellfire horse, a chain that drags you in, burning ricochets and shots, dynamite | Hellride: gallops round the ring leaving fire, hooks you, then five hellfire shots |
 | Lich | Night of the Dead | Lich King | Raises skeletons; green soul spikes | Wyrm of the Dead: a Bone Dragon rises and breathes soulfire three times, plus skeletons and soul orbs |
-| Dragon Emperor | Heavenly Tribulation | Celestial Dragon | Golden lightning; the Celestial Court appears in the sky and sends heavenly generals | Wrath of the Celestial Court: generals descend, three storms of golden lightning, a golden breath |
+| Dragon Emperor | Nine Heavens Thunder Tribulation | Celestial Dragon, then True Dragon, Golden Body | See **The Dragon Emperor** below | Overturning Rivers and Seas; then Dragon Pearl Transforms the Five Phases |
 
 **Deadeye** is half-invisible (Heat Haze): it's drawn as a faint shimmer, and anyone aiming at it aims a little off. Melee swings and shots each have a 40% chance to pass through the shimmer ("MISS"), homing shots can't find it, and even your fighter's senses see it slightly out of place. It flickers into view for a moment whenever it fires or gets hit.
 
 **The Lich** falls to pieces when it dies: **Lich's Head** (floats and casts soul orbs and spikes), **Lich's Torso** (slow and heavy, a soul shockwave from the ribs) and **Lich's Leg** (fast, hopping kicks). They keep fighting and can't be claimed by the King in Yellow.
+
+### The bosses of the expansion
+
+Every boss now shows every form: a single blow cannot carry one past its next threshold before it transforms, and it heals when it does. The full design is in `docs/boss-expansion-plan.md`.
+
+- **The Dragon Emperor** (Nine Heavens) has three stages and 900 health. **Dragon Majesty:** near him you move slower, take more and deal less to him (the whole arena in his true body); he does x1.5 to x2 damage to the undead and the strange. As a man on a cloud: Heavenly Edict, Dragon's Claw, the Jade Seal, Riding the Clouds, heavenly soldiers. As the azure-and-gold **Celestial Dragon**: Thunder Chain, Dragon Tide, Dragonfire, Calling Wind and Rain (it soaks you, so his lightning hits 30% harder, and he heals while it falls), the wing gust. As the **True Dragon, Golden Body** (twice the size, with the dragon pearl): the Five Phases breathed in turn, homing pearl light, the dragon's nine sons; strikes barely scratch him, but when an ultimate ends his pearl dims and he takes x1.5 for 3s.
+- **The True Sun and True Moon Venerables** (Nine Heavens, one seal) fight together. By day the Sun is ascendant, by night the Moon (x1.3 dealt, x0.75 taken); every 12s the dial turns and the one who was ascendant is open (x1.5) for 3s. Near each other both take x0.7. When one falls it flows into the other, who becomes the **Taiji Venerable** with both arts.
+- **The Yellow Spring Ancestor** (Netherworld Abyss, after the Zerg Queen): his water makes you forget (at 3 stacks your weakest talent, at 6 your strongest) and seals the skill you last used. In his **Nine Springs Domain** nine springs feed him, and he reforms from one each time he falls until they are all dry; near a spring your special is sealed; his fallen spirits come back as something else. Ultimates: No Return from the Yellow Spring, and the Wheel of Six Paths.
+- **Tamamo-no-Mae, the Nine-Tailed Fox** (Eastern Isles, before the Blind Gentleman) has nine lives: each brings another tail, a longer life and a new art (foxfire, clones, a gaze that reverses your feet, fan blades, lanterns that drink your energy, false hazards, a cursed moon, stones that poison and petrify). The ninth is the **Heavenly Fox**. From the fourth tail she dances: find the real one behind you and hit her to break it.
+- **The Rabbit** (Primordial Forest) looks harmless until half health, when it becomes the Ink-Stained Jade Rabbit and its bite takes 8% of your health. **The Life Tree** never moves, heals its elves and pins you with roots.
 
 ### Super boss: the Time Administrator
 

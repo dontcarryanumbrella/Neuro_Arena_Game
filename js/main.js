@@ -746,7 +746,7 @@ const BATTLE_PRESETS = {
   '1v1': ['ai', 'samurai'],
   '2v2': ['ai', 'paladin', 'ninja', 'gunslinger'],
   '5v5': ['ai', 'samurai', 'paladin', 'gunslinger', 'druid', 'berserker', 'ninja', 'spearmaster', 'sniper', 'necromancer'],
-  'Bosses': ['warlord', 'swordsaint', 'abbot', 'vampirelord', 'deadeye', 'lich', 'emperor', 'timeadmin', 'unknown', 'gojo'],
+  'Bosses': ['warlord', 'swordsaint', 'abbot', 'vampirelord', 'deadeye', 'lich', 'emperor', 'timeadmin', 'unknown', 'gojo', 'jaderabbit', 'lifetree', 'sunvenerable', 'moonvenerable', 'ancestor', 'tamamo'],
 };
 
 function buildBattle() {
@@ -1209,7 +1209,7 @@ function renderCodex() {
       met++;
       row.className = 'codex-row';
       row.innerHTML = `<span class="cx-ic"></span><span><b>${d.name}</b> <span class="mini">${d.boss ? 'Boss' : ROLE_ONE[d.role] || ''} · felled ${(c.kills[t] || 0).toLocaleString()} in the worlds</span>` +
-        (CODEX_LORE[t] ? `<span class="cx-lore">${CODEX_LORE[t]}</span>` : '') +
+        (codexLore(t, state.campaign) ? `<span class="cx-lore">${codexLore(t, state.campaign)}</span>` : '') +
         `<span class="cx-t"><i>${d.passive[0]}:</i> ${d.passive[1]}</span><span class="cx-t"><i>${d.active[0]}:</i> ${d.active[1]}</span></span>`;
       try { row.querySelector('.cx-ic').appendChild(spriteIcon(t)); } catch (e) { /* no icon */ }
       wrap.appendChild(row);

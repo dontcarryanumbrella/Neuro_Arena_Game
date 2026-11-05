@@ -2617,7 +2617,14 @@ class Sim {
       case 'vampirelord': this.ultStep(h, 'drain', { range: 90, dmg: 10 }, p); break;
       case 'deadeye': this.ultStep(h, 'radial', { count: 16, kind: 'bullet', dmg: 10, speed: 220 }, p); break;
       case 'lich': this.ultStep(h, 'cross', { rot: 0, variant: 'soulspikes' }, p); this.ultStep(h, 'cross', { rot: Math.PI / 4, variant: 'soulspikes' }, p); break;
-      case 'emperor': this.ultStep(h, 'lightning', { count: 7, variant: 'goldlightning', dmg: 20 }, p); break;
+      case 'emperor': this.ultStep(h, 'lightning', { count: 9, variant: 'goldlightning', dmg: 18 }, p); this.ultStep(h, 'sigil', { variant: 'seal', radius: 20, dmg: 24, delay: 0.7, kb: 180 }, p); break; // a smaller Thunder Tribulation, and the seal
+      case 'jaderabbit': this.ultStep(h, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 5, radius: 12, dmg: 14, delay: 0.6 }, p); break;              // ink blots out of the moon
+      case 'lifetree': this.ultStep(h, 'sigil', { variant: 'roots', pattern: 'scatter', count: 5, radius: 13, dmg: 12, delay: 0.6, root: 1.2 }, p); break;     // roots that pin
+      case 'sunvenerable': case 'moonvenerable': // the five phases from the four quarters and the centre
+        for (const [i, v] of ['wood', 'fire', 'earth', 'metal', 'water'].entries()) this.ultStep(h, 'beam', { variant: 'wx_' + v, len: 200, width: 10, dmg: 12, kb: 100, delay: 0.5 + i * 0.1, aimed: true, turn: i * 1.2566 }, p);
+        break;
+      case 'ancestor': this.ultStep(h, 'sigil', { variant: 'seal', radius: 24, dmg: 26, delay: 0.7, kb: 200 }, p); this.ultStep(h, 'radial', { count: 10, kind: 'orb', dmg: 8, speed: 120 }, p); break; // the river closes over them
+      case 'tamamo': this.ultStep(h, 'radial', { count: 9, kind: 'orb', dmg: 11, speed: 130 }, p); this.ultStep(h, 'sigil', { variant: 'foxfire', pattern: 'scatter', count: 4, radius: 13, dmg: 14, delay: 0.6 }, p); break; // nine foxfires
       case 'timeadmin': this.ultStep(h, 'timefreeze', { dur: 1.5 }, p); break;
       case 'yellowking': this.ultStep(h, 'radial', { count: 12, kind: 'orb', dmg: 12, speed: 120 }, p); break;
       case 'gojo': this.ultStep(h, 'purpleult', { radius: 18, dmg: 40, speed: 170 }, p); break;
@@ -4569,6 +4576,12 @@ class Sim {
   updateFox(e) {
     const lanterns = this.enemies.filter(m => m.type === 'lantern' && m.summoner === e.id && !m.dead);
     if (lanterns.length) for (const v of this.hostiles(e)) if (v.energyMax) v.energy = Math.max(0, v.energy - 4 * lanterns.length * DT); // Soul Lanterns drink your spirit
+    const stones = this.enemies.filter(m => m.type === 'killingstone' && m.summoner === e.id && !m.dead);
+    for (const v of this.hostiles(e)) { // Killing Stones: stay near one and you slowly turn to stone, then hold fast for a moment
+      const near = stones.some(st => Math.hypot(st.x - v.x, st.y - v.y) < 20);
+      v.petrify = Math.max(0, (v.petrify || 0) + (near ? DT : -DT));
+      if (v.petrify >= 2.5 && !(v.def && v.def.boss)) { v.petrify = 0; v.rootT = Math.max(v.rootT || 0, 1.2); v.slowT = Math.max(v.slowT || 0, 2); this.emit('petrified', v.x, v.y); }
+    }
   }
 
   // ---------- the Yellow Spring Ancestor ----------

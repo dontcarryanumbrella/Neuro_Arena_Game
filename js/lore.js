@@ -171,3 +171,9 @@ const CODEX_LORE = {
 
 // A present observation, archived separately from the world-clear memories.
 const BLACK_SEA_ARRIVAL = 'The gate opens onto a narrow shore. There is water in every direction, and lights far out on it. Some stay still; others move. You turn to look back, but the gate has already closed. When you touch the mark over your heart, it is warm.';
+
+// Some Codex lines hold back the truth until you have seen where it came from: the Rabbit's, until the Black Sea.
+const CODEX_LORE_BEFORE = {
+  jaderabbit: 'Small, white, polite. It pounds at nothing with a pestle, as if grinding medicine for someone who has gone.',
+};
+const codexLore = (t, c) => CODEX_LORE_BEFORE[t] && !(c && (c.blackSeaArrivalSeen || (c.order || []).includes('blacksea'))) ? CODEX_LORE_BEFORE[t] : CODEX_LORE[t];
