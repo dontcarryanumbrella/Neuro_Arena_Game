@@ -3355,6 +3355,12 @@ class Renderer {
           this.snd(ev.final ? 'ultboom' : 'riser');
           break;
         }
+        case 'stance': num(ev, { unyielding: 'UNYIELDING', yielding: 'YIELDING', mirror: 'MOON IN THE WATER' }[ev.stance] || '', '#e8e0c8', -16, 1.0); break;
+        case 'wheelturn': num(ev, ev.phase.toUpperCase(), { wood: '#5ac850', fire: '#ff5a1a', earth: '#c8944a', metal: '#ffffff', water: '#3a8ae0' }[ev.phase], -40, 1.2); break;
+        case 'twopoles': this.banner = { text: 'THE TWO POLES TURN', life: 1.6, small: true, color: '#ffffff', kicker: 'STAND ON A DOT' }; break;
+        case 'ninefold': num(ev, 'NINEFOLD', '#ffe0a0', -16, 0.8); break;
+        case 'reflected': num(ev, 'YOUR OWN SPECIAL', '#e8c860', -16, 1.2); break;
+        case 'petrified': num(ev, 'STONE', '#c8c8c0', -12, 0.9); break;
         case 'gaze': num(ev, "DON'T LOOK", '#ffd84a', -14, 1.0); this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 16, r1: 3, life: 0.6, max: 0.6, color: '#ffd84a' }); break;
         case 'petals': burst(ev, 60, 200, ['#ffb7d5', '#ffffff', '#ff8ab8'], 1.4); break;
         case 'dancebroken': num(ev, 'FOUND YOU', '#ffffff', -14, 1.2); this.flash('rgba(255,255,255,0.4)', 0.12); break;
@@ -3874,7 +3880,7 @@ class Renderer {
     g.setTransform(1, 0, 0, 1, ox, oy);
 
     // ground telegraphs
-    for (const h of sim.hazards) { if (h.tint) this.drawTinted(h.tint, () => this.drawHazard(h, sim.t)); else this.drawHazard(h, sim.t); }
+    for (const h of sim.hazards) { if (h.tint) this.drawTinted(h.tint, () => this.drawHazard(h, sim.t)); else this.drawHazard(h, sim.t); if (h.fake) this.drawDreamTell(h, sim.t); }
     this.drawSwordLayer(sim, dt, 'g');
     for (const e of sim.enemies) {
       if (e.state !== 'wind' || !e.atk) continue;
@@ -4079,6 +4085,7 @@ class Renderer {
       if (e.court && e.phase === 2) this.drawCourt(t);
       if (e.rainT > 0) this.drawRain(t, Math.min(1, e.rainT));
       if (e.def.ancestor && !e.dead) this.drawYellowSprings(sim, e, t);
+      if (sim.twoPoles && sim.twoPoles.owner === e) this.drawTwoPoles(sim);
       if (e.def.venerable === 'sun' && sim.taijiDial && !e.dead) { // the dial: a warm day or a deep blue night over the whole court
         const g = this.g, T = sim.taijiDial, k = Math.min(1, (12 - T.t) / 0.8);
         g.globalAlpha = T.day ? 0.1 * k : 0.45 * k; g.fillStyle = T.day ? '#ffd890' : '#0a1440'; g.fillRect(0, 13, W, H - 13); g.globalAlpha = 1;
@@ -5250,6 +5257,29 @@ class Renderer {
     g.stroke(); g.globalAlpha = 1;
   }
 
+  // The Two Poles Turn: the whole floor is yin and yang, turning; the two dots are the only safe ground
+  drawTwoPoles(sim) {
+    const P = sim.twoPoles, g = this.g, a = P.a0 + P.t * 1.2, k = Math.min(1, P.t / 0.5, (P.dur - P.t) / 0.5), r = R - 2;
+    g.save(); g.translate(sx(0), sy(0)); g.scale(1, SQ); g.rotate(a); g.globalAlpha = 0.42 * k;
+    g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(0, 0, r, -Math.PI / 2, Math.PI / 2); g.fill();
+    g.fillStyle = '#141414'; g.beginPath(); g.arc(0, 0, r, Math.PI / 2, Math.PI * 1.5); g.fill();
+    g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(0, -r / 2, r / 2, 0, 6.2832); g.fill();
+    g.fillStyle = '#141414'; g.beginPath(); g.arc(0, r / 2, r / 2, 0, 6.2832); g.fill();
+    g.globalAlpha = 0.9 * k; // the dots: safe
+    g.fillStyle = '#141414'; g.beginPath(); g.arc(0, -r / 2, 12, 0, 6.2832); g.fill();
+    g.fillStyle = '#f4f0e6'; g.beginPath(); g.arc(0, r / 2, 12, 0, 6.2832); g.fill();
+    g.restore(); g.globalAlpha = 1;
+  }
+
+  // Dreamweaver: a dream hazard's edge won't hold still; a second, pale ring drifts off it and back, and it flickers
+  drawDreamTell(h, t) {
+    const g = this.g, x = sx(h.x), y = sy(h.y), r = h.r || 12, o = Math.sin(t * 9 + h.x) * 1.6;
+    g.save(); g.strokeStyle = '#e8e0ff'; g.lineWidth = 0.6; g.setLineDash([1.5, 1.5]);
+    g.globalAlpha = 0.45 + 0.35 * Math.sin(t * 23 + h.y);
+    g.beginPath(); g.ellipse(x + o, y - o * 0.5, r, r * SQ, 0, 0, 6.2832); g.stroke();
+    g.restore();
+  }
+
   // Tamamo's tails: one for every life she has lived, fanned out behind her and swaying; vast and filling the sky
   // behind the Heavenly Fox
   drawFoxTails(sim, e, lift) {
@@ -5277,6 +5307,14 @@ class Renderer {
       const cols = taiji ? ['#ffffff', '#ffd84a'] : sun ? ['#fff2b0', '#ffd84a'] : ['#ffffff', '#c8d8ff'];
       for (let i = 0; i < 10; i++) { const a = t * 2.4 + i * 0.628, L = 26 + Math.sin(t * 17 + i) * 8; g.globalAlpha = 0.25 + 0.25 * Math.sin(t * 23 + i * 3); g.strokeStyle = cols[i % 2]; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L * 0.75); g.stroke(); }
       disc(16 + Math.sin(t * 20) * 2, cols[0], 0.18);
+    }
+    if (e.stance && e.state !== 'transform') { // the stance at its feet: Unyielding a gold ring, Yielding a blurred double, Moon in the Water a mirror shimmer
+      const fy = sy(e.y) - lift + 1;
+      g.globalAlpha = 0.7;
+      if (e.stance === 'unyielding') { g.strokeStyle = '#ffd84a'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(x, fy, 9, 9 * SQ, 0, 0, 6.2832); g.stroke(); }
+      else if (e.stance === 'yielding') { g.strokeStyle = '#d8e4ff'; g.lineWidth = 0.6; for (const o of [-2, 2]) { g.beginPath(); g.ellipse(x + o + Math.sin(t * 8) * 1.5, fy, 8, 8 * SQ, 0, 0, 6.2832); g.stroke(); } }
+      else { g.strokeStyle = '#ffffff'; g.lineWidth = 0.8; g.setLineDash([2, 2]); g.lineDashOffset = -t * 20; g.beginPath(); g.ellipse(x, fy, 10, 10 * SQ, 0, 0, 6.2832); g.stroke(); g.setLineDash([]); }
+      g.globalAlpha = 1;
     }
     if (taiji) { // yin and yang, turning
       const a = t * 0.9, r = 10;

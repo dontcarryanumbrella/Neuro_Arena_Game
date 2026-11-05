@@ -1009,13 +1009,13 @@ Object.assign(ENEMY_TYPES, {
   // dead and of things that should not be.
   emperor: boss('eastdragon', {
     name: 'Dragon Emperor', hp: 900, r: 8, mass: 8, speed: 34, postureMul: 0.3, scales: true, sprite: 'b_emperor', sprite2: 'b_emperor2', form2: 'Celestial Dragon', form3: 'True Dragon, Golden Body', color: '#ffd84a',
-    phase2At: 0.65, rainHeal: 0.005, goldenBody: true,
+    phase2At: 0.65, rainHeal: 0.005, goldenBody: true, summonHp: 1.3, // Mandate of Heaven: his soldiers are tougher
     pressure: [{ r: 80, dmg: 0.1, slow: 0.1, def: 0.1 }, { r: 130, dmg: 0.2, slow: 0.15, def: 0.15 }, { r: 999, dmg: 0.3, slow: 0.25, def: 0.25 }],
     nemesis: [1.5, 1.75, 2],
     specials: [
-      { ...ENEMY_TYPES.eastdragon.specials[0], id: 'thunder', variant: 'goldlightning' },                                                       // Heavenly Edict
-      { id: 'dragonclaw', kind: 'cone', range: 34, angle: 0.6, wind: 0.45, recover: 0.5, dmg: 14, kb: 90, hitPosture: 16, cd: 3, unblockable: true, variant: 'wind' }, // Dragon's Claw
-      { id: 'jadeseal', kind: 'slam', radius: 26, wind: 0.7, recover: 0.8, dmg: 20, kb: 190, cd: 5, unblockable: true, hitPosture: 24, variant: 'quake' },          // Jade Seal Suppresses the World
+      { ...ENEMY_TYPES.eastdragon.specials[0], id: 'thunder', variant: 'goldlightning', steadfast: true },                                                       // Heavenly Edict
+      { id: 'dragonclaw', kind: 'cone', range: 34, angle: 0.6, wind: 0.45, recover: 0.5, dmg: 14, kb: 90, hitPosture: 16, cd: 3, unblockable: true, variant: 'wind', steadfast: true }, // Dragon's Claw
+      { id: 'jadeseal', kind: 'slam', radius: 26, wind: 0.7, recover: 0.8, dmg: 20, kb: 190, cd: 5, unblockable: true, hitPosture: 24, variant: 'quake', steadfast: true },          // Jade Seal Suppresses the World
       { id: 'clouds', kind: 'cloudhop', minRange: 30, maxRange: 160, wind: 0.35, recover: 0.5, dmg: 16, kb: 140, radius: 20, cd: 7, hitPosture: 20 },            // Riding the Clouds
       { id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general'], cap: 2 },                                                  // Summon Heavenly Soldiers
     ],
@@ -1217,6 +1217,7 @@ const TAIJI_PHASE3 = { at: -1, manual: true, dur: 2.5, speedMul: 1.25, cdMul: 0.
 const BIRTH_OF_ALL_THINGS = { name: 'Birth of All Things', charge: 1.5, dur: 4.2, cd: 15, dark: 'rgba(10,10,10,0.55)',
   steps: [...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [i * 0.45, 'beam', { variant: 'wx_' + v, len: 280, width: 14, dmg: 18, kb: 120, delay: 0.8, aimed: true, turn: i * 1.2566 }]),
     [2.6, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 110 }], [3.2, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 140, offset: 0.2 }]] };
+const TWO_POLES_TURN = { name: 'The Two Poles Turn', charge: 1.2, dur: 5.0, cd: 18, dark: 'rgba(10,10,10,0.45)', steps: [[0, 'twopoles', { dur: 4.8 }]] };
 const WUXING_SKILL = { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 4 };
 ENEMY_TYPES.sunvenerable = boss('paladin', {
   name: 'True Sun Venerable', hp: 380, r: 6, mass: 2.5, speed: 44, postureMul: 0.4, floating: true, venerable: 'sun', companion: 'moonvenerable',
@@ -1283,8 +1284,8 @@ ENEMY_TYPES.ancestor = boss('necromancer', {
   passive: ['Broth of Forgetting; Yellow Springs Never Dry, Forgotten Mortal World, Samsara Without End', 'His water makes you forget: at 3 stacks a talent, at 6 your strongest. In his true form he cannot die while any of his nine springs flows (each revival dries one), standing near a spring you forget your special, and his fallen spirits come back as something else.'],
   active: ['Surge, Reflection, Casting for Lost Souls, Waters of Forgetfulness; The Other Shore', 'A wave of yellow water whose hands drag you in; your own technique cast back at you; a creature fished out of the river; water that seals the skill you last used (your special, in his true form). Then spider lilies that trap and burn, and a step from spring to spring.'],
   ult: { name: 'No Return from the Yellow Spring', charge: 1.4, dur: 4.6, cd: 16, dark: 'rgba(40,30,0,0.5)',
-    steps: [[0, 'riverrise', { dur: 4.4 }], [0.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 200, delay: 0.8, aimed: true, turn: 1.57 }],
-      [1.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 200, delay: 0.8, aimed: true, turn: 0.6 }], [2.8, 'whirlpool', { dur: 1.0, dmg: 18 }],
+    steps: [[0, 'riverrise', { dur: 4.4 }], [0.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 60, delay: 0.8, aimed: true, turn: 1.57, drag: true }],
+      [1.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 60, delay: 0.8, aimed: true, turn: 0.6, drag: true }], [2.8, 'whirlpool', { dur: 1.0, dmg: 18 }],
       [3.8, 'sigil', { variant: 'seal', radius: 14, dmg: 24, delay: 0.6, kb: 180 }]] },
   ult2: { name: 'Wheel of Six Paths', charge: 1.6, dur: 6.0, cd: 18, dark: 'rgba(20,10,0,0.6)',
     steps: [[0, 'lightning', { count: 4, variant: 'goldlightning', dmg: 16 }],                                   // Deva: celestial judgement
@@ -2453,6 +2454,7 @@ class Sim {
   // 4 Transcendence: a domain of its own, a storm of fused casts and a finale drawn from its history.
   startHeroUlt(h) {
     if (h.specialSealUntil > this.t) { this.emit('sealed', h.x, h.y); return; } // forgotten in the Yellow Springs
+    for (const a of this.enemies) if (a.def.ancestor && !a.dead && h.special) a.recentSpecial = h.special; // the river keeps a reflection of it
     const sp = h.special, stage = sp.stage || 1, mods = sp.mods || [];
     const ab = k => HERO_ABILITIES[k];
     const P = [sp.primary, sp.secondary, stage >= 3 ? sp.third : null].filter(k => k && ab(k)).map(ab);
@@ -3256,6 +3258,10 @@ class Sim {
       }
     }
     // Phase: the Time Administrator flickers out of the moment the blow lands
+    if (t.def && t.def.venerable && t.stance && t.state !== 'stun' && t.state !== 'ult') { // the Venerables' stances
+      if (t.stance === 'yielding' && !proj && (atk.id === 'strike' || atk.id === 'heavy' || atk.id === 'kick') && this.rand() < 0.5) { this.emit('phased', t.x, t.y); return 'ward'; }
+      if (t.stance === 'mirror' && proj && by) { const d = Math.hypot(by.x - t.x, by.y - t.y) || 1; this.fire(t, (by.x - t.x) / d, (by.y - t.y) / d, 200, Math.max(6, atk.dmg || 8), 'orb'); this.emit('reflect', t.x, t.y); return 'ward'; }
+    }
     if (t.def && t.def.foxLives && t.danceOpenUntil > this.t) t.danceBroken = true; // the real one, found in the dance
     if (!piercing && t.def && t.def.foxLives && t.tails >= 9 && t.state !== 'stun' && t.state !== 'ult') { // The Fox That Cannot Be Caught
       const key = atk.abilityId || atk.id; t.evadeN = key === t.evadeKey ? (t.evadeN || 0) + 1 : 0; t.evadeKey = key;
@@ -3352,6 +3358,7 @@ class Sim {
     if (t.state === 'heroult') mult *= t.special && (t.special.stage || 1) >= 2 && ['tough', 'berserk'].some(k => (t.special.mods || []).includes(k)) ? 0.25 : 0.5; // the fighter's own special
     if (t.mobileUlt) mult *= 1 - (t.mobileUlt.u.dr || 0);
     if (t.def && t.def.scales && atk.id === 'strike') mult *= 0.5;
+    if (t.stance === 'unyielding' && atk.id === 'strike') mult *= 0.5; // Unyielding: strikes glance off; heavies and posture break through
     if (t.def && t.def.goldenBody && t.stage === 3) mult *= atk.id === 'strike' ? 0.6 : atk.id === 'heavy' ? 0.75 : 1; // the true body: strikes barely scratch it
     if (this.taijiDial || (t.def && t.def.venerable) || (by && by.def && by.def.venerable)) mult *= this.taijiMult(t, by);
     if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
@@ -3423,6 +3430,7 @@ class Sim {
     if (atk.root && !(t.def && t.def.statusImmune) && !this.resists(t)) t.rootT = Math.max(t.rootT, atk.root);
     if (t.maskHp > 0 && a && (atk.id === 'heavy' || atk.id === 'kick') && --t.maskHp === 0) { t.postureMul = 1.1; this.emit('maskbreak', t.x, t.y); } // the Pallid Knight's mask cracks off
     this.applyStatus(t, atk, by);
+    if (atk.dragA != null && !(t.def && t.def.boss)) { t.kvx += Math.cos(atk.dragA) * 280; t.kvy += Math.sin(atk.dragA) * 280; } // carried off along the lane (the ghost ferries)
     if (a && dealt > 0 && atk.id === 'strike' && this.T(a, 'venomStrike')) this.applyStatus(t, { poison: 4, poisonT: 3 }, a); // the serpent's fangs
     if (t.heads && dealt > 0) this.hydraWound(t, atk, dealt);
     // Acid Blood: strike a mutant up close and it splashes
@@ -3659,6 +3667,7 @@ class Sim {
       m.def = def; m.specials = []; m.minion = true;
     }
     if (m.def.hairClone && (type === 'monkeyclone' || type === 'gorillaclone') && sd.trueSight) this.dressClone(m, summoner);
+    if (sd.summonHp) { m.maxHp = m.hp = Math.round(m.maxHp * sd.summonHp); }
     if (sd.minionScale) { m.maxHp = m.hp = Math.max(1, Math.round(m.maxHp * sd.minionScale)); m.dmgMul = (m.dmgMul || 1) * sd.minionScale; }
     if (sd.multicast) m.fateBound = true;
     if (m.def.lifespan && m.life === undefined) m.life = m.def.lifespan; // some summons only last a while // ???'s summons answer to her dice, not to any king
@@ -4193,6 +4202,7 @@ class Sim {
   }
 
   startUlt(e) {
+    if (e.def.venerable && e.partner && !e.partner.dead && !e.taiji && this.rand() < 0.5) { const j = TWO_POLES_TURN; e.cds.ult = j.cd * e.cdMul; e.partner.cds.ult = Math.max(e.partner.cds.ult || 0, 6); e.state = 'ult'; e.ult = j; e.ultT = -j.charge; e.ultIdx = 0; e.guard = false; e.plan = null; this.emit('ultCharge', e.x, e.y, { name: j.name, color: '#ffffff', charge: j.charge, dur: j.dur, dark: j.dark, boss: e.def.name }); return; }
     let u = e.honored && e.def.ult3 ? e.def.ult3 : e.stage === 3 && e.def.stage3Ult ? e.def.stage3Ult : e.phase === 2 && e.def.ult2 ? e.def.ult2 : e.def.ult;
     if (e.phase === 2 && e.def.anyUlt) { // the future self has learned every boss's ultimate
       const pool = BOSSES.filter(b => b !== e.type).map(b => ENEMY_TYPES[b].ult).filter(Boolean); // first-form ultimates only
@@ -4311,7 +4321,7 @@ class Sim {
         const a = Math.atan2(uy, ux) + (o.turn || 0), L = o.len;
         const x0 = o.aimed ? p.x - Math.cos(a) * L / 2 : e.x, y0 = o.aimed ? p.y - Math.sin(a) * L / 2 : e.y;
         this.hazards.push({ kind: 'beam', variant: o.variant, x: x0, y: y0, a, len: L, w: o.width, t: o.delay || 0.3, delay: o.delay || 0.3, dmg: o.dmg, kb: o.kb || 80, hitPosture: 20,
-          maxHpPct: o.maxHpPct, unblockable: true, trueDmg: o.trueDmg, pierceAll: o.pierceAll, team: e.team, src: e });
+          maxHpPct: o.maxHpPct, unblockable: true, trueDmg: o.trueDmg, pierceAll: o.pierceAll, drag: o.drag, team: e.team, src: e });
         break;
       }
       case 'brushform': e.umbrella = 'brush'; break;
@@ -4547,6 +4557,7 @@ class Sim {
         e.danceIds = [];
         break;
       }
+      case 'twopoles': this.twoPoles = { owner: e, t: 0, dur: o.dur, a0: this.rand() * 6.2832 }; this.emit('twopoles', 0, 0, { dur: o.dur }); break;
       case 'riverrise': e.riverT = o.dur; this.emit('riverrise', 0, 0, { dur: o.dur }); break;
       case 'whirlpool': // everything drawn to the middle, then the river closes over it
         e.whirlT = o.dur;
@@ -4568,6 +4579,7 @@ class Sim {
     f.state = 'recover'; f.st = 1.4; f.invulnT = Math.max(f.invulnT || 0, 1.5); f.guard = false; f.ult = null; f.mobileUlt = null; f.kvx = f.kvy = 0;
     for (const sp of FOX_TAILS[n] || []) { f.specials.push({ ...sp }); f.cds[sp.id] = 1.6; } // and shows it at once
     if (n === f.def.foxLives) { // the Heavenly Fox: everything fiercer and faster
+      f.specials.push({ id: 'ninefold', kind: 'foxcombo', maxRange: 999, wind: 0.5, recover: 0.5, cd: 5 }); f.cds.ninefold = 2.5; // Ninefold Sovereignty
       f.phase = 2; f.spriteNow = 'b_fox2'; f.r = 9; f.def = { ...f.def, scale: 2 }; // the true shape, twice her size f.dmgMul = 1.4; f.speedMul = 1.15; f.cdMul = 0.6; f.cds.ult = 1.6;
     }
     if (Math.hypot(f.x, f.y) > R - 12) { const d = Math.hypot(f.x, f.y); f.x *= (R - 20) / d; f.y *= (R - 20) / d; }
@@ -4654,11 +4666,37 @@ class Sim {
       const o = this.enemies.find(m => m !== e && !m.dead && m.type === e.def.companion && m.team === e.team && !m.partner);
       e.partner = o || null; if (o) o.partner = e;
     }
+    if (this.t >= (e.stanceAt || 0)) { e.stanceAt = this.t + 6; const st = ['unyielding', 'yielding', 'mirror'].filter(x => x !== e.stance); e.stance = st[Math.floor(this.rand() * st.length)]; this.emit('stance', e.x, e.y, { stance: e.stance }); }
+    if (e.phase === 2 && (!this.wheelOwner || this.wheelOwner.dead)) this.wheelOwner = e;
+    if (this.wheelOwner === e && e.phase === 2 && this.t >= (this.wheelAt || 0)) this.turnWheel(e);
+    if (this.twoPoles && this.twoPoles.owner === e) this.updateTwoPoles(e);
     const pair = e.partner && !e.partner.dead && !e.taiji;
     if (!pair || (e.def.venerable === 'moon')) return;
     const T = this.taijiDial = this.taijiDial || { day: true, t: 12, openT: 0, open: null };
     T.t -= DT; T.openT -= DT;
     if (T.t <= 0) { T.open = this.ascendant(); T.day = !T.day; T.t = 12; T.openT = 3; this.emit('taijiturn', e.x, e.y, { day: T.day }); }
+  }
+  // The Five Phases wheel (Act 2): every 7s it turns to the next phase, and that phase lays its hazard on the stage
+  turnWheel(e) {
+    this.wheelAt = this.t + 7; this.wheelIdx = ((this.wheelIdx ?? -1) + 1) % WUXING.length;
+    const [name, steps] = WUXING[this.wheelIdx], foes = this.hostiles(e);
+    const tgt = foes.length ? foes[Math.floor(this.rand() * foes.length)] : { x: 0, y: 0, fx: 1, fy: 0, r: 0, team: -1 };
+    this.emit('wheelturn', 0, 0, { phase: name });
+    for (const [kind, o] of steps) this.ultStep(e, kind, { ...o, dmg: Math.round((o.dmg || 10) * 0.75) }, tgt);
+  }
+  // The Two Poles Turn: the floor becomes yin and yang and turns; each half burns with the opposite element; only the two dots are safe
+  updateTwoPoles(e) {
+    const P = this.twoPoles; P.t += DT;
+    if (P.t >= P.dur || e.dead) { this.twoPoles = null; return; }
+    if ((P.tick = (P.tick || 0) - DT) > 0) return;
+    P.tick = 0.5;
+    const a = P.a0 + P.t * 1.2, ax = Math.cos(a), ay = Math.sin(a);
+    for (const v of this.hostiles(e)) {
+      const dotWhite = Math.hypot(v.x - ax * R * 0.5, v.y - ay * R * 0.5) < 12, dotBlack = Math.hypot(v.x + ax * R * 0.5, v.y + ay * R * 0.5) < 12;
+      if (dotWhite || dotBlack) continue; // the safe islands
+      const white = (v.x * -ay + v.y * ax) > 0; // which half of the turning floor
+      this.receiveHit(v, null, { id: 'twopoles', dmg: 7, kb: 20, hitPosture: 6, unblockable: true, src: e, fire: !white, slow: white ? 1 : 0 }, 0, 0, true);
+    }
   }
   ascendant() { const T = this.taijiDial; if (!T) return null; return this.enemies.find(m => !m.dead && m.def.venerable === (T.day ? 'sun' : 'moon') && !m.taiji) || null; }
   // what the pair does to a blow: the ascendant hits harder and takes less; the one just turned is open; near each other both are sheltered
@@ -5050,6 +5088,12 @@ class Sim {
         break;
       }
       case 'rain': this.startRain(e, atk.dur || 8); break;
+      case 'foxcombo': { // Ninefold Sovereignty: two or three tails at once, each its own channel
+        const pool = e.specials.filter(sp => sp.kind !== 'foxcombo' && sp.kind !== 'fixtures'), n = 2 + (this.rand() < 0.5 ? 1 : 0), keep = e.atk;
+        for (let i = 0; i < n && pool.length; i++) { const sp = pool.splice(Math.floor(this.rand() * pool.length), 1)[0]; e.atk = { ...sp, energy: 0 }; this.special(e); }
+        e.atk = keep; this.emit('ninefold', e.x, e.y, { n });
+        break;
+      }
       case 'gaze': { // Bewitching Gaze: a golden eye; if you are still facing her when it opens, your feet go the wrong way
         this.emit('gaze', tgt.x, tgt.y);
         if (tgt.id != null && tgt.fx != null) { const dx = e.x - tgt.x, dy = e.y - tgt.y, d = Math.hypot(dx, dy) || 1; if ((tgt.fx * dx + tgt.fy * dy) / d > 0.3 && !(tgt.def && tgt.def.boss)) { tgt.confuseT = 1.4; this.emit('charm', tgt.x, tgt.y); } }
@@ -5068,7 +5112,7 @@ class Sim {
         break;
       }
       case 'cursedmoon': e.moonT = 6; this.emit('bloodmoonrise', e.x, e.y); for (const v of this.hostiles(e)) { v.cursedT = 8; this.emit('cursed', v.x, v.y); } break;
-      case 'reflection': if (e.recentTech) this.paintingCasts(e, e.recentTech); else this.ultStep(e, 'sigil', { variant: 'seal', radius: 12, dmg: 12, delay: 0.7 }, tgt); break; // Forgotten Reflection: your own technique, out of the river
+      case 'reflection': if (e.phase === 2 && e.recentSpecial) { const keep = e.special; e.special = e.recentSpecial; this.heroFinale(e, tgt); e.special = keep; this.emit('reflected', e.x, e.y); } else if (e.recentTech) this.paintingCasts(e, e.recentTech); else this.ultStep(e, 'sigil', { variant: 'seal', radius: 12, dmg: 12, delay: 0.7 }, tgt); break; // Forgotten Reflection: your own technique, out of the river
       case 'fishcast': { // Casting for Lost Souls: an elite out of the river; in his true form, sometimes a boss
         if (e.phase === 2 && this.rand() < 0.4 && this.openBossProjection(e)) { this.emit('fishcast', e.x, e.y); break; }
         const type = ANCESTOR_ELITES[Math.floor(this.rand() * ANCESTOR_ELITES.length)], a = this.rand() * 6.2832;
@@ -5449,7 +5493,7 @@ class Sim {
           const x1 = h.x + Math.cos(h.a) * h.len, y1 = h.y + Math.sin(h.a) * h.len;
           this.emit('beamhit', h.x, h.y, { x1, y1, variant: h.variant, w: h.w });
           this.lineHit(h.src && !h.src.dead ? h.src : null, h.x, h.y, x1, y1, h.w / 2, { id: h.variant, dmg: h.dmg, kb: h.kb, hitPosture: h.hitPosture, unblockable: h.unblockable, breaksGuard: h.breaksGuard,
-            trueDmg: h.trueDmg, pierceAll: h.pierceAll, maxHpPct: h.maxHpPct, src: h.src, abilityId: h.abilityId, fromSpecial: h.fromSpecial }, h.team);
+            trueDmg: h.trueDmg, pierceAll: h.pierceAll, maxHpPct: h.maxHpPct, src: h.src, abilityId: h.abilityId, fromSpecial: h.fromSpecial, dragA: h.drag ? h.a : undefined }, h.team);
         }
         continue;
       }
