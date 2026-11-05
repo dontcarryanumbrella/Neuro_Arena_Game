@@ -2434,9 +2434,16 @@ Object.assign(SPRITES, {
 });
 
 const SPRITE_CACHE = {};
+// The expansion's sprites are painted, not flat: each pixel is lit from the upper left, shaded toward the lower right
+// and along the silhouette's lower edges, with a little grain, so they read as small paintings rather than flat cut-outs.
+const PAINTED = new Set(['raptor', 'triceratops', 'trex', 'tortoise', 'elfranger', 'elfsentinel', 'elfspellweaver', 'treant', 'b_rabbit', 'b_rabbit2',
+  'macaque', 'greatape', 'sweepingmonk', 'frostmaiden', 'qilin', 'jadetoad', 'tiangou', 'shadeattendant', 'b_emperor', 'b_sunven', 'b_moonven', 'b_taiji',
+  'b_ancestor', 'b_ancestor2', 'spring', 'b_fox', 'b_fox2', 'soullantern', 'killingstone']);
+const shadeHex = (hex, t) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(t > 0 ? v + (255 - v) * t : v * (1 + t))))); return '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); };
 function bakeSprite(name) {
   const rows = SPRITES[name];
-  const w = Math.max(...rows.map(r => r.length)), h = rows.length;
+  const w = Math.max(...rows.map(r => r.length)), h = rows.length, painted = PAINTED.has(name);
+  const at = (x, y) => (rows[y] && rows[y][x]) || '.';
   const make = (flip, solid) => {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d');
@@ -2444,7 +2451,16 @@ function bakeSprite(name) {
       for (let x = 0; x < row.length; x++) {
         const ch = row[x];
         if (ch === '.') continue;
-        g.fillStyle = solid || PAL[ch];
+        let col = solid || PAL[ch];
+        if (painted && !solid && col && col[0] === '#' && col.length === 7) {
+          const up = at(x, y - 1), left = at(x - 1, y), down = at(x, y + 1), right = at(x + 1, y);
+          let t = ((x * 7 + y * 13) % 5 - 2) * 0.025;                          // grain
+          if (up === '.' || left === '.') t += 0.16; else if (up !== ch) t += 0.07; // lit edge, top and left
+          if (down === '.' || right === '.') t -= 0.22; else if (down !== ch) t -= 0.08; // shadowed edge, bottom and right
+          t -= (y / h) * 0.14;                                                   // the lower body in its own shade
+          col = shadeHex(col, t);
+        }
+        g.fillStyle = col;
         g.fillRect(flip ? w - 1 - x : x, y, 1, 1);
       }
     });
@@ -4083,6 +4099,7 @@ class Renderer {
         g.globalAlpha = 1;
       }
       if (e.court && e.phase === 2) this.drawCourt(t);
+      if (e.type === 'emperor' && e.stage === 3 && !e.dead) this.drawSkyCoils(sim, e, t);
       if (e.rainT > 0) this.drawRain(t, Math.min(1, e.rainT));
       if (e.def.ancestor && !e.dead) this.drawYellowSprings(sim, e, t);
       if (sim.twoPoles && sim.twoPoles.owner === e) this.drawTwoPoles(sim);
@@ -4522,8 +4539,9 @@ class Renderer {
     const human = e.type === 'emperor' && !e.stage && e.phase !== 2; // the Emperor is a man until his first transformation completes
     const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0) && !human;
     if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
-    if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
+    else if (e.type === 'lifetree' && !(e.polyT > 0)) this.drawLifeTree(sim, e, lift, mode === 'flash');
     else if (!(def.yellowKing && e.phase === 2)) this.sprite(pic, e.x + jx, e.y, flip && !egg, mode, lift, scale);
+    if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
     g.globalAlpha = 1;
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'post');
     this.drawStatus(sim, e, lift);
@@ -5248,6 +5266,50 @@ class Renderer {
     g.globalAlpha = 1;
   }
 
+  // The true body is too vast for the stage: the rest of it coils through the sky above, behind cloud, gold and scaled
+  drawSkyCoils(sim, e, t) {
+    const g = this.g, P = EASTERN_DRAGONS.emperor(e), n = 120;
+    const pt = u => { const x = -30 + u * (W + 60), y = 30 + Math.sin(u * 7 + t * 0.6) * 9 + Math.sin(u * 2.3 - t * 0.3) * 5; return [x, y]; };
+    for (let i = n; i >= 0; i--) {
+      const u = i / n, [x, y] = pt(u), th = 9 + Math.sin(u * 3.1) * 2;
+      g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y - th / 2) - 1, 3, Math.ceil(th) + 2);
+      g.fillStyle = P.body; g.fillRect(Math.round(x), Math.round(y - th / 2), 3, Math.ceil(th));
+      g.fillStyle = P.belly; g.fillRect(Math.round(x), Math.round(y + th / 2) - 2, 3, 2);
+      if (i % 2 === 0) { g.fillStyle = P.dark; g.fillRect(Math.round(x) + 1, Math.round(y - 1 + (i % 4 ? 1 : -1)), 2, 1); } // scales
+      if (i % 5 === 0) { g.fillStyle = P.mane; g.fillRect(Math.round(x), Math.round(y - th / 2) - 3, 2, 3); }        // the crest
+      if (i % 30 === 15) { g.fillStyle = P.dark; const cl = Math.round(y + th / 2); g.fillRect(Math.round(x), cl, 1, 4); g.fillStyle = P.horn; for (let c = -2; c <= 2; c++) g.fillRect(Math.round(x) + c, cl + 4, 1, 1); } // five claws
+    }
+    for (let i = 0; i < 6; i++) { const cx = ((i * 61 + t * 5) % (W + 60)) - 30, cy = 24 + (i % 3) * 6; g.globalAlpha = 0.75; g.fillStyle = '#fff6e0'; g.fillRect(Math.round(cx), cy, 22, 4); g.fillRect(Math.round(cx) + 4, cy - 2, 13, 2); } // clouds in front of it
+    g.globalAlpha = 1;
+  }
+
+  // The Life Tree, painted: roots gripping the stage, a trunk of layered bark with a face in it, a crown of many lit
+  // leaf-masses with light coming through; awake, it blossoms and its eyes burn
+  drawLifeTree(sim, e, lift, flash) {
+    const g = this.g, t = sim.t, X = sx(e.x), Y = sy(e.y) - lift, awake = e.phase === 2;
+    const bark = flash ? ['#ffffff', '#ffffff', '#ffffff'] : ['#3e2c1c', '#5e4630', '#7e6244'];
+    for (const [dx, dy, len, a] of [[-6, 0, 14, 2.9], [5, 0, 14, 0.25], [-2, 1, 10, 2.2], [2, 1, 10, 0.9]]) { // roots
+      g.strokeStyle = bark[0]; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(X + dx, Y + dy - 2); g.quadraticCurveTo(X + dx + Math.cos(a) * len * 0.6, Y + dy - 1, X + dx + Math.cos(a) * len, Y + dy + Math.sin(a) * len * 0.3 + 2); g.stroke();
+      g.strokeStyle = bark[1]; g.lineWidth = 1.2; g.stroke();
+    }
+    const tw = 12, th = 28; // the trunk, its bark in vertical runs
+    for (let x = -tw / 2; x < tw / 2; x++) { const k = 1 - Math.abs(x) / (tw / 2) * 0.6, c = (x + 20) % 3 === 0 ? bark[0] : x < 0 ? bark[1] : bark[2]; g.fillStyle = c; g.fillRect(Math.round(X + x * (0.7 + 0.3 * k)), Y - th, 1, th); }
+    g.fillStyle = bark[0]; g.fillRect(X - 4, Y - 18, 3, 1); g.fillRect(X + 1, Y - 18, 3, 1); // brows
+    const eye = flash ? '#ffffff' : awake ? '#ffe070' : '#b8ff90';
+    for (const ex of [-3, 2]) { g.globalAlpha = 0.35; g.fillStyle = eye; g.fillRect(X + ex - 1, Y - 17, 4, 3); g.globalAlpha = 1; g.fillStyle = eye; g.fillRect(X + ex, Y - 16, 2, 1); }
+    g.fillStyle = bark[0]; g.fillRect(X - 2, Y - 11, 4, 2); // a knot for a mouth
+    const leaf = flash ? ['#ffffff', '#ffffff', '#ffffff'] : ['#2c4a30', '#4e7a44', '#8ab860'];
+    const masses = [[-14, -34, 10], [12, -36, 11], [0, -44, 12], [-8, -48, 9], [9, -50, 9], [-20, -42, 7], [20, -44, 7], [0, -30, 9]];
+    for (const [dx, dy, r] of masses) { g.fillStyle = leaf[0]; g.beginPath(); g.ellipse(X + dx, Y + dy + 2, r * 1.15, r * 0.75, 0, 0, 6.2832); g.fill(); }
+    for (const [dx, dy, r] of masses) { g.fillStyle = leaf[1]; g.beginPath(); g.ellipse(X + dx - 1, Y + dy, r, r * 0.65, 0, 0, 6.2832); g.fill(); g.fillStyle = leaf[2]; g.beginPath(); g.ellipse(X + dx - r * 0.35, Y + dy - r * 0.3, r * 0.5, r * 0.3, 0, 0, 6.2832); g.fill(); }
+    for (let i = 0; i < 18; i++) { // grain in the leaves, and light through them (blossom when awake)
+      const a = i * 2.4, d = 6 + (i * 7) % 18, x = X + Math.cos(a) * d * 1.3, y = Y - 40 + Math.sin(a) * d * 0.6;
+      g.fillStyle = awake ? (i % 2 ? '#ffb7d5' : '#ffffff') : (i % 3 ? leaf[0] : '#d8ffb0'); g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+    for (let i = 0; i < 5; i++) { const u = (t * 0.25 + i / 5) % 1; g.globalAlpha = 0.7 * (1 - u); g.fillStyle = awake ? '#ffd0e0' : '#e8ffb0'; g.fillRect(Math.round(X - 18 + i * 9 + Math.sin(t + i) * 3), Math.round(Y - 30 + u * 30), 1, 1); } // motes drifting down
+    g.globalAlpha = 1;
+  }
+
   // Calling Wind and Rain: slanting rain over the whole stage, a dark wash of cloud
   drawRain(t, k) {
     const g = this.g;
@@ -5719,6 +5781,19 @@ class Renderer {
         P.push({ kind: 'line', x0: sx(ev.x), y0: sy(ev.y) - 4, x1: sx(ev.x1), y1: sy(ev.y1) - 4, life: big ? 0.45 : 0.2, max: big ? 0.45 : 0.2, color: c[0], w: big ? 3 : 1 });
         if (big) P.push({ kind: 'line', x0: sx(ev.x), y0: sy(ev.y) - 3, x1: sx(ev.x1), y1: sy(ev.y1) - 3, life: 0.6, max: 0.6, color: c[1], w: 1 });
         for (let i = 0; i < (big ? 24 : 6); i++) { const u = Math.random(); P.push({ kind: 'px', x: sx(ev.x + (ev.x1 - ev.x) * u), y: sy(ev.y + (ev.y1 - ev.y) * u) - 4, vx: (Math.random() - .5) * 60, vy: (Math.random() - .5) * 40, life: 0.4, max: 0.4, color: c[i % 2] }); }
+        if (ev.variant && ev.variant.startsWith('wx_')) { // each of the five phases leaves its own mark along the line
+          const ph = ev.variant.slice(3), L = (u, o = 0) => [sx(ev.x + (ev.x1 - ev.x) * u) + o, sy(ev.y + (ev.y1 - ev.y) * u) - 4];
+          for (let i = 0; i < 28; i++) {
+            const u = Math.random(), [x, y] = L(u, (Math.random() - 0.5) * 4);
+            if (ph === 'wood') P.push({ kind: 'px', x, y, vx: (Math.random() - 0.5) * 20, vy: -10 - Math.random() * 20, g: 30, life: 0.9, max: 0.9, color: i % 3 ? '#5ac850' : '#d8ffb0' });          // leaves shaken loose
+            else if (ph === 'fire') P.push({ kind: 'px', x, y, vx: (Math.random() - 0.5) * 16, vy: -30 - Math.random() * 40, g: -10, life: 0.6, max: 0.6, color: i % 3 ? '#ff7a2a' : '#ffe08a' }); // flames rising
+            else if (ph === 'earth') P.push({ kind: 'px', x, y: y - 10, vx: (Math.random() - 0.5) * 30, vy: 20, g: 220, life: 0.6, max: 0.6, color: i % 2 ? '#8a6438' : '#c8a070' });       // stones falling
+            else if (ph === 'metal') P.push({ kind: 'px', x, y, vx: (Math.random() - 0.5) * 120, vy: (Math.random() - 0.5) * 60, life: 0.25, max: 0.25, color: i % 2 ? '#ffffff' : '#ffd84a' }); // sparks off an edge
+            else P.push({ kind: 'px', x, y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 30, g: 160, life: 0.7, max: 0.7, color: i % 2 ? '#3a8ae0' : '#c8e8ff' });              // spray
+          }
+          if (ph === 'earth') this.shake = Math.max(this.shake, 6);
+          if (ph === 'metal') P.push({ kind: 'line', x0: sx(ev.x), y0: sy(ev.y) - 5, x1: sx(ev.x1), y1: sy(ev.y1) - 5, life: 0.12, max: 0.12, color: '#ffffff', w: 1 }); // the edge itself
+        }
         if (ev.variant === 'bigcut') this.startShatter(sx((ev.x + ev.x1) / 2), sy((ev.y + ev.y1) / 2) - 4, false);
         if (ev.variant === 'onesword') this.startSeparate(sx((ev.x + ev.x1) / 2), sy((ev.y + ev.y1) / 2) - 4, Math.atan2((ev.y1 - ev.y) * SQ, ev.x1 - ev.x));
         if (ev.variant === 'sever') this.startSever(sx((ev.x + ev.x1) / 2), sy((ev.y + ev.y1) / 2) - 4, Math.atan2((ev.y1 - ev.y) * SQ, ev.x1 - ev.x));

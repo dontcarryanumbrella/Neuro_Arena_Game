@@ -11,7 +11,7 @@ Art rule for everything new: paint at 1x with texture and shading, then scale 4x
 
 ## Progress (as of 2026-11-04)
 
-Build order steps 1 to 8 are done and committed; steps 9 and 10 are not started. 20 of 20 seals exist. 15 test suites pass.
+Build order steps 1 to 8 and the leftover pass are done and committed; steps 9 and 10 are not started. 20 of 20 seals exist. 16 test suites pass.
 
 ### Done
 | Plan section | What was built | Commit |
@@ -27,35 +27,19 @@ Build order steps 1 to 8 are done and committed; steps 9 and 10 are not started.
 | 10. Nine Heavens additions | Frost Maiden, Tiangou, Shade Attendant, Qilin and Jade Toad elites | `20bfcdc` |
 | 11. Lore | Vignettes (forest new; temple, abyss, isles, heavens revised), fragment o8, Codex lines for every new foe and boss | various |
 
-### Not done yet (Tom wants these; for future sessions)
-**Art**
-- The sprites are small and simple: compact pixel grids in the game's existing format, not the painted-at-1x style. The Life Tree especially needs a proper painted treatment.
+### Leftover pass (2026-11-05): done
+| Item | What was built | Commit |
+|---|---|---|
+| Supporting entries | Hero finales for all new bosses (the Emperor gets his own); new bosses in the sandbox list; the Rabbit's Codex line held back until the Black Sea; `petrify` for Killing Stones; README tier table and expansion section. The level curve needs no change (levels count felled types as a share of all types; existing saves sit a little lower until they fell the new foes). | `56339e5` |
+| Emperor | Mandate of Heaven (stage 1 decrees can't be interrupted; summons +30%) | `7c6e7a2` |
+| Ancestor | Ferries drag you along their lane; phase 2 Forgotten Reflection casts back your special | `7c6e7a2` |
+| Fox | Ninefold Sovereignty (two or three tails at once on the ninth life); a wavering dashed edge on Dreamweaver's false sigils | `7c6e7a2` |
+| Venerables | Stances (Unyielding, Yielding, Moon in the Water) rotating every 6s with auras; the Five Phases wheel laying hazards every 7s in Act 2; The Two Poles Turn joint ultimate with its turning floor and safe dots | `7c6e7a2` |
+| Art | A painted shading pass on every new sprite (lit and shaded edges, grain); a hand-painted, live-drawn Life Tree (roots, bark, a face, a lit crown; blossoms when awake); the Emperor's sky-spanning coils above the stage in his true body; distinct art for each of the five phase beams (leaves, flames, falling stones, sparks, spray) | this pass |
+| Fix | Live-drawn dragons were also drawing their plain sprite on top (from the pearl change in `ce7425a`) | this pass |
 
-**Dragon Emperor (section 5)**
-- Stage 1's Mandate of Heaven passive (uninterruptible decrees, tougher summons) is described but its effects aren't built.
-- The stage 3 dragon is bigger and gold, but not the sky-spanning body with coils above the stage.
-- The Five Phases beams use the existing beam visuals with new colours, not their own art.
-
-**Venerables (section 6)**
-- The four stances (Unyielding, Yielding, Moon in the Water); only Mutual Shelter is built.
-- The joint ultimate, The Two Poles Turn, with its rotating black-and-white floor.
-- The Five Phases wheel setting arena hazards (today it is the same breath the Emperor uses).
-
-**Yellow Spring Ancestor (section 7)**
-- In phase 2, Forgotten Reflection should repeat your special or ultimate; it still repeats your last technique.
-- The ghost ferries hit and knock back but don't drag you along.
-
-**Nine-Tailed Fox (section 8)**
-- Ninefold Sovereignty: combining two or three tails into combos on the ninth life (today she uses her full kit faster).
-- A visual tell on Dreamweaver's fake sigils (today they look like the real ones).
-
-**Supporting entries (section 12), found while checking**
-- Hero finales (`heroFinale`) and Tally Wall entries for the six new bosses (Rabbit, Life Tree, Ancestor, Fox, Venerables, plus the reworked Emperor's finale is still the old one).
-- The sandbox boss list ([main.js:749](../js/main.js)) doesn't include the new bosses.
-- The level curve hasn't been checked against the ~25 new foe types.
-- README sections describing the new bosses, foes and the forest (only the tier table is updated).
-- The Rabbit's Codex line is not yet hidden until the Black Sea.
-- Status `petrify` (Killing Stones only poison today).
+### Still open
+- Sprites remain compact pixel grids, now shaded; a fuller repaint of individual bosses at larger sizes is still possible later.
 
 **Not started: build steps 9 and 10**
 - Section 16 late-game pass: Time Administrator buff; the Keeper of the Iterations (800 base HP); Yun Xi (1,000 HP, 80% cap, the Last Bet); Sword Immortal stage 3 (Sword Without a Head, the twisted moveset, Fourteenth Sword: Cut with the page and dimension reduction).
