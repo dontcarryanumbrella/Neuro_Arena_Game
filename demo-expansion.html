@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expansion Demos</title>
+<style>
+  :root { --bg:#111522; --panel:#1a2033; --ink:#ece4d2; --dim:#8f8a7c; --gold:#e8c34a; --line:#2c3450; }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font: 13px/1.4 monospace; margin: 0; display: flex; height: 100vh; }
+  nav { width: 270px; overflow-y: auto; background: var(--panel); border-right: 1px solid var(--line); padding: 10px; flex: none; }
+  nav h1 { font-size: 14px; color: var(--gold); margin: 4px 0 8px; }
+  nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 14px 0 4px; }
+  nav button { display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; color: var(--ink); font: inherit; padding: 3px 6px; cursor: pointer; border-radius: 3px; }
+  nav button:hover { border-color: var(--line); }
+  nav button.on { background: #2a3352; border-color: var(--gold); }
+  nav a { color: var(--gold); }
+  main { flex: 1; padding: 12px 16px; overflow-y: auto; min-width: 0; }
+  #view { width: 100%; max-width: 1024px; aspect-ratio: 16/9; image-rendering: pixelated; border: 1px solid var(--line); display: block; background: #000; }
+  .bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+  .bar button, .bar select { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+  .bar button:hover { border-color: var(--gold); }
+  #title { color: var(--gold); font-size: 15px; margin: 0 0 2px; }
+  #desc { color: var(--ink); margin: 0 0 4px; max-width: 1024px; }
+  #lore { color: var(--dim); font-style: italic; margin: 0; max-width: 1024px; }
+  #info { color: var(--dim); white-space: pre-wrap; max-width: 1024px; }
+  @media (max-width: 760px) { body { flex-direction: column; height: auto; } nav { width: auto; max-height: 40vh; } }
+</style>
+</head>
+<body>
+<nav id="list"><h1>Expansion demos</h1><p style="color:var(--dim);margin:0">Every addition from the boss and world expansion plan, live in its own arena. Hero finales: <a href="demo-finale.html">demo-finale.html</a>.</p></nav>
+<main>
+  <h2 id="title">Pick a demo</h2>
+  <p id="desc"></p>
+  <canvas id="view" width="256" height="144"></canvas>
+  <div class="bar">
+    <button id="restart">Restart</button>
+    <button id="pause">Pause</button>
+    <button id="next" title="Push the demoBoss to its next stage, phase or life">Next stage ▸</button>
+    <button id="ult">Ultimate</button>
+    <select id="special"><option value="">Use special…</option></select>
+    <label><input type="checkbox" id="god" checked> hero can't die</label>
+    <label><input type="checkbox" id="idle"> hero stands still</label>
+    <label><input type="checkbox" id="snd"> sound</label>
+  </div>
+  <p id="lore"></p>
+  <div id="info"></div>
+</main>
+<script src="js/sfx.js"></script><script src="js/agent.js"></script><script src="js/sim.js"></script><script src="js/campaign.js"></script><script src="js/lore.js"></script>
+<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script>
+<script>
+// One live arena per expansion addition, drawn by the game's own renderer in the world it belongs to.
+const $d = id => document.getElementById(id);
+const demoFoe = (type, world, desc) => ({ label: ENEMY_TYPES[type] ? ENEMY_TYPES[type].name : type, world, desc, foes: [type] });
+const GROUPS = [
+  ['Primordial Forest (Tier II)', 'forest', [
+    { label: 'The arena: a dawn clearing', world: 'forest', desc: 'The painted forest arena under the Life Tree, with its ambient life. No foes.', foes: [] },
+    ...['raptor', 'serpent', 'roc', 'triceratops', 'drake', 'trex', 'tortoise', 'elfranger', 'elfsentinel', 'elfspellweaver', 'treant'].map(t => demoFoe(t, 'forest', 'New forest foe.')),
+    ...['tiger', 'bear', 'bunny'].map(t => demoFoe(t, 'forest', 'Promoted to a full foe with its own passive and technique.')),
+    { ...demoFoe('jaderabbit', 'forest', 'Boss 1. Use Next stage for the Ink-Stained Jade Rabbit and its Moon Bite.'), boss: true },
+    { ...demoFoe('lifetree', 'forest', 'Boss 2. Immobile, live-drawn; it blossoms when awake and calls its elven guardians.'), boss: true, at: [0, -30] },
+  ]],
+  ['Red Dust Temple (Tier III)', 'temple', [
+    ...['macaque', 'greatape', 'sweepingmonk'].map(t => demoFoe(t, 'temple', t === 'sweepingmonk' ? 'New elite.' : 'New temple foe.')),
+    { ...demoFoe('wukong', 'temple', 'Sun Wukong, the Victorious Fighting Buddha: the temple\'s new second demoBoss.'), boss: true },
+  ]],
+  ['The Nine Heavens (Tier IV)', 'heavens', [
+    ...['frostmaiden', 'tiangou', 'shadeattendant', 'qilin', 'jadetoad'].map(t => demoFoe(t, 'heavens', ['qilin', 'jadetoad'].includes(t) ? 'New elite: ice and shadow pass.' : 'New foe: ice and shadow pass.')),
+    { ...demoFoe('emperor', 'heavens', 'Stage 1, human form: Dragon Majesty pressure, Mandate of Heaven decrees, the court.'), boss: true, label: 'Dragon Emperor · stage 1' },
+    { ...demoFoe('emperor', 'heavens', 'Stage 2, the Celestial Dragon: tide, dragonfire, rain that soaks you and heals him.'), boss: true, label: 'Dragon Emperor · stage 2', stages: 1 },
+    { ...demoFoe('emperor', 'heavens', 'Stage 3, the Golden Body true dragon: sky coils and neck, the pearl, Five Phases breath.'), boss: true, label: 'Dragon Emperor · stage 3', stages: 2 },
+    { label: 'Sun & Moon Venerables', world: 'heavens', foes: ['sunvenerable', 'moonvenerable'], boss: true, desc: 'The pair: day/night dial, Mutual Shelter, rotating stances, the Two Poles Turn. Next stage pushes both into Act 2 (Five Phases wheel).' },
+    { label: 'Taiji Venerable (merged)', world: 'heavens', foes: ['sunvenerable', 'moonvenerable'], boss: true, taiji: true, desc: 'The Sun falls; the Moon becomes the Taiji Venerable with both arts and Birth of All Things.' },
+  ]],
+  ['Netherworld Abyss (Tier III)', 'abyss', [
+    { ...demoFoe('ancestor', 'abyss', 'Phase 1, Keeper of the Yellow Springs: Broth of Forgetting, sealing, ferries that drag you.'), boss: true, label: 'Yellow Spring Ancestor · phase 1', talents: true },
+    { ...demoFoe('ancestor', 'abyss', 'Phase 2, Nine Springs Domain: reforming from springs, Samsara, fishing, Forgotten Reflection.'), boss: true, label: 'Yellow Spring Ancestor · phase 2', stages: 1, talents: true },
+  ]],
+  ['Eastern Isles (Tier IV)', 'isles', [
+    { ...demoFoe('tamamo', 'isles', 'Life 1 of nine. Next stage takes a life: each brings a tail and a new art.'), boss: true, label: 'Nine-Tailed Fox · first life' },
+    { ...demoFoe('tamamo', 'isles', 'Life 4: the Dance of a Hundred Foxes is now possible.'), boss: true, label: 'Nine-Tailed Fox · fourth life', lives: 3 },
+    { ...demoFoe('tamamo', 'isles', 'Life 9, the Heavenly Fox: Ninefold Sovereignty, Killing Stones that petrify, Nine Tails Eclipse the Moon.'), boss: true, label: 'Nine-Tailed Fox · ninth life', lives: 8 },
+  ]],
+];
+
+const demoList = $d('list'), view = $d('view'), renderer = new Renderer(view);
+let demoCur = null, demoSim = null, demoPaused = false, demoTick = 0, demoLast = 0, demoBoss = null;
+for (const [name, world, items] of GROUPS) {
+  const h = document.createElement('h2'); h.textContent = name; h.style.color = (WORLD_BY_ID[world] || {}).color || '#ccc'; demoList.append(h);
+  for (const d of items) {
+    const b = document.createElement('button'); b.textContent = (d.boss ? '★ ' : '') + d.label;
+    b.onclick = () => { for (const x of demoList.querySelectorAll('button')) x.classList.remove('on'); b.classList.add('on'); start(d); };
+    demoList.append(b);
+  }
+}
+
+function nextStage(e) {
+  if (!e || e.dead) return;
+  e.invulnT = 0; e.state = 'idle'; e.ult = null;
+  if (e.def.foxLives) { if ((e.tails || 1) < e.def.foxLives) demoSim.foxRise(e); return; }
+  demoSim.dealDamage(e, 99999, demoSim.p, 0, 0, 0);
+}
+function runFor(sec) { for (let i = 0; i < sec * 60; i++) { demoSim.p.hp = demoSim.p.maxHp; demoSim.step(null); } }
+
+function start(d) {
+  demoCur = d; demoTick = 0;
+  demoSim = new Sim('custom', 7, { visual: true, timeLimit: 9999, roster: ['bandit'], atOnce: 1 });
+  demoSim.enemies.length = 0;
+  const spawned = d.foes.map((t, i) => { const [x, y] = d.at || [40 + i * 20, (i ? 20 : -10)]; const e = demoSim.spawnEnemy(t, x, y); e.state = 'idle'; e.st = 0; return e; });
+  if (d.talents) demoSim.applyTalents(demoSim.p, ['ripple', 'vampfist', 'dragonbreath'], 'unformed');
+  demoSim.p.x = -70; demoSim.p.y = 20; demoSim.waveIdx = 1; demoSim.step(null);
+  demoBoss = spawned[0] || null;
+  for (let k = 0; k < (d.stages || 0); k++) { nextStage(demoBoss); runFor(3); }
+  for (let k = 0; k < (d.lives || 0); k++) { nextStage(demoBoss); demoBoss.invulnT = 0; demoBoss.state = 'idle'; }
+  if (d.taiji) { spawned[1].hp = spawned[1].maxHp * 0.2; spawned[0].hp = 0; demoSim.resolveFalls(); demoBoss = spawned[1]; }
+  renderer.reset && renderer.reset();
+  demoSim.fx = [];
+  $d('title').textContent = d.label; $d('desc').textContent = d.desc || '';
+  $d('lore').textContent = (d.foes[0] && CODEX_LORE[d.foes[0]]) || '';
+  fillSpecials();
+  window.__sim = demoSim;
+}
+function fillSpecials() {
+  const s = $d('special'); s.length = 1;
+  if (demoBoss) demoBoss.specials.forEach((a, i) => s.add(new Option(a.name || a.id, i)));
+}
+
+function heroAction(s, i) {
+  const e = s.nearestEnemy(s.p);
+  if (!e || $d('idle').checked) return [0, 0, -1, -1, -1, -1, -1, -1, -1];
+  const dx = e.x - s.p.x, dy = e.y - s.p.y, d = Math.hypot(dx, dy) || 1, near = d < 22 + (e.r || 0);
+  return [dx / d * 0.6, dy / d * 0.6, near && i % 9 === 0 ? 1 : -1, near && i % 60 === 0 ? 1 : -1, i % 30 < 4 ? 1 : -1, -1, -1, -1, -1];
+}
+function frame(now) {
+  const dt = Math.min(0.05, (now - demoLast) / 1000); demoLast = now;
+  if (demoSim && !demoPaused) {
+    for (let k = 0; k < Math.round(dt * 60); k++) {
+      if (demoSim.done) { demoSim.done = false; demoSim.timeLimit = 9999; }
+      if ($d('god').checked) { demoSim.p.hp = demoSim.p.maxHp; demoSim.p.dead = false; }
+      demoSim.step(heroAction(demoSim, demoTick++));
+    }
+    renderer.draw(demoSim, dt, { world: demoCur.world, sound: $d('snd').checked });
+    renderer.present();
+    if (demoBoss && demoBoss.dead) { const alive = demoSim.enemies.find(e => !e.dead && e.def.boss); if (alive && alive !== demoBoss) { demoBoss = alive; fillSpecials(); } }
+    $d('info').textContent = demoSim.enemies.filter(e => !e.dead).slice(0, 6).map(e =>
+      `${e.def.name}  hp ${Math.round(e.hp)}/${Math.round(e.maxHp)}` + (e.stage ? `  stage ${e.stage}` : '') + (e.phase ? `  phase ${e.phase}` : '') + (e.tails ? `  tails ${e.tails}` : '') +
+      `  ${e.state}${e.atk && e.state !== 'idle' ? ' · ' + (e.atk.name || e.atk.id) : ''}${e.ult && e.state === 'ult' ? ' · ' + e.ult.name : ''}`).join('\n');
+  } else if (demoSim) { renderer.draw(demoSim, 0, { world: demoCur.world, paused: true }); renderer.present(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+$d('restart').onclick = () => demoCur && start(demoCur);
+$d('pause').onclick = () => { demoPaused = !demoPaused; $d('pause').textContent = demoPaused ? 'Resume' : 'Pause'; };
+$d('next').onclick = () => {
+  if (!demoSim) return;
+  if (demoCur.foes.length === 2 && !demoCur.taiji) { for (const e of demoSim.enemies) if (!e.dead && e.def.boss) demoSim.dealDamage(e, e.hp - e.maxHp * 0.5, demoSim.p, 0, 0, 0); return; }
+  nextStage(demoBoss); setTimeout(fillSpecials, 3000);
+};
+$d('ult').onclick = () => { if (demoBoss && !demoBoss.dead) { demoBoss.cds.ult = 0; demoBoss.state = 'idle'; demoBoss.invulnT = 0; demoSim.startUlt(demoBoss); } };
+$d('special').onchange = e => {
+  const a = demoBoss && demoBoss.specials[+e.target.value]; e.target.value = '';
+  if (a && !demoBoss.dead) { demoBoss.state = 'idle'; demoSim.startAttack(demoBoss, a); }
+};
+$d('snd').onchange = () => { if ($d('snd').checked) sfx.unlock(); };
+demoList.querySelectorAll('button')[0].click();
+</script>
+</body>
+</html>
