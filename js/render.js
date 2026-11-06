@@ -5277,22 +5277,33 @@ class Renderer {
     if (flash) P = { body: '#ffffff', dark: '#ffffff', belly: '#ffffff', mane: '#ffffff', horn: '#ffffff', eye: '#ffffff' };
     const hx = sx(e.x + jx) + F * 6 * s * 0.5, hy = sy(e.y) - lift - 4 * s + Math.sin(t * 2) * s;
     const nx = hx - F * 6 * s, ny = hy + s;                       // where the neck meets the back of the head
-    const ax = nx - F * 46, ay = this.skyCoilY(ax, t) + 4;        // where it meets the coils in the sky
-    const cx = nx - F * 22, cy = ny - 6;                          // the neck's bend
-    const n = 60, th0 = 6 * s * 0.85, th1 = 15;
-    const at = u => [(1 - u) * (1 - u) * nx + 2 * u * (1 - u) * cx + u * u * ax, (1 - u) * (1 - u) * ny + 2 * u * (1 - u) * cy + u * u * ay];
-    for (let i = n; i >= 0; i--) { // the neck, sky end first so the head sits on top
-      const u = i / n, [x, y] = at(u), th = th0 + (th1 - th0) * u, j = Math.round(u * 40);
-      g.fillStyle = P.body; g.fillRect(Math.round(x - 1), Math.round(y - th / 2), 3, Math.ceil(th));
-      g.fillStyle = P.belly; g.fillRect(Math.round(x - 1), Math.round(y + th / 2) - d, 3, d);
-      if (j % 3 === 0) { g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y), d, d); }
-      if (j % 4 === 1) { g.fillStyle = P.mane; g.fillRect(Math.round(x), Math.round(y - th / 2) - 2 * d, d, 2 * d); }
+    const ax = nx - F * 40, ay = this.skyCoilY(ax, t);             // where it passes up through the coils...
+    const ex = ax - F * 10, ey = -12;                              // ...and on, off the top of the screen
+    const n = 90, th0 = 6 * s * 0.85, th1 = 15;
+    const at = u => { // head to coils, then on up out of sight
+      if (u < 0.75) { const v = u / 0.75, cx = nx - F * 18, cy = ny - 10; return [(1 - v) * (1 - v) * nx + 2 * v * (1 - v) * cx + v * v * ax, (1 - v) * (1 - v) * ny + 2 * v * (1 - v) * cy + v * v * ay]; }
+      const v = (u - 0.75) / 0.25; return [ax + (ex - ax) * v, ay + (ey - ay) * v];
+    };
+    const thAt = u => th0 + (th1 - th0) * Math.min(1, u / 0.75);
+    // a tube, not strips: discs along the path in the dark, then the body, then the light on its upper side
+    for (const [col, grow, off] of [[P.dark, 1.2, 0], [P.body, 0, 0], [P.belly, -0.55, 0.32]]) {
+      g.fillStyle = col;
+      for (let i = 0; i <= n; i++) { const u = i / n, [x, y] = at(u), r = Math.max(1, thAt(u) / 2 + grow * (grow > 0 ? 1 : thAt(u) / 2)); g.beginPath(); g.arc(x - F * off * thAt(u) * 0.4, y + off * thAt(u) * 0.5, r, 0, 6.2832); g.fill(); }
+    }
+    for (let i = 2; i < n; i += 3) { // scales and the crest, on the outside of the curve
+      const u = i / n, [x, y] = at(u), [x2, y2] = at(Math.min(1, u + 0.01)), tx = x2 - x, ty = y2 - y, l = Math.hypot(tx, ty) || 1, nxp = -ty / l * F, nyp = tx / l * F, r = thAt(u) / 2;
+      g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y), d, d);
+      if (i % 2 === 0) { g.fillStyle = P.mane; g.fillRect(Math.round(x + nxp * (r + d)), Math.round(y + nyp * (r + d)), d + 1, d + 1); }
     }
     for (const k of [0.12, 0.22]) { // the forelegs, five-clawed, gripping the stage
       const [x, y] = at(k), th = th0 + (th1 - th0) * k, fx = x + F * (k < 0.15 ? 8 : -4), fy = sy(e.y) - lift + 2;
       g.strokeStyle = P.dark; g.lineWidth = d + 1; g.lineCap = 'round'; g.beginPath(); g.moveTo(x, y + th / 2 - 2); g.quadraticCurveTo(x + F * 6, (y + fy) / 2, fx, fy); g.stroke();
       g.strokeStyle = P.body; g.lineWidth = d; g.stroke();
       g.fillStyle = P.horn; for (let c = -2; c <= 2; c++) g.fillRect(Math.round(fx + c * 2), Math.round(fy), 1, 2);
+    }
+    { // a bank of cloud where the neck passes up through the coils, so it goes into the sky instead of ending
+      const [cx0, cy0] = at(0.75);
+      for (const [dx, dy, w, h] of [[-14, 6, 30, 5], [-6, 2, 22, 5], [4, 8, 26, 4], [-20, 10, 16, 3], [10, 12, 18, 3]]) { g.fillStyle = '#fff6e0'; g.fillRect(Math.round(cx0 + dx), Math.round(cy0 + dy), w, h); g.fillStyle = '#e8dcc0'; g.fillRect(Math.round(cx0 + dx), Math.round(cy0 + dy + h - 1), w, 1); }
     }
     this.dragonHead(hx, hy, F, P, s, Math.floor(t * 2 + e.id) % 5 === 0 || e.state === 'wind' ? 1 : 0);
     g.fillStyle = P.mane;
