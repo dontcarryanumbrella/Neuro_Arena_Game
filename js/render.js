@@ -4538,7 +4538,8 @@ class Renderer {
     if ((e.def.foxLives || (e.mirrorOf != null && e.def.sprite === 'b_fox')) && !(e.polyT > 0)) this.drawFoxTails(sim, e, lift);
     const human = e.type === 'emperor' && !e.stage && e.phase !== 2; // the Emperor is a man until his first transformation completes
     const dragon = EASTERN_DRAGONS[e.type] && !(e.polyT > 0) && !human;
-    if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
+    if (dragon && e.type === 'emperor' && e.stage === 3) this.drawTrueDragon(sim, e, EASTERN_DRAGONS.emperor(e), jx, lift, mode === 'flash');
+    else if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
     else if (e.type === 'lifetree' && !(e.polyT > 0)) this.drawLifeTree(sim, e, lift, mode === 'flash');
     else if (!(def.yellowKing && e.phase === 2)) this.sprite(pic, e.x + jx, e.y, flip && !egg, mode, lift, scale);
     if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
@@ -5266,12 +5267,44 @@ class Renderer {
     g.globalAlpha = 1;
   }
 
+  // the height of the sky coils at a screen x (the neck rises to meet them)
+  skyCoilY(x, t) { const u = (x + 30) / (W + 60); return 26 + Math.sin(u * 7 + t * 0.6) * 8 + Math.sin(u * 2.3 - t * 0.3) * 4; }
+
+  // The true body in the arena: only the head, the neck and the forelegs; the neck climbs out of the stage into the
+  // sky, where the rest of him coils (drawSkyCoils). One dragon, too big for the stage.
+  drawTrueDragon(sim, e, P, jx, lift, flash) {
+    const g = this.g, t = sim.t, F = e.fx < 0 ? -1 : 1, s = P.big || 3, d = Math.max(1, Math.round(s));
+    if (flash) P = { body: '#ffffff', dark: '#ffffff', belly: '#ffffff', mane: '#ffffff', horn: '#ffffff', eye: '#ffffff' };
+    const hx = sx(e.x + jx) + F * 6 * s * 0.5, hy = sy(e.y) - lift - 4 * s + Math.sin(t * 2) * s;
+    const nx = hx - F * 6 * s, ny = hy + s;                       // where the neck meets the back of the head
+    const ax = nx - F * 46, ay = this.skyCoilY(ax, t) + 4;        // where it meets the coils in the sky
+    const cx = nx - F * 22, cy = ny - 6;                          // the neck's bend
+    const n = 60, th0 = 6 * s * 0.85, th1 = 15;
+    const at = u => [(1 - u) * (1 - u) * nx + 2 * u * (1 - u) * cx + u * u * ax, (1 - u) * (1 - u) * ny + 2 * u * (1 - u) * cy + u * u * ay];
+    for (let i = n; i >= 0; i--) { // the neck, sky end first so the head sits on top
+      const u = i / n, [x, y] = at(u), th = th0 + (th1 - th0) * u, j = Math.round(u * 40);
+      g.fillStyle = P.body; g.fillRect(Math.round(x - 1), Math.round(y - th / 2), 3, Math.ceil(th));
+      g.fillStyle = P.belly; g.fillRect(Math.round(x - 1), Math.round(y + th / 2) - d, 3, d);
+      if (j % 3 === 0) { g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y), d, d); }
+      if (j % 4 === 1) { g.fillStyle = P.mane; g.fillRect(Math.round(x), Math.round(y - th / 2) - 2 * d, d, 2 * d); }
+    }
+    for (const k of [0.12, 0.22]) { // the forelegs, five-clawed, gripping the stage
+      const [x, y] = at(k), th = th0 + (th1 - th0) * k, fx = x + F * (k < 0.15 ? 8 : -4), fy = sy(e.y) - lift + 2;
+      g.strokeStyle = P.dark; g.lineWidth = d + 1; g.lineCap = 'round'; g.beginPath(); g.moveTo(x, y + th / 2 - 2); g.quadraticCurveTo(x + F * 6, (y + fy) / 2, fx, fy); g.stroke();
+      g.strokeStyle = P.body; g.lineWidth = d; g.stroke();
+      g.fillStyle = P.horn; for (let c = -2; c <= 2; c++) g.fillRect(Math.round(fx + c * 2), Math.round(fy), 1, 2);
+    }
+    this.dragonHead(hx, hy, F, P, s, Math.floor(t * 2 + e.id) % 5 === 0 || e.state === 'wind' ? 1 : 0);
+    g.fillStyle = P.mane;
+    for (const o of [-1, 1]) { let x = hx + F * 5 * s, y = hy + o * s; for (let k = 0; k < 8; k++) { x -= F * 1.2 * s; y += (Math.sin(t * 5 + k * 0.8 + o) * 0.6 + o * 0.25) * s; g.fillRect(Math.round(x), Math.round(y), d, d); } }
+  }
+
   // The true body is too vast for the stage: the rest of it coils through the sky above, behind cloud, gold and scaled
   drawSkyCoils(sim, e, t) {
     const g = this.g, P = EASTERN_DRAGONS.emperor(e), n = 120;
-    const pt = u => { const x = -30 + u * (W + 60), y = 30 + Math.sin(u * 7 + t * 0.6) * 9 + Math.sin(u * 2.3 - t * 0.3) * 5; return [x, y]; };
+    const pt = u => { const x = -30 + u * (W + 60); return [x, this.skyCoilY(x, t)]; };
     for (let i = n; i >= 0; i--) {
-      const u = i / n, [x, y] = pt(u), th = 9 + Math.sin(u * 3.1) * 2;
+      const u = i / n, [x, y] = pt(u), th = 15 + Math.sin(u * 3.1) * 2;
       g.fillStyle = P.dark; g.fillRect(Math.round(x), Math.round(y - th / 2) - 1, 3, Math.ceil(th) + 2);
       g.fillStyle = P.body; g.fillRect(Math.round(x), Math.round(y - th / 2), 3, Math.ceil(th));
       g.fillStyle = P.belly; g.fillRect(Math.round(x), Math.round(y + th / 2) - 2, 3, 2);
@@ -5404,7 +5437,7 @@ class Renderer {
   // The true body's pearl: a pale-gold orb circling the dragon, dim for a moment after an ultimate is spent
   drawDragonPearl(sim, e, lift) {
     const t = sim.t, dim = e.pearlOpenFrom && t >= e.pearlOpenFrom && t < e.pearlOpenFrom + 3;
-    const x = sx(e.x) + Math.cos(t * 1.6) * 60, y = sy(e.y) - lift - 40 + Math.sin(t * 1.6) * 10, a = dim ? 0.35 : 1;
+    const x = sx(e.x) + Math.cos(t * 1.6) * 30, y = sy(e.y) - lift - 34 + Math.sin(t * 1.6) * 8, a = dim ? 0.35 : 1;
     const g = this.g;
     for (const [r, al] of [[9, 0.12], [6, 0.2], [4.5, 0.3]]) { g.globalAlpha = al * a; g.fillStyle = '#fff2b0'; g.beginPath(); g.arc(x, y, dim ? r * 0.6 : r, 0, 6.2832); g.fill(); }
     g.globalAlpha = a;
