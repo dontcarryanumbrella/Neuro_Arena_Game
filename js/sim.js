@@ -1133,7 +1133,7 @@ const PHASE2 = {
         [3.0, 'dragonbreath', { range: 90, angle: 0.6, dmg: 20 }], [3.5, 'orbs', { count: 8, dmg: 14 }]] },
   },
   emperor: {
-    flags: { court: true, r: 13 },
+    flags: { court: true, r: 19 },
     // the Celestial Dragon: the edict becomes a chain of thunder; the claw, the seal and the cloud-leap give way to rain, tide and fire
     replace: {
       thunder: { id: 'thunder', kind: 'sigil', pattern: 'scatter', count: 6, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 22, radius: 13, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' }, // Thunder Chain
@@ -1154,10 +1154,12 @@ for (const [b, ph] of Object.entries(PHASE2)) {
   p2.add = (p2.add || []).concat(ph.add || []);
   ENEMY_TYPES[b].ult2 = ph.ult;
 }
-// The true body's ultimate: the pearl breathes all five phases from the four quarters and the centre, then one beam of its own light.
-ENEMY_TYPES.emperor.stage3Ult = { name: 'Dragon Pearl Transforms the Five Phases', charge: 1.6, dur: 4.0, cd: 16, dark: 'rgba(30,24,0,0.6)',
-  steps: [...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [i * 0.4, 'beam', { variant: 'wx_' + v, len: 300, width: 14, dmg: 18, kb: 120, delay: 0.8, aimed: true, turn: i * 1.2566 }]),
-    [2.6, 'beam', { variant: 'pillar', len: 320, width: 30, dmg: 34, kb: 220, delay: 0.9, aimed: true }]] };
+// The true body's ultimate: the Golden Dragon coils the whole sky. Its body closes round the arena like a noose (stay inside
+// it), the five pearls of the five phases come down on you one by one, and then its own golden pearl, the size of a sun.
+ENEMY_TYPES.emperor.stage3Ult = { name: 'The Golden Dragon Coils the Heavens', charge: 1.6, dur: 6.2, cd: 16, dark: 'rgba(30,20,0,0.65)',
+  steps: [[0, 'spectacle', { kind: 'dragoncoil', dur: 6.2 }],
+    ...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [1.0 + i * 0.5, 'sigil', { variant: 'pearl_' + v, radius: 15, dmg: 16, delay: 0.75, kb: 110, ...(v === 'water' ? { wet: 5 } : v === 'wood' ? { root: 0.8 } : v === 'metal' ? { breaksGuard: true } : {}) }]),
+    [3.9, 'sigil', { variant: 'goldpearl', radius: 32, dmg: 40, delay: 1.4, kb: 260 }]] };
 // what each of the five phases does when the pearl breathes it (Breath of the Five Phases, in generating order)
 const WUXING = [
   ['wood', [['sigil', { variant: 'roots', pattern: 'scatter', count: 4, radius: 12, dmg: 12, delay: 0.8, root: 1.2 }]]],
@@ -1168,93 +1170,158 @@ const WUXING = [
 ];
 
 // ---------- the Primordial Forest's bosses: a rabbit, and the tree the elves keep ----------
+// The Rabbit fell from the moon and brought its phases with it: every 5s the moon over it turns. New Moon it is barely
+// there (it takes half); Waxing it is quick; Full Moon it goes mad (Lunacy: harder, faster, and it lands with a shockwave);
+// Waning it drinks back what it deals. Its pestle comes down from the sky, it hops a hundred times, it throws the elixir,
+// and the moon's rabbits come down to fight beside it.
 ENEMY_TYPES.jaderabbit = boss('tiger', {
-  name: 'Rabbit', summon: false, hp: 230, r: 4, scale: 1.4, mass: 0.8, speed: 74, postureMul: 0.7, ai: 'circle', orbit: 30, strange: true,
+  name: 'Rabbit', summon: false, hp: 390, r: 4, scale: 1.4, mass: 0.8, speed: 82, postureMul: 0.6, ai: 'circle', orbit: 30, strange: true, celestial: true, moonPhases: true, minionCap: 4,
   sprite: 'b_rabbit', sprite2: 'b_rabbit2', form2: 'Ink-Stained Jade Rabbit', color: '#e8e8f0', lore: 'IT FELL FROM THE MOON',
-  moves: moveSet({ strike: { dmg: 4, range: 11, wind: 0.12 } }),
+  moves: moveSet({ strike: { dmg: 7, range: 11, wind: 0.1 } }),
   specials: [
-    { id: 'pestle', kind: 'slam', radius: 16, hits: 2, interval: 0.25, wind: 0.4, recover: 0.5, dmg: 6, kb: 80, cd: 3, hitPosture: 8, variant: 'quake' },
-    { id: 'hop', kind: 'pounce', minRange: 18, maxRange: 70, wind: 0.25, recover: 0.4, dmg: 5, kb: 60, lunge: 300, lungeTime: 0.22, cd: 2.4, hitPosture: 8 },
+    { id: 'mortar', kind: 'celestial', move: 'mortar', minRange: 0, maxRange: 999, wind: 0.3, recover: 0.35, dmg: 20, radius: 18, cd: 4.5 },                       // Mortar of Ages: up into the sky, down on you
+    { id: 'hundredhops', kind: 'celestial', move: 'hops', minRange: 10, maxRange: 140, wind: 0.25, recover: 0.2, dmg: 8, hops: 5, cd: 6 },                        // A Hundred Hops
+    { id: 'elixir', kind: 'celestial', move: 'elixir', minRange: 20, maxRange: 200, wind: 0.4, recover: 0.3, dmg: 10, count: 3, cd: 6.5 },                       // Elixir of Immortality, thrown
+    { id: 'moonrabbits', kind: 'celestial', move: 'moonrabbits', minRange: 0, maxRange: 999, wind: 0.6, recover: 0.4, count: 2, cd: 12 },                       // the Moon's Rabbits
   ],
-  phase2: { speedMul: 1.25, cdMul: 0.6, dmgMul: 1.3, heal: 0.2, flags: {},
-    replace: { pestle: { id: 'pestle', kind: 'slam', radius: 20, hits: 3, interval: 0.2, wind: 0.35, recover: 0.45, dmg: 8, kb: 110, cd: 3, hitPosture: 12, variant: 'quake' } },
+  phase2: { speedMul: 1.3, cdMul: 0.55, dmgMul: 1.35, heal: 0.25, flags: {},
+    replace: { hundredhops: { id: 'hundredhops', kind: 'celestial', move: 'hops', minRange: 10, maxRange: 160, wind: 0.2, recover: 0.2, dmg: 10, hops: 8, ink: true, cd: 5 } },
     add: [
-      { id: 'inkblots', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 12, radius: 11, delay: 0.8, cd: 4, unblockable: true, variant: 'inkrain' },
-      { id: 'moonbite', kind: 'pounce', minRange: 10, maxRange: 60, wind: 0.7, recover: 0.6, dmg: 6, maxHpPct: 0.08, kb: 120, lunge: 320, lungeTime: 0.22, cd: 5, breaksGuard: true, hitPosture: 20, parryPosture: 40 },
+      { id: 'inkblots', kind: 'sigil', pattern: 'scatter', count: 4, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 14, radius: 12, delay: 0.8, cd: 4, unblockable: true, variant: 'inkrain' },
+      { id: 'moonbite', kind: 'pounce', minRange: 10, maxRange: 70, wind: 0.6, recover: 0.6, dmg: 8, maxHpPct: 0.1, kb: 120, lunge: 340, lungeTime: 0.22, cd: 5, breaksGuard: true, hitPosture: 20, parryPosture: 40 },
     ] },
-  passive: ['Harmless', 'Small, fast and polite. Its second form is none of those: ink comes through the fur, and its bite takes a share of your health.'],
-  active: ['Pounding the Elixir, Moon-Devouring Bite', 'A pestle that shakes the ground, a hop. Then ink blots that burst where you stand, and a bite with a twitch of the ears before it.'],
-  ult: { name: 'Elixir of the Moon', charge: 1.0, dur: 2.0, cd: 16, dark: 'rgba(20,20,40,0.35)',
-    steps: [[0, 'radial', { count: 8, kind: 'orb', dmg: 8, speed: 100 }], [1.0, 'radial', { count: 8, kind: 'orb', dmg: 8, speed: 100, offset: 0.39 }]] },
-  ult2: { name: 'The Moon Devoured', charge: 1.1, dur: 2.8, cd: 15, dark: 'rgba(0,0,0,0.5)',
-    steps: [[0, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 5, radius: 12, dmg: 14, delay: 0.8 }], [0.9, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 5, radius: 12, dmg: 14, delay: 0.8 }],
-      [1.8, 'dash', { ...DASH, dmg: 14, speed: 380 }]] },
+  passive: ['Phases of the Moon', 'The moon over it turns every 5 seconds. New Moon: barely there, it takes half. Waxing: quick. Full Moon: Lunacy, it hits far harder and faster and lands with a shockwave. Waning: it drinks back what it deals. Inked, its bite takes a tenth of your health.'],
+  active: ['Mortar of Ages, A Hundred Hops, the Elixir, the Moon\'s Rabbits', 'It leaps into the sky and brings its pestle down where you stand; it hops at you again and again; it throws jars of the elixir that boil on the ground; the moon\'s rabbits come down to help it.'],
+  ult: { name: 'The Rabbit Returns to the Moon', charge: 0.8, dur: 4.2, cd: 16, dark: 'rgba(8,10,30,0.55)',
+    steps: [[0, 'spectacle', { kind: 'rabbitmoon', dur: 4.2 }], [0.1, 'vanish', { dur: 3.6 }],
+      ...[0.6, 0.95, 1.3, 1.65, 2.0, 2.35, 2.7].map((t, i) => [t, 'sigil', { variant: 'mortar', radius: i % 2 ? 14 : 16, dmg: 14, delay: 0.7, kb: 90 }]),
+      [3.6, 'reappear', {}], [3.6, 'celestial', { move: 'mortarland', dmg: 26, radius: 26 }]] },
+  ult2: { name: 'The Moon Devoured', charge: 0.9, dur: 4.4, cd: 15, dark: 'rgba(0,0,0,0.7)',
+    steps: [[0, 'spectacle', { kind: 'inkmoon', dur: 4.4 }], [0.2, 'celestial', { move: 'moonrabbits', count: 4, ink: true }],
+      [0.6, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 6, radius: 12, dmg: 14, delay: 0.8 }], [1.6, 'sigil', { variant: 'inkrain', pattern: 'scatter', count: 6, radius: 12, dmg: 14, delay: 0.8 }],
+      [2.6, 'celestial', { move: 'hops', hops: 6, dmg: 10, ink: true }], [3.8, 'dash', { ...DASH, dmg: 16, maxHpPct: 0.12, speed: 420, breaksGuard: true }]] },
 });
+// The Life Tree keeps the elves the way the Queen keeps her brood: it arrives with them, feeds them, shields them, and
+// fights with roots and pollen rather than blows. Below half it grows taller and goes pale. Struck down, it does not
+// die: the White Stag steps out of it, the god of the elves, whole again, and fights with its own antlers and light.
+const STAG_KIT = [
+  { id: 'stagcharge', kind: 'celestial', move: 'stagcharge', minRange: 18, maxRange: 150, wind: 0.45, recover: 0.5, dmg: 24, cd: 3.2 },                 // Antlers Lowered
+  { id: 'starbeam', kind: 'celestial', move: 'starbeam', minRange: 0, maxRange: 260, wind: 0.5, recover: 0.4, dmg: 22, cd: 3.8 },                        // the Star Between the Antlers
+  { id: 'antlergrove', kind: 'celestial', move: 'antlergrove', minRange: 0, maxRange: 200, wind: 0.4, recover: 0.4, dmg: 16, cd: 4.5 },                 // White Antler Thicket
+  { id: 'starmotes', kind: 'celestial', move: 'starmotes', minRange: 0, maxRange: 999, wind: 0.4, recover: 0.4, dmg: 7, count: 12, cd: 6 },             // Starlight Scattered
+  { id: 'grace', kind: 'celestial', move: 'grace', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.3, cd: 11 },                                       // Grace of the Forest
+];
 ENEMY_TYPES.lifetree = boss('golem', {
-  name: 'The Life Tree', hp: 300, r: 13, mass: 99, speed: 0, postureMul: 0.25, kbOut: 0.6, noFlinch: true, harden: false, blessing: true,
-  sprite: 'b_lifetree', sprite2: 'b_lifetree2', form2: 'The World Tree Awakens', color: '#a8e070', lore: 'THE ELVES PLANTED THEMSELVES AROUND IT',
+  name: 'The Life Tree', hp: 360, r: 14, plantedAt: [0, -12], mass: 99, speed: 0, postureMul: 0.25, kbOut: 0.6, noFlinch: true, harden: false, blessing: true, celestial: true, stagForm: true,
+  minionCap: 8, broodOnSpawn: ['elfsentinel', 'elfranger', 'elfspellweaver'],
+  sprite: 'b_lifetree', sprite2: 'b_lifetree2', form2: 'The World Tree Awakens', form3: 'The White Stag', color: '#a8e070', lore: 'THE ELVES PLANTED THEMSELVES AROUND IT',
   moves: moveSet({ strike: { dmg: 14, range: 24, wind: 0.5, kb: 160 } }),
   specials: [
+    { id: 'sapgift', kind: 'transfuse', wind: 0.3, recover: 0.3, heal: 30, cd: 3.5 },                                                                       // Gift of Sap
+    { id: 'canopy', kind: 'broodbuff', wind: 0.5, recover: 0.3, cd: 9, hpPct: 0.3, dmg: 1.25 },                                                             // Canopy of Blessing
     { id: 'grasp', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.6, recover: 0.6, dmg: 12, radius: 13, delay: 0.85, root: 1.3, cd: 4.5, unblockable: true, variant: 'roots' },
     { id: 'vinelash', kind: 'shoot', proj: 'tentacle', shots: 1, speed: 240, dmg: 9, minRange: 20, maxRange: 140, wind: 0.4, recover: 0.45, cd: 3.5, pull: true, life: 0.7 },
-    { id: 'guardians', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['elfsentinel', 'elfranger'], cap: 2 },
+    { id: 'pollen', kind: 'celestial', move: 'pollen', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 4, count: 3, cd: 6 },                     // Sleeping Pollen
+    { id: 'guardians', kind: 'summon', wind: 0.8, recover: 0.6, cd: 10, minions: ['elfsentinel', 'elfranger', 'elfspellweaver'], pick: 1, picks: 2, cap: 5 },
   ],
-  phase2: { speedMul: 1, cdMul: 0.6, dmgMul: 1.25, heal: 0.2, flags: {}, replace: {},
-    add: [{ id: 'rootline', kind: 'sigil', pattern: 'line', count: 8, spacing: 12, step: 0.06, maxRange: 999, wind: 0.45, recover: 0.5, dmg: 14, radius: 9, delay: 0.55, root: 0.9, cd: 3.5, unblockable: true, variant: 'roots' }] },
-  passive: ['Rooted, Spring Blessing', 'It never moves and cannot be thrown; it heals its elves every second.'],
-  active: ['Grasping Roots, Vine Lash, Guardians', 'Roots that pin you, a vine that drags you in, and elves that come to its defence. Awake, roots erupt in lines across the floor.'],
-  ult: { name: 'Spring Returns to the Earth', charge: 1.2, dur: 2.8, cd: 18, dark: 'rgba(20,40,10,0.35)',
-    steps: [[0, 'summon', { minions: ['elfspellweaver', 'elfsentinel'] }], [0.4, 'sigil', { variant: 'roots', pattern: 'scatter', count: 6, radius: 13, dmg: 12, delay: 0.8 }], [1.6, 'radial', { count: 12, kind: 'feather', dmg: 7, speed: 140 }]] },
+  phase2: { speedMul: 1, cdMul: 0.6, dmgMul: 1.25, heal: 0.2, flags: { r: 19, pale: true },
+    replace: { guardians: { id: 'guardians', kind: 'summon', wind: 0.8, recover: 0.6, cd: 9, minions: ['elfsentinel', 'elfspellweaver', 'treant'], pick: 1, picks: 2, cap: 6 } },
+    add: [{ id: 'rootline', kind: 'sigil', pattern: 'line', count: 8, spacing: 12, step: 0.06, maxRange: 999, wind: 0.45, recover: 0.5, dmg: 14, radius: 9, delay: 0.55, root: 0.9, cd: 3.5, unblockable: true, variant: 'roots' },
+      { id: 'sanctuary', kind: 'celestial', move: 'sanctuary', minRange: 0, maxRange: 999, wind: 0.7, recover: 0.4, cd: 12 }] },
+  phase3: { at: -1, manual: true, dur: 3.4, speedMul: 1, cdMul: 0.8, dmgMul: 1.45, healTo: 1, only: STAG_KIT, flags: { stag: true, r: 7, mass: 2.4, speedBase: 86, pale: false } },
+  passive: ['Rooted, Spring Blessing, the God Within', 'It never moves and cannot be thrown. It arrives with its elves and heals them every second; it feeds the most wounded, and shields them under its canopy (+30% health and +25% damage). Awake it grows taller and pale. Struck down, it rises again as the White Stag, whole.'],
+  active: ['Sap, Canopy, Roots, Vines, Pollen, Guardians', 'It heals and empowers its elves and fights by holding you still: roots that pin, a vine that drags, pollen that drags your feet. Awake: roots in lines, and a Sanctuary that heals every elf at once. The Stag charges, burns you with the star between its antlers, raises a thicket of antlers and heals from every wound it gives.'],
+  ult: { name: 'Spring Returns to the Earth', charge: 1.2, dur: 3.2, cd: 18, dark: 'rgba(20,40,10,0.35)',
+    steps: [[0, 'summon', { minions: ['elfspellweaver', 'elfsentinel'] }], [0.3, 'celestial', { move: 'sanctuary' }], [0.5, 'sigil', { variant: 'roots', pattern: 'scatter', count: 6, radius: 13, dmg: 12, delay: 0.8, root: 1.4 }],
+      [1.4, 'celestial', { move: 'pollen', count: 5, dmg: 4 }], [2.2, 'radial', { count: 14, kind: 'feather', dmg: 7, speed: 140 }]] },
+  ult2: { name: 'The World Tree Blooms', charge: 1.3, dur: 4.0, cd: 16, dark: 'rgba(30,30,20,0.4)',
+    steps: [[0, 'summon', { minions: ['treant', 'elfspellweaver', 'elfsentinel'] }], [0.3, 'celestial', { move: 'sanctuary', big: true }],
+      [0.6, 'sigil', { variant: 'roots', pattern: 'line', count: 10, spacing: 11, step: 0.05, radius: 9, dmg: 14, delay: 0.5, root: 1 }],
+      [1.3, 'celestial', { move: 'pollen', count: 6, dmg: 5 }], [2.2, 'sigil', { variant: 'roots', pattern: 'scatter', count: 8, radius: 13, dmg: 14, delay: 0.8, root: 1.4 }],
+      [3.0, 'radial', { count: 18, kind: 'feather', dmg: 8, speed: 150 }]] },
 });
-ENEMY_TYPES.lifetree.ult2 = ENEMY_TYPES.lifetree.ult;
+// the White Stag's ultimate: its halo opens over the whole clearing, antlers of light turn through it, and its star falls on you
+ENEMY_TYPES.lifetree.stage3Ult = { name: 'Mercy of the White Stag', charge: 1.4, dur: 4.4, cd: 15, dark: 'rgba(250,250,240,0.25)',
+  steps: [[0, 'spectacle', { kind: 'stagnova', dur: 4.4 }], [0.2, 'celestial', { move: 'stagrays', n: 10, turn: 0 }], [1.2, 'celestial', { move: 'stagrays', n: 10, turn: 0.31 }],
+    [2.0, 'celestial', { move: 'starmotes', count: 16, dmg: 8 }], [2.6, 'sigil', { variant: 'holystar', radius: 26, dmg: 34, delay: 1.2, kb: 200 }], [3.9, 'celestial', { move: 'stagheal', pct: 0.15 }]] };
 for (const t of ['elfranger', 'elfsentinel', 'elfspellweaver']) ENEMY_TYPES[t].keepSkills = true; // the tree's guardians keep their arts
 
 // ---------- the True Sun and True Moon Venerables: one seal, two bodies, yin and yang ----------
 // They take turns: by day the Sun is ascendant, by night the Moon (Extremes Reverse: every 12s the dial flips, and
 // the one who was ascendant is left open for 3s). Near each other they shelter one another. Below 55% each breathes
 // the Five Phases. When either falls, it flows into the other, and the survivor becomes the Taiji Venerable.
-const TAIJI_PHASE3 = { at: -1, manual: true, dur: 2.5, speedMul: 1.25, cdMul: 0.55, dmgMul: 1.4, healTo: 0.5, flags: { r: 7, taiji: true }, replace: {}, add: [] };
-const BIRTH_OF_ALL_THINGS = { name: 'Birth of All Things', charge: 1.5, dur: 4.2, cd: 15, dark: 'rgba(10,10,10,0.55)',
-  steps: [...['wood', 'fire', 'earth', 'metal', 'water'].map((v, i) => [i * 0.45, 'beam', { variant: 'wx_' + v, len: 280, width: 14, dmg: 18, kb: 120, delay: 0.8, aimed: true, turn: i * 1.2566 }]),
-    [2.6, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 110 }], [3.2, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 140, offset: 0.2 }]] };
-const TWO_POLES_TURN = { name: 'The Two Poles Turn', charge: 1.2, dur: 5.0, cd: 18, dark: 'rgba(10,10,10,0.45)', steps: [[0, 'twopoles', { dur: 4.8 }]] };
+// The Taiji Venerable keeps nothing of either: it is the eclipse, and fights with its own arts. Yin and Yang shift in it
+// every 6s (Yin: it takes 40% less and turns posture back; Yang: it hits 35% harder and every blow burns or chills).
+const TAIJI_KIT = [
+  { id: 'twinfish', kind: 'celestial', move: 'twinfish', minRange: 0, maxRange: 999, wind: 0.35, recover: 0.35, dmg: 12, pairs: 3, cd: 3.4 },             // Twin Fish Chase Each Other
+  { id: 'eclipsegaze', kind: 'celestial', move: 'gaze', minRange: 0, maxRange: 260, wind: 0.55, recover: 0.4, dmg: 16, cd: 4.6 },                         // the Eye of the Eclipse
+  { id: 'bagua', kind: 'celestial', move: 'bagua', minRange: 0, maxRange: 999, wind: 0.45, recover: 0.4, dmg: 18, cd: 5.5 },                              // Eight Trigrams Seal the Ground
+  { id: 'inversion', kind: 'celestial', move: 'invert', minRange: 34, maxRange: 220, wind: 0.4, recover: 0.3, dmg: 10, cd: 9 },                           // Heaven and Earth Inverted
+  { id: 'pushhands', kind: 'celestial', move: 'pushhands', minRange: 0, maxRange: 30, wind: 0.3, recover: 0.4, dmg: 18, cd: 2.6 },                        // Push Hands
+  { id: 'hollowsun', kind: 'celestial', move: 'hollowsun', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 26, cd: 7 },                         // the Hollow Sun
+];
+const TAIJI_PHASE3 = { at: -1, manual: true, dur: 2.8, speedMul: 1.35, cdMul: 0.5, dmgMul: 1.55, healTo: 0.75, flags: { r: 8, taiji: true }, only: TAIJI_KIT };
+// Birth of All Things: Wuji, Taiji, the Two Poles, the Four Symbols, the Eight Trigrams; the world made again on top of you
+const BIRTH_OF_ALL_THINGS = { name: 'Birth of All Things', charge: 1.6, dur: 6.4, cd: 14, dark: 'rgba(0,0,0,0.75)',
+  steps: [[0, 'spectacle', { kind: 'genesis', dur: 6.4 }], [0.1, 'celestial', { move: 'wuji', pull: 140 }],
+    [1.0, 'celestial', { move: 'taijispiral', waves: 5 }],
+    [2.4, 'celestial', { move: 'twopolebeams', dmg: 20 }], [3.0, 'celestial', { move: 'twopolebeams', dmg: 20, turn: Math.PI / 4 }],
+    [3.6, 'celestial', { move: 'foursymbols', dmg: 22 }],
+    [4.7, 'celestial', { move: 'bagua', dmg: 20, big: true }], [5.4, 'sigil', { variant: 'genesis', radius: 30, dmg: 40, delay: 0.9, kb: 220 }]] };
+// Eclipse of Heaven and Earth: the sun goes black, its corona sweeps the floor, and the black sun comes down
+const ECLIPSE_OF_HEAVEN = { name: 'Eclipse of Heaven and Earth', charge: 1.4, dur: 5.6, cd: 14, dark: 'rgba(0,0,0,0.8)',
+  steps: [[0, 'spectacle', { kind: 'eclipse', dur: 5.6 }], [0.4, 'celestial', { move: 'corona', n: 8, turn: 0 }], [1.3, 'celestial', { move: 'corona', n: 8, turn: 0.39 }],
+    [2.2, 'celestial', { move: 'corona', n: 12, turn: 0.13 }], [2.0, 'celestial', { move: 'twinfish', pairs: 4, dmg: 10 }],
+    [3.2, 'celestial', { move: 'hollowsun', dmg: 22 }], [4.0, 'sigil', { variant: 'blacksun', radius: 34, dmg: 46, delay: 1.3, kb: 240 }]] };
+// The Two Poles Turn; in Act 2 it turns back on itself, faster, and the trigrams at its rim fire across it at every reversal
+const TWO_POLES_TURN = { name: 'The Two Poles Turn', charge: 1.2, dur: 5.0, cd: 18, dark: 'rgba(10,10,10,0.55)', steps: [[0, 'twopoles', { dur: 4.8 }]] };
+const TWO_POLES_TURN_BACK = { name: 'The Two Poles Turn Back', charge: 1.2, dur: 6.6, cd: 17, dark: 'rgba(0,0,0,0.7)', steps: [[0, 'twopoles', { dur: 6.4, enh: true }]] };
 const WUXING_SKILL = { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 4 };
 ENEMY_TYPES.sunvenerable = boss('paladin', {
-  name: 'True Sun Venerable', hp: 380, r: 6, mass: 2.5, speed: 44, postureMul: 0.4, floating: true, venerable: 'sun', companion: 'moonvenerable',
+  name: 'True Sun Venerable', hp: 380, r: 6, mass: 2.5, speed: 44, postureMul: 0.4, floating: true, venerable: 'sun', companion: 'moonvenerable', celestial: true,
   sprite: 'b_sunven', sprite2: 'b_sunven', form2: 'True Sun Venerable', form3: 'Taiji Venerable', color: '#ffb040', lore: 'THE SUN THAT WAS TAUGHT TO TAKE TURNS',
   phase2At: 0.55, moves: moveSet({ strike: { dmg: 12, range: 18 }, heavy: { dmg: 22, range: 20 } }),
   specials: [
-    { id: 'corona', kind: 'slam', radius: 30, wind: 0.6, recover: 0.6, dmg: 16, kb: 170, cd: 4.5, unblockable: true, hitPosture: 18, variant: 'sun', fire: true },                         // Corona
-    { id: 'goldcrow', kind: 'lob', proj: 'magma', minRange: 30, maxRange: 180, flight: 0.7, height: 30, wind: 0.5, recover: 0.4, cd: 4, land: { r: 13, dmg: 14, kb: 80, zone: { variant: 'fire', r: 14, life: 3, dps: 6 } } }, // Golden Crow Fire
-    { id: 'heaventhunder', kind: 'sigil', pattern: 'scatter', count: 3, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 16, radius: 12, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' }, // Heavenly Thunder
-    { id: 'solarflare', kind: 'cone', range: 50, angle: 0.6, wind: 0.5, recover: 0.6, dmg: 14, kb: 60, hitPosture: 12, cd: 4, unblockable: true, variant: 'fire' },                      // Solar Flare
+    { id: 'corona', kind: 'slam', radius: 30, wind: 0.6, recover: 0.6, dmg: 16, kb: 170, cd: 4.5, unblockable: true, hitPosture: 18, variant: 'sun', fire: true },              // Corona
+    { id: 'goldcrow', kind: 'celestial', move: 'goldcrows', minRange: 0, maxRange: 240, wind: 0.45, recover: 0.4, dmg: 12, count: 3, cd: 4.2 },                    // the Three-Legged Crows
+    { id: 'sunwheel', kind: 'celestial', move: 'sunwheel', minRange: 20, maxRange: 200, wind: 0.4, recover: 0.3, dmg: 16, cd: 4 },                                  // the Wheel of the Sun
+    { id: 'noonray', kind: 'celestial', move: 'noonray', minRange: 0, maxRange: 999, wind: 0.35, recover: 0.3, dmg: 22, cd: 5 },                                    // High Noon
+    { id: 'prominence', kind: 'celestial', move: 'prominence', minRange: 0, maxRange: 170, wind: 0.5, recover: 0.5, dmg: 15, cd: 4.5 },                            // Solar Prominence
   ],
-  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {}, add: [WUXING_SKILL] },
+  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {},
+    add: [{ id: 'sunspots', kind: 'celestial', move: 'sunspots', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 12, count: 5, cd: 6 }] },                // Sunspots
   phase3: TAIJI_PHASE3,
   passive: ['Day, Mutual Shelter, Extremes Reverse', 'By day he is ascendant: harder hitting, harder to hurt. Near the Moon both take less. Every 12 seconds day turns to night, and whoever was ascendant is open for a moment.'],
-  active: ['Corona, Golden Crow, Heavenly Thunder, Solar Flare', 'A ring of sun-fire, burning crow-fire thrown down, golden lightning and a flare. Below half: the Five Phases. If the Moon falls, he takes it in and becomes the Taiji Venerable.'],
-  ult: { name: 'Nine Suns Fall', charge: 1.3, dur: 3.0, cd: 16, dark: 'rgba(60,30,0,0.45)',
-    steps: [0, 0.8, 1.6].map(t => [t, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 3, radius: 16, dmg: 22, delay: 1.0 }]) },
+  active: ['Corona, the Golden Crows, the Sun Wheel, High Noon, Prominence', 'A ring of sun-fire; three-legged crows of flame that hunt you; a burning wheel thrown out and caught again; a little sun that follows you and pours down; an arch of fire across the floor. In Act 2: sunspots. If the Moon falls, he takes it in and becomes the Taiji Venerable.'],
+  ult: { name: 'Nine Suns Fall', charge: 1.3, dur: 5.0, cd: 16, dark: 'rgba(60,24,0,0.55)', steps: [[0, 'spectacle', { kind: 'ninesuns', dur: 5.0 }]] },
+  ult2: { name: 'Nine Suns Scorch the Earth', charge: 1.4, dur: 6.8, cd: 16, dark: 'rgba(80,20,0,0.65)', steps: [[0, 'spectacle', { kind: 'ninesuns', dur: 6.8, enh: true }]] },
 });
 ENEMY_TYPES.moonvenerable = boss('ninja', {
-  name: 'True Moon Venerable', hp: 380, r: 6, mass: 2, speed: 50, postureMul: 0.45, floating: true, venerable: 'moon', companion: 'sunvenerable',
+  name: 'True Moon Venerable', hp: 380, r: 6, mass: 2, speed: 50, postureMul: 0.45, floating: true, venerable: 'moon', companion: 'sunvenerable', celestial: true,
   sprite: 'b_moonven', sprite2: 'b_moonven', form2: 'True Moon Venerable', form3: 'Taiji Venerable', color: '#b8c8ff', lore: 'THE MOON THAT KEEPS THE NIGHT FOR NO ONE',
   phase2At: 0.55, moves: moveSet({ strike: { dmg: 11, range: 18, wind: 0.14 }, heavy: { dmg: 20, range: 20 } }),
   specials: [
-    { id: 'frostlotus', kind: 'sigil', maxRange: 999, wind: 0.5, recover: 0.5, dmg: 12, radius: 14, delay: 0.8, cd: 4, unblockable: true, variant: 'seal', slow: 2, freeze: 0.8 },        // Frost Lotus
-    { id: 'moonstep', kind: 'vanish', minRange: 30, maxRange: 200, wind: 0.25, recover: 0, cd: 5 },                                                                                // Moon Shadow Step
-    { id: 'shadowtide', kind: 'zone', maxRange: 180, wind: 0.5, recover: 0.4, cd: 7, zone: { variant: 'frost', r: 22, life: 4 } },                                                   // Shadow Tide
-    { id: 'moonlance', kind: 'beam', variant: 'cut', len: 170, width: 8, maxRange: 170, wind: 0.55, recover: 0.4, dmg: 18, kb: 100, delay: 0.5, cd: 4.5, unblockable: true },          // Moonbeam Lance
+    { id: 'frostlotus', kind: 'sigil', maxRange: 999, wind: 0.5, recover: 0.5, dmg: 12, radius: 14, delay: 0.8, cd: 4, unblockable: true, variant: 'lotus', slow: 2, freeze: 0.8 },  // Frost Lotus
+    { id: 'moonstep', kind: 'vanish', minRange: 30, maxRange: 200, wind: 0.25, recover: 0, cd: 5 },                                                                       // Moon Shadow Step
+    { id: 'crescents', kind: 'celestial', move: 'crescents', minRange: 0, maxRange: 220, wind: 0.4, recover: 0.35, dmg: 12, count: 3, cd: 3.6 },                        // Crescent Blades
+    { id: 'moonwell', kind: 'celestial', move: 'moonwell', minRange: 0, maxRange: 999, wind: 0.45, recover: 0.35, dmg: 18, cd: 5.5 },                                   // Moon in the Water
+    { id: 'moonlance', kind: 'beam', variant: 'moonlance', len: 180, width: 9, maxRange: 180, wind: 0.55, recover: 0.4, dmg: 18, kb: 100, delay: 0.5, cd: 4.5, unblockable: true, slow: 1.5 }, // Moonbeam Lance
   ],
-  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {}, add: [WUXING_SKILL] },
+  phase2: { speedMul: 1.15, cdMul: 0.75, dmgMul: 1.2, heal: 0.15, flags: {}, replace: {},
+    add: [{ id: 'starfall', kind: 'celestial', move: 'starfall', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 12, count: 6, cd: 6 }] },                  // Falling Stars of the Cold Palace
   phase3: TAIJI_PHASE3,
   passive: ['Night, Mutual Shelter, Extremes Reverse', 'By night she is ascendant: harder hitting, harder to hurt. Near the Sun both take less. Every 12 seconds night turns to day, and whoever was ascendant is open for a moment.'],
-  active: ['Frost Lotus, Moon Shadow Step, Shadow Tide, Moonbeam Lance', 'Ice that blooms and freezes, a step through the shadows, a cold tide on the floor, a lance of moonlight. Below half: the Five Phases. If the Sun falls, she takes it in and becomes the Taiji Venerable.'],
-  ult: { name: 'Eternal Night', charge: 1.3, dur: 3.2, cd: 16, dark: 'rgba(0,4,30,0.7)',
-    steps: [[0, 'summonEdge', { type: 'shadeattendant', count: 2 }], [0.3, 'sigil', { variant: 'seal', pattern: 'scatter', count: 4, radius: 14, dmg: 14, delay: 0.9, slow: 2 }],
-      [1.2, 'radial', { count: 12, kind: 'orb', dmg: 10, speed: 100 }], [2.2, 'sigil', { variant: 'seal', pattern: 'scatter', count: 4, radius: 14, dmg: 14, delay: 0.9, slow: 2 }]] },
+  active: ['Frost Lotus, Shadow Step, Crescent Blades, Moon in the Water, Moonbeam Lance', 'Ice that blooms and freezes; a step through the shadows; crescents that curve in from the side; a pool of moonlight where her reflection rises to strike; a lance of cold light. In Act 2: falling stars. If the Sun falls, she takes it in and becomes the Taiji Venerable.'],
+  ult: { name: 'Moon Over the Cold Palace', charge: 1.3, dur: 4.8, cd: 16, dark: 'rgba(0,4,30,0.75)',
+    steps: [[0, 'spectacle', { kind: 'night', dur: 4.8 }], [0.4, 'celestial', { move: 'crescentring', n: 8 }], [1.5, 'celestial', { move: 'crescentring', n: 10, turn: 0.3 }],
+      [2.4, 'celestial', { move: 'moonwell', dmg: 18 }], [3.2, 'sigil', { variant: 'moonpillar', radius: 20, dmg: 26, delay: 1.0, freeze: 1, kb: 80 }]] },
+  ult2: { name: 'Endless Night Swallows the Stars', charge: 1.4, dur: 6.2, cd: 16, dark: 'rgba(0,0,10,0.85)',
+    steps: [[0, 'spectacle', { kind: 'night', dur: 6.2, enh: true }], [0.2, 'summonEdge', { type: 'shadeattendant', count: 2 }],
+      [0.5, 'celestial', { move: 'crescentring', n: 10 }], [1.3, 'celestial', { move: 'starfall', count: 8, dmg: 12 }], [2.0, 'celestial', { move: 'crescentring', n: 12, turn: 0.26 }],
+      [2.8, 'celestial', { move: 'starfall', count: 8, dmg: 12 }], [3.6, 'celestial', { move: 'moonpillars', n: 4 }],
+      [4.8, 'sigil', { variant: 'moonpillar', radius: 26, dmg: 32, delay: 1.0, freeze: 1.4, kb: 120 }]] },
 });
-for (const t of ['sunvenerable', 'moonvenerable']) { ENEMY_TYPES[t].ult2 = ENEMY_TYPES[t].ult; ENEMY_TYPES[t].stage3Ult = BIRTH_OF_ALL_THINGS; }
+for (const t of ['sunvenerable', 'moonvenerable']) { ENEMY_TYPES[t].stage3Ult = BIRTH_OF_ALL_THINGS; ENEMY_TYPES[t].taijiUlts = [BIRTH_OF_ALL_THINGS, ECLIPSE_OF_HEAVEN]; }
 
 // ---------- the Yellow Spring Ancestor (黄泉老祖): death, forgetting, rebirth ----------
 // Woken at the bottom of the Netherworld by the brood's war. A frail ferryman with a fishing rod; then, dissolved into
@@ -2361,6 +2428,7 @@ class Sim {
     this.updateYellowCourt();
     this.updateProjectiles();
     this.updateHazards();
+    this.updateSpectacles();
     this.updateGrabs();
     this.updatePast();
     this.separate();
@@ -2663,6 +2731,8 @@ class Sim {
       if (f.def && f.def.venerable && !f.taiji && f.partner && !f.partner.dead) this.taijiMerge(f);
       // Nine lives: the Fox rises with another tail
       if (f.def && f.def.foxLives && (f.tails || 1) < f.def.foxLives) { this.foxRise(f); continue; }
+      // the God Within: the Life Tree falls and the White Stag steps out of it
+      if (!fell && f.def && f.def.stagForm && f.stage !== 3 && !f.stagRising) { this.stagRise(f); continue; }
       if (f.type === 'lantern' && f.lastHitBy && f.lastHitBy.energyMax) { const v = f.lastHitBy; v.energy = Math.min(v.energyMax, v.energy + 15); this.emit('lanternfree', f.x, f.y); } // what the lantern stole comes back
       // Yellow Springs Never Dry: while a spring flows, the Ancestor reforms from it
       if (f.springBound && this.springReform(f)) continue;
@@ -3361,6 +3431,7 @@ class Sim {
     if (t.stance === 'unyielding' && atk.id === 'strike') mult *= 0.5; // Unyielding: strikes glance off; heavies and posture break through
     if (t.def && t.def.goldenBody && t.stage === 3) mult *= atk.id === 'strike' ? 0.6 : atk.id === 'heavy' ? 0.75 : 1; // the true body: strikes barely scratch it
     if (this.taijiDial || (t.def && t.def.venerable) || (by && by.def && by.def.venerable)) mult *= this.taijiMult(t, by);
+    if ((t.def && t.def.celestial) || (by && by.def && by.def.celestial)) mult *= this.celestialMult(t, by, atk);
     if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
     if (t.def && t.def.resistProj && proj) mult *= t.def.resistProj;
     if (t.past) mult *= 0.5; // the past self is hard to change
@@ -3403,6 +3474,7 @@ class Sim {
     const kbOut = by && by.def && by.def.kbOut != null ? by.def.kbOut : 1; // some fighters push less
     const dealt = this.dealDamage(t, (atk.dmg || 0) * mult + (atk.maxHpPct ? t.maxHp * atk.maxHpPct : 0), a, ux, uy, (atk.kb || 0) * kbOut);
     if (cat && dealt > 0) this.adaptTo(t, cat, 0.1 + dealt / t.maxHp);
+    if (by && by.def && by.def.celestial && dealt > 0) this.celestialDealt(by, t, dealt);
     if (t.def && t.def.scholar && t.phase === 2 && by && by.team !== t.team) this.recordTechnique(t, atk);
     if (t.def && t.def.ancestor && by && by.team !== t.team && (atk.abilityId || BASE_MOVES[atk.id])) t.recentTech = atk.abilityId || atk.id; // the river keeps a reflection of what struck it
     if (a && dealt > 0 && a.def && a.def.focusGain && this.t - (a.lastDefT || -9) < 0.9) this.gainFocus(a, 'counter');
@@ -3596,6 +3668,7 @@ class Sim {
   // ---------- enemies ----------
 
   spawnEnemy(type, x, y, team = 1) {
+    if (ENEMY_TYPES[type] && ENEMY_TYPES[type].plantedAt) [x, y] = ENEMY_TYPES[type].plantedAt; // rooted things stand where they grew
     const e = this.makeFighter(type, x, y, team);
     if (e.def.boss) { e.maxHp = e.hp = Math.round(e.def.hp * 0.85); e.dmgMul = 0.85; } // the first form holds back
     if (e.def.tal) e.tal = { ...e.def.tal };
@@ -3806,6 +3879,7 @@ class Sim {
       case 'detonate': return gap < s.range;
       case 'broodbuff': return this.enemies.filter(o => o.summoner === e.id && !o.dead && !o.broodBuffed).length >= 2;
       case 'transfuse': return this.enemies.some(o => o.summoner === e.id && !o.dead && o.hp < o.maxHp * 0.6);
+      case 'celestial': return d < (s.maxRange || 999) && gap >= (s.minRange || 0) - 1 && (s.move !== 'grace' || e.hp < e.maxHp * 0.8);
       case 'swap': return gap > s.minRange && d < s.maxRange && Math.hypot(e.x, e.y) > R * 0.5 && !(p.def && p.def.boss);
       case 'slam': return d < s.radius * 0.9;
       case 'melee': return gap < s.range * 0.8 && (!s.vsHeavy || (p.state === 'wind' && p.atk.id === 'heavy'));
@@ -4074,7 +4148,7 @@ class Sim {
       const px = this.seenX(p), py = this.seenY(p), d = Math.hypot(px - e.x, py - e.y) || 1;
       e.fx = (px - e.x) / d; e.fy = (py - e.y) / d;
     }
-    this.updateFighter(e, it, def.speed * e.speedMul);
+    this.updateFighter(e, it, (e.speedBase ?? def.speed) * e.speedMul * (e.moonSpeed || 1));
     e.stillT = e.state === 'idle' && !e.mvx && !e.mvy ? e.stillT + DT : 0;
   }
 
@@ -4139,6 +4213,7 @@ class Sim {
     }
     if (e.rainT > 0) this.updateRain(e);
     if (def.venerable) this.updateTaiji(e);
+    if (def.celestial) this.updateCelestial(e);
     if (def.ancestor) this.updateAncestor(e);
     if (def.foxLives) this.updateFox(e);
     if (def.pressure) { // a true bloodline's majesty: whatever stands near it is slower, softer and weaker against it
@@ -4202,8 +4277,9 @@ class Sim {
   }
 
   startUlt(e) {
-    if (e.def.venerable && e.partner && !e.partner.dead && !e.taiji && this.rand() < 0.5) { const j = TWO_POLES_TURN; e.cds.ult = j.cd * e.cdMul; e.partner.cds.ult = Math.max(e.partner.cds.ult || 0, 6); e.state = 'ult'; e.ult = j; e.ultT = -j.charge; e.ultIdx = 0; e.guard = false; e.plan = null; this.emit('ultCharge', e.x, e.y, { name: j.name, color: '#ffffff', charge: j.charge, dur: j.dur, dark: j.dark, boss: e.def.name }); return; }
+    if (e.def.venerable && e.partner && !e.partner.dead && !e.taiji && this.rand() < 0.5) { const j = e.phase === 2 ? TWO_POLES_TURN_BACK : TWO_POLES_TURN; e.cds.ult = j.cd * e.cdMul; e.partner.cds.ult = Math.max(e.partner.cds.ult || 0, 6); e.state = 'ult'; e.ult = j; e.ultT = -j.charge; e.ultIdx = 0; e.guard = false; e.plan = null; this.emit('ultCharge', e.x, e.y, { name: j.name, color: '#ffffff', charge: j.charge, dur: j.dur, dark: j.dark, boss: e.def.name }); return; }
     let u = e.honored && e.def.ult3 ? e.def.ult3 : e.stage === 3 && e.def.stage3Ult ? e.def.stage3Ult : e.phase === 2 && e.def.ult2 ? e.def.ult2 : e.def.ult;
+    if (e.taiji && e.def.taijiUlts) { e.taijiUltN = (e.taijiUltN || 0) + 1; u = e.def.taijiUlts[(e.taijiUltN - 1) % e.def.taijiUlts.length]; }
     if (e.phase === 2 && e.def.anyUlt) { // the future self has learned every boss's ultimate
       const pool = BOSSES.filter(b => b !== e.type).map(b => ENEMY_TYPES[b].ult).filter(Boolean); // first-form ultimates only
       u = pool[Math.floor(this.rand() * pool.length)];
@@ -4557,7 +4633,9 @@ class Sim {
         e.danceIds = [];
         break;
       }
-      case 'twopoles': this.twoPoles = { owner: e, t: 0, dur: o.dur, a0: this.rand() * 6.2832 }; this.emit('twopoles', 0, 0, { dur: o.dur }); break;
+      case 'twopoles': this.twoPoles = { owner: e, t: 0, dur: o.dur, enh: !!o.enh, a0: this.rand() * 6.2832 }; this.twoPoles.a = this.twoPoles.a0; this.emit('twopoles', 0, 0, { dur: o.dur, enh: !!o.enh }); break;
+      case 'spectacle': this.startSpectacle(e, o, p); break;
+      case 'celestial': this.celestialMove(e, o, p); break;
       case 'riverrise': e.riverT = o.dur; this.emit('riverrise', 0, 0, { dur: o.dur }); break;
       case 'whirlpool': // everything drawn to the middle, then the river closes over it
         e.whirlT = o.dur;
@@ -4666,9 +4744,10 @@ class Sim {
       const o = this.enemies.find(m => m !== e && !m.dead && m.type === e.def.companion && m.team === e.team && !m.partner);
       e.partner = o || null; if (o) o.partner = e;
     }
-    if (this.t >= (e.stanceAt || 0)) { e.stanceAt = this.t + 6; const st = ['unyielding', 'yielding', 'mirror'].filter(x => x !== e.stance); e.stance = st[Math.floor(this.rand() * st.length)]; this.emit('stance', e.x, e.y, { stance: e.stance }); }
-    if (e.phase === 2 && (!this.wheelOwner || this.wheelOwner.dead)) this.wheelOwner = e;
-    if (this.wheelOwner === e && e.phase === 2 && this.t >= (this.wheelAt || 0)) this.turnWheel(e);
+    if (e.taiji) { e.stance = null; } // the Taiji Venerable has no stances: it has Yin and Yang
+    else if (this.t >= (e.stanceAt || 0)) { e.stanceAt = this.t + 6; const st = ['unyielding', 'yielding', 'mirror'].filter(x => x !== e.stance); e.stance = st[Math.floor(this.rand() * st.length)]; this.emit('stance', e.x, e.y, { stance: e.stance }); }
+    if (e.phase === 2 && !e.taiji && (!this.wheelOwner || this.wheelOwner.dead || this.wheelOwner.taiji)) this.wheelOwner = e;
+    if (this.wheelOwner === e && e.phase === 2 && !e.taiji && this.t >= (this.wheelAt || 0)) this.turnWheel(e);
     if (this.twoPoles && this.twoPoles.owner === e) this.updateTwoPoles(e);
     const pair = e.partner && !e.partner.dead && !e.taiji;
     if (!pair || (e.def.venerable === 'moon')) return;
@@ -4688,13 +4767,20 @@ class Sim {
   updateTwoPoles(e) {
     const P = this.twoPoles; P.t += DT;
     if (P.t >= P.dur || e.dead) { this.twoPoles = null; return; }
+    const spin = P.enh ? 1.8 : 1.2, dir = P.enh ? (P.t < 2.2 ? 1 : P.t < 4.4 ? -1 : 1) : 1;
+    P.a = (P.a ?? P.a0) + spin * dir * DT; P.dir = dir; P.dot = P.enh ? 10 : 12;
+    if (P.enh && P.dir !== P.lastDir) { // a reversal: the trigrams at the rim fire across the floor (never across the dots)
+      if (P.lastDir != null) { for (const k of [1, 3]) { const b = P.a + k * Math.PI / 4; this.celestialBeam(e, -Math.cos(b) * (R + 8), -Math.sin(b) * (R + 8), b, { variant: 'trigrambeam', len: R * 2 + 16, w: 10, delay: 0.7, dmg: 16, kb: 90 }); } this.emit('polesreverse', 0, 0); }
+      P.lastDir = P.dir;
+    }
     if ((P.tick = (P.tick || 0) - DT) > 0) return;
-    P.tick = 0.5;
-    const a = P.a0 + P.t * 1.2, ax = Math.cos(a), ay = Math.sin(a);
+    P.tick = P.enh ? 0.4 : 0.5;
+    const a = P.a, ax = Math.cos(a), ay = Math.sin(a);
     for (const v of this.hostiles(e)) {
-      const dotWhite = Math.hypot(v.x - ax * R * 0.5, v.y - ay * R * 0.5) < 12, dotBlack = Math.hypot(v.x + ax * R * 0.5, v.y + ay * R * 0.5) < 12;
+      const dotWhite = Math.hypot(v.x - ax * R * 0.5, v.y - ay * R * 0.5) < P.dot, dotBlack = Math.hypot(v.x + ax * R * 0.5, v.y + ay * R * 0.5) < P.dot;
       if (dotWhite || dotBlack) continue; // the safe islands
-      const white = (v.x * -ay + v.y * ax) > 0; // which half of the turning floor
+      const hr = R * 0.5, dW = Math.hypot(v.x - ax * hr, v.y - ay * hr), dB = Math.hypot(v.x + ax * hr, v.y + ay * hr);
+      const white = dW < hr ? true : dB < hr ? false : (v.x * -ay + v.y * ax) > 0; // which half of the turning floor (the S between them, as drawn)
       this.receiveHit(v, null, { id: 'twopoles', dmg: 7, kb: 20, hitPosture: 6, unblockable: true, src: e, fire: !white, slow: white ? 1 : 0 }, 0, 0, true);
     }
   }
@@ -4717,8 +4803,7 @@ class Sim {
     if (!s || s.dead || s.taiji) return false;
     if (s.hp <= 0) s.hp = 1; // both struck down at once: the merge still plays
     const seen = new Set(s.specials.map(x => x.id));
-    for (const sp of fallen.specials) if (!seen.has(sp.id)) { s.specials.push({ ...sp }); s.cds[sp.id] = 1.5; }
-    if (!s.specials.some(x => x.id === 'wuxing')) { s.specials.push({ ...WUXING_SKILL }); s.cds.wuxing = 1; }
+    if (!s.def.phase3.only) for (const sp of fallen.specials) if (!seen.has(sp.id)) { s.specials.push({ ...sp }); s.cds[sp.id] = 1.5; }
     s.phase = 1.5; s.toStage = 3; s.state = 'transform'; s.st = s.def.phase3.dur; s.guard = false; s.plan = null; s.ult = null;
     s.invulnT = Math.max(s.invulnT || 0, s.def.phase3.dur);
     this.taijiDial = null;
@@ -4913,6 +4998,7 @@ class Sim {
       }
     }
     switch (atk.kind) {
+      case 'celestial': this.celestialMove(e, atk, tgt); break;
       case 'silkflight': this.silkFlight(e, tgt); break;
       case 'resonance': // the doll is struck, and every nail in its target answers
         for (const v of this.hostiles(e)) {
@@ -5396,6 +5482,12 @@ class Sim {
         while (da < -Math.PI) da += Math.PI * 2;
         const na = a + clamp(da, -pr.homing * DT, pr.homing * DT), sp = Math.hypot(pr.vx, pr.vy);
         pr.vx = Math.cos(na) * sp; pr.vy = Math.sin(na) * sp;
+      }
+      if (pr.curve) { const c = Math.cos(pr.curve * DT), q = Math.sin(pr.curve * DT), vx = pr.vx; pr.vx = vx * c - pr.vy * q; pr.vy = vx * q + pr.vy * c; }
+      if (pr.boomerang && pr.life < pr.turnAt && pr.src && !pr.src.dead) { // the wheel comes home to his hand
+        const bx = pr.src.x - pr.x, by2 = pr.src.y - pr.y, bd = Math.hypot(bx, by2) || 1, sp = Math.hypot(pr.vx, pr.vy);
+        pr.vx += (bx / bd * sp - pr.vx) * Math.min(1, DT * 6); pr.vy += (by2 / bd * sp - pr.vy) * Math.min(1, DT * 6);
+        if (bd < 6) { pr.dead = true; continue; }
       }
       pr.x += pr.vx * DT; pr.y += pr.vy * DT; pr.life -= DT;
       const pd = Math.hypot(pr.x, pr.y);
@@ -6264,3 +6356,291 @@ function rewardScore(s, t, w) {
   for (const k in w) if (k !== 'survival' && s[k]) r += s[k] * w[k];
   return r;
 }
+
+
+// ---------- celestial arts: the Rabbit, the Life Tree and its Stag, the Venerables, the Taiji Venerable, the Golden Dragon ----------
+// Their skills are `kind: 'celestial'` specials (and `celestial` ultimate steps) dispatched by `move`; their great
+// ultimates run as spectacles: timed shows over the whole stage that the renderer paints and this file keeps honest.
+const MOON_PHASES = ['new', 'waxing', 'full', 'waning'];
+Object.assign(Sim.prototype, {
+  celestialSig(e, x, y, o) {
+    const [cx, cy] = (() => { const r = Math.hypot(x, y); return r > R - 6 ? [x * (R - 6) / r, y * (R - 6) / r] : [x, y]; })();
+    const h = { kind: 'sigil', variant: o.variant, x: cx, y: cy, r: o.r, t: o.delay, delay: o.delay, dmg: o.dmg, kb: o.kb, root: o.root, team: e.team, src: e, follow: o.follow || null, burnAfter: o.burnAfter, ...statusOf(o) };
+    this.hazards.push(h); return h;
+  },
+  celestialBeam(e, x, y, a, o) {
+    const h = { kind: 'beam', variant: o.variant, x, y, a, len: o.len, w: o.w, t: o.delay, delay: o.delay, dmg: o.dmg, kb: o.kb || 60, hitPosture: o.hitPosture || 10, unblockable: true, team: e.team, src: e, ...statusOf(o) };
+    this.hazards.push(h); return h;
+  },
+  celestialShot(e, a, speed, dmg, kind, extra) {
+    const pr = this.fire(e, Math.cos(a), Math.sin(a), speed, dmg, kind);
+    return Object.assign(pr, extra || {});
+  },
+  startSpectacle(e, o, p) {
+    const S = { ...o, owner: e, t: 0, x: p.x, y: p.y };
+    if (o.kind === 'ninesuns') { // nine suns hang in the sky, then come down one after another where you stand
+      const n = 9, falls = [];
+      for (let i = 0; i < n; i++) falls.push({ i, at: (o.enh ? 0.6 : 0.8) + i * (o.enh ? 0.32 : 0.4), done: false });
+      if (o.enh) for (let i = 0; i < n; i++) falls.push({ i, at: 3.7 + (i % 3) * 0.12, done: false, ring: true }); // and again, in a ring
+      S.falls = falls; S.fallen = {};
+      if (o.enh) S.great = { at: 5.0, done: false };
+    }
+    if (o.kind === 'dragoncoil') { S.r = R + 14; S.tick = 0; S.a = this.rand() * 6.2832; }
+    (this.spectacles = this.spectacles || []).push(S);
+    this.emit('spectacle', e.x, e.y, { kind: o.kind, dur: o.dur, enh: !!o.enh });
+    return S;
+  },
+  updateSpectacles() {
+    if (!this.spectacles || !this.spectacles.length) return;
+    for (const S of this.spectacles) {
+      S.t += DT;
+      const e = S.owner, alive = e && !e.dead, foes = alive ? this.hostiles(e) : [], tgt = alive ? (this.targetOf(e) || this.p) : this.p;
+      if (S.kind === 'ninesuns' && alive) {
+        for (const f of S.falls) {
+          const lead = 0.85;
+          if (f.done || S.t < f.at - lead) continue;
+          f.done = true; S.fallen[f.i] = S.t;
+          let x = tgt.x, y = tgt.y;
+          if (f.ring) { const a = f.i / 9 * 6.2832 + S.t; x += Math.cos(a) * 30; y += Math.sin(a) * 30; }
+          else if (f.i) { x += (this.rand() - 0.5) * 18; y += (this.rand() - 0.5) * 18; }
+          this.celestialSig(e, x, y, { variant: 'sunfall', r: S.enh ? 19 : 16, dmg: S.enh ? 22 : 20, delay: lead, kb: 120, burnAfter: true });
+        }
+        if (S.great && !S.great.done && S.t >= S.great.at - 1.6) { S.great.done = true; this.celestialSig(e, tgt.x, tgt.y, { variant: 'greatsun', r: 40, dmg: 44, delay: 1.6, kb: 260, burnAfter: true }); }
+      }
+      if (S.kind === 'dragoncoil' && alive) { // the coil closes to 46 by 2.4s, holds, and opens again from 5.4s
+        const k = S.t < 2.4 ? S.t / 2.4 : S.t < 5.4 ? 1 : 1 - (S.t - 5.4) / 0.8;
+        S.r = R + 14 - (R + 14 - 46) * Math.max(0, Math.min(1, k)); S.a += DT * 2.4;
+        if ((S.tick -= DT) <= 0) {
+          S.tick = 0.35;
+          for (const v of foes) {
+            const d = Math.hypot(v.x, v.y) || 1;
+            if (d > S.r - 4) this.receiveHit(v, null, { id: 'dragoncoil', dmg: 9, kb: 140, hitPosture: 8, unblockable: true, src: e }, -v.x / d, -v.y / d, true);
+          }
+        }
+      }
+      if ((S.kind === 'hollowsun' || S.kind === 'pull') && alive) { // a well that drags everything to it, then bursts
+        for (const v of foes) {
+          const dx = S.x - v.x, dy = S.y - v.y, d = Math.hypot(dx, dy) || 1;
+          if (d < S.rad && d > 3) { v.x += dx / d * S.str * DT; v.y += dy / d * S.str * DT; }
+        }
+        if (S.kind === 'hollowsun' && !S.burst && S.t >= S.dur - 0.05) { S.burst = true; this.celestialSig(e, S.x, S.y, { variant: 'hollowburst', r: 24, dmg: S.dmg, delay: 0.05, kb: 220 }); }
+      }
+      if (S.kind === 'spiral' && alive) { // the Taiji turns and pours out fish of light and dark, wave after wave
+        if ((S.tick = (S.tick || 0) - DT) <= 0 && (S.n = (S.n || 0) + 1) <= S.waves) {
+          S.tick = 0.28;
+          for (let i = 0; i < 10; i++) {
+            const a = i / 10 * 6.2832 + S.n * 0.33, yang = i % 2 === 0;
+            this.celestialShot(e, a, 95, 9, yang ? 'yangfish' : 'yinfish', { curve: yang ? 0.9 : -0.9, life: 3, burn: yang, slow: yang ? 0 : 1 });
+          }
+          this.emit('taijipulse', e.x, e.y);
+        }
+      }
+    }
+    this.spectacles = this.spectacles.filter(S => S.t < S.dur && !(S.owner && S.owner.dead && S.kind !== 'night'));
+  },
+
+  celestialMove(e, o, tgt) {
+    const dx = tgt.x - e.x, dy = tgt.y - e.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, a0 = Math.atan2(dy, dx), r = () => this.rand();
+    const dmg = o.dmg || 0;
+    switch (o.move) {
+      // --- the Rabbit ---
+      case 'mortar': case 'mortarland': { // up past the clouds, then down on you with the pestle
+        const t = o.move === 'mortar' ? 0.95 : 0.6;
+        this.celestialSig(e, tgt.x, tgt.y, { variant: 'mortar', r: o.radius || 18, dmg, delay: t, kb: 150 });
+        e.landAt = { x: tgt.x, y: tgt.y, t, dur: t }; e.invulnT = Math.max(e.invulnT || 0, t);
+        if (e.state !== 'ult') { e.state = 'recover'; e.st = t + 0.1; }
+        this.emit('rabbitleap', e.x, e.y);
+        break;
+      }
+      case 'hops': e.hops = o.hops || 5; e.hopDmg = dmg; e.hopInk = !!o.ink; e.hopT = 0; if (e.state !== 'ult') { e.state = 'recover'; e.st = e.hops * 0.3 + 0.1; } break;
+      case 'elixir':
+        for (let i = 0; i < (o.count || 3); i++) {
+          const a = r() * 6.2832, rr = i ? 14 + r() * 26 : 0;
+          this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'elixir', r: 12, dmg, delay: 0.75 + i * 0.12, kb: 40, poison: 4, poisonT: 2.5 });
+        }
+        this.emit('elixirthrow', e.x, e.y);
+        break;
+      case 'moonrabbits':
+        for (let i = 0; i < (o.count || 2); i++) {
+          if (this.enemies.filter(m => m.summoner === e.id && !m.dead).length >= (e.def.minionCap || 4)) break;
+          const a = r() * 6.2832, m = this.spawnMinion('bunny', e.x + Math.cos(a) * 16, e.y + Math.sin(a) * 16, e);
+          if (m) { m.life = 9; m.moonRabbit = true; m.inked = !!o.ink || e.phase === 2; m.dmgMul = (m.dmgMul || 1) * 1.4; }
+        }
+        this.emit('moonrabbits', e.x, e.y);
+        break;
+      // --- the Life Tree ---
+      case 'pollen':
+        for (let i = 0; i < (o.count || 3); i++) {
+          const a = r() * 6.2832, rr = i ? 18 + r() * 34 : 0;
+          this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'pollen', r: 17, dmg, delay: 1.0 + i * 0.1, kb: 10, slow: 3 });
+        }
+        break;
+      case 'sanctuary': {
+        const pct = o.big ? 0.35 : 0.22;
+        for (const m of this.enemies) if (!m.dead && m.team === e.team && m !== e && m.hp < m.maxHp) { const n = Math.min(m.maxHp - m.hp, m.maxHp * pct); m.hp += n; this.emit('heal', m.x, m.y, { n: Math.round(n) }); }
+        const n = Math.min(e.maxHp - e.hp, e.maxHp * 0.05); e.hp += n; if (n > 0) this.emit('heal', e.x, e.y, { n: Math.round(n) });
+        this.emit('sanctuary', e.x, e.y, { big: !!o.big });
+        break;
+      }
+      // --- the White Stag ---
+      case 'stagcharge':
+        e.dashC = { ux, uy, speed: 380, t: 0.42, dmg, hit: false };
+        if (e.state !== 'ult') { e.state = 'recover'; e.st = 0.48; }
+        e.fx = ux; e.fy = uy; this.emit('stagcharge', e.x, e.y, { ux, uy });
+        break;
+      case 'starbeam':
+        this.celestialBeam(e, e.x, e.y, a0, { variant: 'starbeam', len: 270, w: 12, delay: 0.5, dmg, kb: 120 });
+        for (const s of [-0.28, 0.28]) this.celestialBeam(e, e.x, e.y, a0 + s, { variant: 'starbeam', len: 230, w: 6, delay: 0.75, dmg: dmg * 0.6, kb: 60 });
+        this.emit('starcharge', e.x, e.y);
+        break;
+      case 'antlergrove':
+        for (let i = 0; i < 8; i++) this.celestialSig(e, e.x + ux * (14 + i * 13), e.y + uy * (14 + i * 13), { variant: 'antler', r: 10, dmg, delay: 0.45 + i * 0.07, kb: 90, root: 0.6 });
+        break;
+      case 'starmotes':
+        for (let i = 0; i < (o.count || 12); i++) this.celestialShot(e, i / (o.count || 12) * 6.2832 + r() * 0.2, 100, dmg, 'starmote', { homing: 0.9, life: 3.2, lifesteal: true });
+        this.emit('ultburst', e.x, e.y, { color: '#ffffff' });
+        break;
+      case 'grace': e.graceT = 5; this.emit('grace', e.x, e.y); break;
+      case 'stagrays': for (let i = 0; i < (o.n || 10); i++) this.celestialBeam(e, e.x, e.y, (o.turn || 0) + i / (o.n || 10) * 6.2832, { variant: 'stagray', len: 220, w: 8, delay: 0.7, dmg: 14, kb: 80 }); break;
+      case 'stagheal': { const n = Math.min(e.maxHp - e.hp, e.maxHp * (o.pct || 0.15)); e.hp += n; this.emit('heal', e.x, e.y, { n: Math.round(n) }); this.emit('sanctuary', e.x, e.y, { big: true }); break; }
+      // --- the Sun ---
+      case 'goldcrows':
+        for (let i = 0; i < (o.count || 3); i++) this.celestialShot(e, a0 + (i - ((o.count || 3) - 1) / 2) * 0.55, 120, dmg, 'goldcrow', { homing: 1.9, life: 3.6, burn: true, radius: 3 });
+        this.emit('crowcry', e.x, e.y);
+        break;
+      case 'sunwheel': this.celestialShot(e, a0, 210, dmg, 'sunwheel', { boomerang: true, turnAt: 2.2, life: 3.2, radius: 4, burn: true, pierce: true, kb: 80 }); break;
+      case 'noonray': this.celestialSig(e, tgt.x, tgt.y, { variant: 'noonray', r: 14, dmg, delay: 1.3, kb: 80, follow: tgt.id != null ? tgt : null, burnAfter: true }); break;
+      case 'prominence': { // an arch of fire from his hand to you, bowed out to one side
+        const side = r() < 0.5 ? -1 : 1, px = -uy * side, py = ux * side;
+        for (let i = 1; i <= 8; i++) {
+          const u = i / 8, bow = Math.sin(u * Math.PI) * 34;
+          this.celestialSig(e, e.x + dx * u + px * bow, e.y + dy * u + py * bow, { variant: 'prominence', r: 10, dmg, delay: 0.4 + i * 0.06, kb: 70 });
+        }
+        break;
+      }
+      case 'sunspots':
+        for (let i = 0; i < (o.count || 5); i++) { const pr = this.celestialShot(e, a0, 170, dmg, 'sunspot', { burn: true, radius: 3, life: 4 }); pr.delay = 0.45 + i * 0.16; pr.orbit = i / (o.count || 5) * 6.2832; }
+        break;
+      // --- the Moon ---
+      case 'crescents':
+        for (let i = 0; i < (o.count || 3); i++) { const s = i % 2 ? 1 : -1; this.celestialShot(e, a0 - s * 0.7 * (1 + (i >> 1) * 0.5), 150, dmg, 'crescent', { curve: s * 1.7, life: 2.6, slow: 1.2, radius: 3 }); }
+        break;
+      case 'moonwell': this.celestialSig(e, tgt.x, tgt.y, { variant: 'moonwell', r: 16, dmg: dmg || 18, delay: 1.1, kb: 130, slow: 2 }); break;
+      case 'crescentring': for (let i = 0; i < (o.n || 8); i++) { const a = (o.turn || 0) + i / (o.n || 8) * 6.2832; this.celestialSig(e, tgt.x + Math.cos(a) * 34, tgt.y + Math.sin(a) * 34, { variant: 'crescentfall', r: 11, dmg: 13, delay: 0.85 + i * 0.04, kb: 70, slow: 1 }); } break;
+      case 'starfall': for (let i = 0; i < (o.count || 6); i++) { const a = r() * 6.2832, rr = i ? 10 + r() * 46 : 0; this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'starfall', r: 10, dmg, delay: 0.7 + i * 0.09, kb: 50, freeze: 0.5 }); } break;
+      case 'moonpillars': for (let k = 0; k < (o.n || 4); k++) { const a = a0 + k * 1.5708; for (let j = 3; j >= 1; j--) this.celestialSig(e, tgt.x + Math.cos(a) * j * 15, tgt.y + Math.sin(a) * j * 15, { variant: 'moonpillar', r: 11, dmg: 16, delay: 0.5 + (3 - j) * 0.2, kb: 60, slow: 1.5 }); } break;
+      // --- the Taiji Venerable ---
+      case 'twinfish':
+        for (let i = 0; i < (o.pairs || 3); i++) for (const yang of [true, false]) {
+          const pr = this.celestialShot(e, a0 + (yang ? 1 : -1) * 0.9, 130, dmg, yang ? 'yangfish' : 'yinfish', { curve: (yang ? -1 : 1) * 1.3, homing: 1.3, life: 3.8, burn: yang, slow: yang ? 0 : 1.6, radius: 3 });
+          pr.delay = 0.15 + i * 0.22; pr.orbit = (yang ? 0 : Math.PI) + i;
+        }
+        break;
+      case 'gaze': { // the eye in its crown opens and its light sweeps across the floor
+        const s = r() < 0.5 ? -1 : 1;
+        for (let i = 0; i < 11; i++) this.celestialBeam(e, e.x, e.y, a0 + s * (-0.9 + i * 0.18), { variant: 'eclipsebeam', len: 270, w: 9, delay: 0.55 + i * 0.055, dmg, kb: 70 });
+        this.emit('eclipseeye', e.x, e.y);
+        break;
+      }
+      case 'bagua': { // the eight trigrams light around you in turn, then the centre closes
+        const big = o.big, rad = big ? 46 : 34, base = r() * 6.2832, s = r() < 0.5 ? -1 : 1, cx = tgt.x, cy = tgt.y;
+        for (let i = 0; i < 8; i++) { const a = base + s * i * 0.7854; this.celestialSig(e, cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, { variant: 'trigram', tri: i, r: big ? 16 : 13, dmg, delay: 0.7 + i * 0.11, kb: 90 }); }
+        this.celestialSig(e, cx, cy, { variant: 'taijiseal', r: big ? 18 : 14, dmg: dmg * 1.3, delay: 0.7 + 8 * 0.11 + 0.25, kb: 160 });
+        break;
+      }
+      case 'invert': { // heaven and earth change places: so do you and it, and up is down for a while
+        const v = tgt.id != null ? this.fighters().find(f => f.id === tgt.id) : null;
+        if (!v || v.dead) break;
+        const [x0, y0] = [e.x, e.y]; e.x = v.x; e.y = v.y; v.x = x0; v.y = y0;
+        v.confuseT = Math.max(v.confuseT || 0, 1.8); e.invulnT = Math.max(e.invulnT || 0, 0.3);
+        this.receiveHit(v, null, { id: 'inversion', dmg, kb: 30, hitPosture: 20, unblockable: true, src: e }, 0, 0, true);
+        this.emit('inversion', e.x, e.y, { tx: v.x, ty: v.y });
+        break;
+      }
+      case 'pushhands': { // a palm that throws you out, and a palm that draws you back into the next one
+        const v = tgt.id != null ? this.fighters().find(f => f.id === tgt.id) : null;
+        this.emit('pushhands', e.x, e.y, { ux, uy });
+        if (!v || v.dead || d > 34) break;
+        this.receiveHit(v, e, { id: 'pushhands', dmg, kb: 340, hitPosture: 30, breaksGuard: true, unblockable: true, src: e }, ux, uy, false);
+        e.pullBack = { v, t: 0.45, dmg: dmg * 0.7 };
+        break;
+      }
+      case 'hollowsun': (this.spectacles = this.spectacles || []).push({ kind: 'hollowsun', owner: e, t: 0, dur: 1.5, x: tgt.x, y: tgt.y, rad: 60, str: 55, dmg }); this.emit('hollowsun', tgt.x, tgt.y); break;
+      case 'wuji': (this.spectacles = this.spectacles || []).push({ kind: 'pull', owner: e, t: 0, dur: 0.9, x: 0, y: 0, rad: 999, str: o.pull || 120 }); break;
+      case 'taijispiral': (this.spectacles = this.spectacles || []).push({ kind: 'spiral', owner: e, t: 0, dur: o.waves * 0.28 + 0.2, waves: o.waves || 5 }); break;
+      case 'twopolebeams': for (const k of [0, 1]) { const a = (o.turn || 0) + k * 1.5708; this.celestialBeam(e, -Math.cos(a) * (R + 10), -Math.sin(a) * (R + 10), a, { variant: k ? 'yinbeam' : 'yangbeam', len: R * 2 + 20, w: 14, delay: 0.6, dmg: o.dmg || 20, kb: 120 }); } break;
+      case 'foursymbols': // the Azure Dragon, the White Tiger, the Vermilion Bird and the Black Tortoise close in from the four quarters
+        ['dragon', 'bird', 'tiger', 'tortoise'].forEach((s, i) => { const a = i * 1.5708; this.celestialSig(e, tgt.x + Math.cos(a) * 26, tgt.y + Math.sin(a) * 26, { variant: 'sym_' + s, r: 20, dmg: o.dmg || 22, delay: 0.6 + i * 0.18, kb: 120 }); });
+        break;
+      case 'corona': for (let i = 0; i < (o.n || 8); i++) { const a = (o.turn || 0) + i / (o.n || 8) * 6.2832; this.celestialBeam(e, 0, 0, a, { variant: 'coronabeam', len: R + 16, w: 9, delay: 0.75, dmg: 14, kb: 80 }); } break;
+    }
+  },
+
+  // every frame, for anything with celestial arts: the moon's phases, a rabbit in the air, a stag at the charge, the shift of yin and yang
+  updateCelestial(e) {
+    const def = e.def;
+    if (def.moonPhases) {
+      e.moonT = (e.moonT || 0) + DT;
+      const ph = Math.floor(e.moonT / 5) % 4;
+      if (ph !== e.moonPh) {
+        e.moonPh = ph; this.emit('moonphase', e.x, e.y, { ph: MOON_PHASES[ph] });
+        if (ph === 2) this.celestialSig(e, e.x, e.y, { variant: 'fullmoon', r: 30, dmg: 14, delay: 0.25, kb: 200 }); // Lunacy: the full moon lands as a shockwave
+      }
+      e.moonSpeed = ph === 2 ? 1.4 : ph === 1 ? 1.2 : 1;
+    }
+    if (e.landAt) { // in the sky; down where it was aimed
+      e.landAt.t -= DT;
+      if (!e.landAt.moved && e.landAt.t <= e.landAt.dur / 2) { e.x = e.landAt.x; e.y = e.landAt.y; e.landAt.moved = true; } // it crosses the sky at the top of the arc
+      if (e.landAt.t <= 0) { e.landAt = null; this.emit('rabbitland', e.x, e.y); }
+    }
+    if (e.hops > 0 && e.state !== 'stun') { // A Hundred Hops: lands beside you, again and again
+      e.hopT -= DT;
+      if (e.hopT <= 0) {
+        const v = this.targetOf(e) || this.p;
+        if (e.hop) { e.x = e.hop.x1; e.y = e.hop.y1; this.celestialSig(e, e.x, e.y, { variant: e.hopInk ? 'inkhop' : 'hop', r: 12, dmg: e.hopDmg, delay: 0.02, kb: 90 }); e.hops--; }
+        if (e.hops > 0 && v) {
+          const a = this.rand() * 6.2832, x1 = v.x + Math.cos(a) * 7, y1 = v.y + Math.sin(a) * 7, rr = Math.hypot(x1, y1), k = rr > R - 6 ? (R - 6) / rr : 1;
+          e.hop = { x0: e.x, y0: e.y, x1: x1 * k, y1: y1 * k, t: 0, dur: 0.26 }; e.hopT = 0.3;
+        } else e.hop = null;
+      } else if (e.hop) { e.hop.t += DT; const u = Math.min(1, e.hop.t / e.hop.dur); e.x = e.hop.x0 + (e.hop.x1 - e.hop.x0) * u; e.y = e.hop.y0 + (e.hop.y1 - e.hop.y0) * u; }
+    } else if (e.hop) e.hop = null;
+    if (e.dashC) { // the Stag at full charge, antlers down
+      const c = e.dashC; c.t -= DT;
+      e.x += c.ux * c.speed * DT; e.y += c.uy * c.speed * DT;
+      const rr = Math.hypot(e.x, e.y); if (rr > R - e.r) { e.x *= (R - e.r) / rr; e.y *= (R - e.r) / rr; }
+      if (!c.hit) for (const v of this.hostiles(e)) if (Math.hypot(v.x - e.x, v.y - e.y) < e.r + v.r + 5) { c.hit = true; this.receiveHit(v, e, { id: 'stagcharge', dmg: c.dmg, kb: 240, hitPosture: 30, breaksGuard: true, unblockable: true, src: e }, c.ux, c.uy, false); break; }
+      if ((e.trailT = (e.trailT || 0) - DT) <= 0) { e.trailT = 0.06; this.emit('stagtrail', e.x, e.y); }
+      if (c.t <= 0) e.dashC = null;
+    }
+    if (e.pullBack) { const P = e.pullBack; P.t -= DT; if (P.t <= 0) { e.pullBack = null; const v = P.v; if (!v.dead) { const dx = e.x - v.x, dy = e.y - v.y, d = Math.hypot(dx, dy) || 1; this.receiveHit(v, e, { id: 'pullhands', dmg: P.dmg, kb: Math.min(320, d * 7), hitPosture: 20, unblockable: true, src: e }, dx / d, dy / d, false); this.emit('pushhands', e.x, e.y, { ux: -dx / d, uy: -dy / d, pull: true }); } } }
+    if (e.graceT > 0) { e.graceT -= DT; if ((e.graceTick = (e.graceTick || 0) - DT) <= 0) { e.graceTick = 0.5; const n = Math.min(e.maxHp - e.hp, e.maxHp * 0.012); if (n > 0) { e.hp += n; this.emit('heal', e.x, e.y, { n: Math.round(n) }); } } }
+    if (e.taiji) { // yin and yang take turns inside it
+      if ((e.shiftT = (e.shiftT ?? 6) - DT) <= 0) { e.shiftT = 6; e.yin = !e.yin; this.emit('taijishift', e.x, e.y, { yin: e.yin }); }
+    }
+  },
+  celestialMult(t, by, atk) {
+    let m = 1;
+    if (t.def && t.def.moonPhases && t.moonPh === 0) m *= 0.5;            // the new moon: barely there
+    if (by && by.def && by.def.moonPhases && by.moonPh === 2) m *= 1.6;   // Lunacy
+    if (t.taiji && t.yin) m *= 0.6;                                        // Yin: yielding, hard to hurt
+    if (by && by.taiji && !by.yin) m *= 1.35;                              // Yang: every blow heavier
+    return m;
+  },
+  celestialDealt(by, t, dealt) {
+    let pct = 0;
+    if (by.def.moonPhases && by.moonPh === 3) pct = 0.4; // the waning moon drinks
+    if (by.stag) pct = 0.3;                              // the Stag heals from every wound it gives
+    if (by.taiji && by.yin) this.addPosture(t, 4);       // Yin turns the force back
+    if (pct && !by.dead) { const n = Math.min(by.maxHp - by.hp, dealt * pct); if (n > 0.5) { by.hp += n; this.emit('heal', by.x, by.y, { n: Math.round(n) }); } }
+  },
+  // the Life Tree falls, and the White Stag steps out of it, whole
+  stagRise(f) {
+    f.hp = 1; f.stagRising = true;
+    for (const m of this.enemies) if (m.summoner === f.id && !m.dead) { m.dead = true; this.emit('unsummon', m.x, m.y); } // the elves return to the light
+    this.hazards = this.hazards.filter(h => h.src !== f);
+    f.phase = 1.5; f.toStage = 3; f.state = 'transform'; f.st = f.def.phase3.dur; f.guard = false; f.plan = null; f.ult = null;
+    f.invulnT = Math.max(f.invulnT || 0, f.def.phase3.dur + 0.5);
+    this.emit('stagrise', f.x, f.y);
+    this.emit('transformStart', f.x, f.y, { color: '#ffffff', name: f.def.form3, stage: 3, stag: true });
+  },
+});

@@ -49,5 +49,37 @@ for (const t of [...NEW, 'jaderabbit', 'lifetree']) for (let seed = 1; seed <= 2
   const bite = e.specials.find(x => x.id === 'moonbite');
   assert.ok(bite && bite.maxHpPct > 0);
 }
-console.log('Forest: 11 new foes, the Rabbit, the Life Tree, and ' + (NEW.length + 2) * 2 + ' fights passed.');
+
+// the Life Tree arrives with its elves, heals them, and when struck down the White Stag steps out of it, whole
+{
+  const s = new Sim('custom', 6, { roster: ['bandit'] }); s.enemies.length = 0;
+  const e = s.spawnEnemy('lifetree', 0, -30); e.state = 'idle'; e.st = 0; s.p.maxHp = s.p.hp = 1e9; s.p.x = -70;
+  const elves = s.enemies.filter(m => m.summoner === e.id);
+  assert.equal(elves.length, 3, 'it never comes alone');
+  elves[0].hp = 5; for (let i = 0; i < 120; i++) { s.p.x = -70; s.p.y = 30; s.step(null); }
+  e.hp = e.maxHp * 0.4; for (let i = 0; i < 180; i++) { s.p.x = -70; s.p.y = 30; s.step(null); }
+  assert.equal(e.phase, 2); assert.ok(e.r === 19 && e.pale, 'awake: taller, and pale');
+  e.invulnT = 0; e.state = 'idle'; e.hp = 0; s.resolveFalls();
+  assert.ok(!e.dead && e.state === 'transform', 'it does not die');
+  assert.ok(!s.enemies.some(m => m.summoner === e.id && !m.dead), 'the elves go back to the light');
+  for (let i = 0; i < 240; i++) { s.p.x = -70; s.p.y = 30; s.step(null); }
+  assert.ok(e.stag && e.stage === 3 && e.hp === e.maxHp, 'the White Stag, whole');
+  assert.ok(!e.specials.some(x => x.kind === 'summon'), 'the Stag does not summon');
+  const x0 = e.x; for (let i = 0; i < 300; i++) { s.p.x = -70; s.p.y = 30; s.step(null); } assert.ok(Math.abs(e.x - x0) > 3, 'and it moves');
+  e.cds.ult = 0; e.state = 'idle'; s.startUlt(e); assert.equal(e.ult.name, 'Mercy of the White Stag');
+  e.hp = e.maxHp * 0.5; const h0 = e.hp; s.celestialDealt(e, s.p, 40); assert.ok(e.hp > h0, 'the Stag heals from its wounds');
+}
+// the Rabbit's moon: four phases, each its own animal
+{
+  const s = new Sim('custom', 7, { roster: ['bandit'] }); s.enemies.length = 0;
+  const e = s.spawnEnemy('jaderabbit', 30, 0); e.state = 'idle'; e.st = 0; s.p.maxHp = s.p.hp = 1e9;
+  s.step(null); assert.equal(e.moonPh, 0);
+  assert.ok(Math.abs(s.celestialMult(e, s.p) - 0.5) < 1e-9, 'new moon: it takes half');
+  e.moonT = 10; s.step(null); assert.equal(e.moonPh, 2);
+  assert.ok(Math.abs(s.celestialMult(s.p, e) - 1.6) < 1e-9 && e.moonSpeed > 1.3, 'full moon: Lunacy');
+  assert.ok(s.hazards.some(h => h.variant === 'fullmoon'), 'and a shockwave');
+  for (const id of ['mortar', 'hundredhops', 'elixir', 'moonrabbits']) assert.ok(e.specials.some(x => x.id === id), 'has ' + id);
+  s.celestialMove(e, { move: 'moonrabbits', count: 2 }, s.p); assert.equal(s.enemies.filter(m => m.moonRabbit).length, 2);
+}
+console.log('Forest: 11 new foes, the Rabbit and its moon, the Life Tree and its Stag, and ' + (NEW.length + 2) * 2 + ' fights passed.');
 `, ctx);

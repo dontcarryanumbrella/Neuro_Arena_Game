@@ -48,7 +48,7 @@
   <div id="info"></div>
 </main>
 <script src="js/sfx.js"></script><script src="js/agent.js"></script><script src="js/sim.js"></script><script src="js/campaign.js"></script><script src="js/lore.js"></script>
-<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script>
+<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script><script src="js/celestial.js"></script>
 <script>
 // One live arena per expansion addition, drawn by the game's own renderer in the world it belongs to.
 const $d = id => document.getElementById(id);
@@ -58,8 +58,11 @@ const GROUPS = [
     { label: 'The arena: a dawn clearing', world: 'forest', desc: 'The painted forest arena under the Life Tree, with its ambient life. No foes.', foes: [] },
     ...['raptor', 'serpent', 'roc', 'triceratops', 'drake', 'trex', 'tortoise', 'elfranger', 'elfsentinel', 'elfspellweaver', 'treant'].map(t => demoFoe(t, 'forest', 'New forest foe.')),
     ...['tiger', 'bear', 'bunny'].map(t => demoFoe(t, 'forest', 'Promoted to a full foe with its own passive and technique.')),
-    { ...demoFoe('jaderabbit', 'forest', 'Boss 1. Use Next stage for the Ink-Stained Jade Rabbit and its Moon Bite.'), boss: true },
-    { ...demoFoe('lifetree', 'forest', 'Boss 2. Immobile, live-drawn; it blossoms when awake and calls its elven guardians.'), boss: true, at: [0, -30] },
+    { ...demoFoe('jaderabbit', 'forest', 'Boss 1. The moon over it turns every 5s: New (half damage taken), Waxing (quick), Full (Lunacy and a shockwave), Waning (lifesteal). Mortar of Ages, A Hundred Hops, the Elixir, the rabbits of the Moon.'), boss: true, label: 'Rabbit · first form' },
+    { ...demoFoe('jaderabbit', 'forest', 'Ink-Stained Jade Rabbit: eight inked hops, ink blots, the Moon Bite; its ultimate is The Moon Devoured.'), boss: true, label: 'Rabbit · inked', stages: 1 },
+    { ...demoFoe('lifetree', 'forest', 'Boss 2. Arrives with its elves like the Queen with her brood: heals them, shields them, holds you with roots, vines and pollen.'), boss: true, label: 'Life Tree · first form' },
+    { ...demoFoe('lifetree', 'forest', 'Awake below half: taller and pale; roots in lines, Sanctuary heals every elf, The World Tree Blooms.'), boss: true, label: 'Life Tree · pale and awake', stages: 1 },
+    { ...demoFoe('lifetree', 'forest', 'Struck down, the tree gives up the White Stag, the god of the elves, whole: charges, the star beam, a thicket of antlers, starlight that heals it. No summons.'), boss: true, label: 'The White Stag (form 3)', stages: 2 },
   ]],
   ['Red Dust Temple (Tier III)', 'temple', [
     ...['macaque', 'greatape', 'sweepingmonk'].map(t => demoFoe(t, 'temple', t === 'sweepingmonk' ? 'New elite.' : 'New temple foe.')),
@@ -71,7 +74,7 @@ const GROUPS = [
     { ...demoFoe('emperor', 'heavens', 'Stage 2, the Celestial Dragon: tide, dragonfire, rain that soaks you and heals him.'), boss: true, label: 'Dragon Emperor · stage 2', stages: 1 },
     { ...demoFoe('emperor', 'heavens', 'Stage 3, the Golden Body true dragon: sky coils and neck, the pearl, Five Phases breath.'), boss: true, label: 'Dragon Emperor · stage 3', stages: 2 },
     { label: 'Sun & Moon Venerables', world: 'heavens', foes: ['sunvenerable', 'moonvenerable'], boss: true, desc: 'The pair: day/night dial, Mutual Shelter, rotating stances, the Two Poles Turn. Next stage pushes both into Act 2 (Five Phases wheel).' },
-    { label: 'Taiji Venerable (merged)', world: 'heavens', foes: ['sunvenerable', 'moonvenerable'], boss: true, taiji: true, desc: 'The Sun falls; the Moon becomes the Taiji Venerable with both arts and Birth of All Things.' },
+    { label: 'Taiji Venerable (merged)', world: 'heavens', foes: ['sunvenerable', 'moonvenerable'], boss: true, taiji: true, desc: 'The Sun falls; the Moon becomes the Taiji Venerable: its own arts (Twin Fish, the Eye of the Eclipse, the Eight Trigrams, Inversion, Push Hands, the Hollow Sun), Yin and Yang shifting every 6s, and two ultimates in turn: Birth of All Things and Eclipse of Heaven and Earth.' },
   ]],
   ['Netherworld Abyss (Tier III)', 'abyss', [
     { ...demoFoe('ancestor', 'abyss', 'Phase 1, Keeper of the Yellow Springs: Broth of Forgetting, sealing, ferries that drag you.'), boss: true, label: 'Yellow Spring Ancestor · phase 1', talents: true },
@@ -111,7 +114,7 @@ function start(d) {
   if (d.talents) demoSim.applyTalents(demoSim.p, ['ripple', 'vampfist', 'dragonbreath'], 'unformed');
   demoSim.p.x = -70; demoSim.p.y = 20; demoSim.waveIdx = 1; demoSim.step(null);
   demoBoss = spawned[0] || null;
-  for (let k = 0; k < (d.stages || 0); k++) { nextStage(demoBoss); runFor(3); }
+  for (let k = 0; k < (d.stages || 0); k++) { nextStage(demoBoss); runFor(4); }
   for (let k = 0; k < (d.lives || 0); k++) { nextStage(demoBoss); demoBoss.invulnT = 0; demoBoss.state = 'idle'; }
   if (d.taiji) { spawned[1].hp = spawned[1].maxHp * 0.2; spawned[0].hp = 0; demoSim.resolveFalls(); demoBoss = spawned[1]; }
   renderer.reset && renderer.reset();

@@ -2779,7 +2779,7 @@ const EASTERN_DRAGONS = {
   eastdragon: () => ({ body: '#3f8a4a', dark: '#2a5e33', belly: '#d9c27a', mane: '#e8c34a', horn: '#ece4d2', eye: '#ffe14d', len: 30, th: 4 }),
   emperor: e => e.stage === 3
     ? { body: '#ffcc40', dark: '#c8901c', belly: '#fff3c0', mane: '#ff7a2a', horn: '#ffffff', eye: '#ff3030', len: 46, th: 6, big: 3.2 } // the true body: the dragon's own proportions, three times over
-    : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6 },  // the Celestial Dragon: azure and gold
+    : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6, big: 1.7 },  // the Celestial Dragon: azure and gold, and vast
   inkdragon: () => ({ body: '#1e1e24', dark: '#0a0a0e', belly: '#4a4a52', mane: '#5a5f66', horn: '#8a8f9c', eye: '#ff2a2a', len: 28, th: 4 }),
 };
 // a dragon's head, facing right: h horn, M mane, B head, D shade, e eye, n nostril, w teeth, j jaw
@@ -3057,6 +3057,7 @@ class Renderer {
 
   drawHazard(h, t) {
     const g = this.g;
+    if (this.celestialHazard && this.celestialHazard(h, t)) return; // celestial.js
     if (SWORD_HAZARDS.has(h.variant) && this.swordHazard(h, t)) return; // the Thirteen Swords draw their own
     if (h.kind === 'zone') return this.drawZone(h, t);
     if (h.kind === 'formation') return this.drawBagua(h, t);
@@ -3228,6 +3229,7 @@ class Renderer {
     const tinted = [];
     for (const ev of sim.fx) {
       this.swordEvent(ev);
+      if (this.celestialEvent && this.celestialEvent(ev)) continue; // celestial.js
       if (ev.tint) tinted.push([ev.tint, this.parts.length]); else if (tinted.length) tinted.push([null, this.parts.length]);
       switch (ev.type) {
         case 'hit':
@@ -3896,6 +3898,7 @@ class Renderer {
     g.setTransform(1, 0, 0, 1, ox, oy);
 
     // ground telegraphs
+    if (this.drawSpectacles) this.drawSpectacles(sim, 'back'); // celestial.js: the great ultimates' skies
     for (const h of sim.hazards) { if (h.tint) this.drawTinted(h.tint, () => this.drawHazard(h, sim.t)); else this.drawHazard(h, sim.t); if (h.fake) this.drawDreamTell(h, sim.t); }
     this.drawSwordLayer(sim, dt, 'g');
     for (const e of sim.enemies) {
@@ -3981,6 +3984,7 @@ class Renderer {
     this.drawFalls(dt);
     if (!(dt > 0)) this.parts.length = Math.min(this.parts.length, settled); // paused or idle: drop this frame's decorations, or they pile up forever
     this.drawParticles(dt);
+    if (this.drawSpectacles) { this.drawSpectacles(sim, 'top'); this.drawCelestialParts(dt); }
     this.drawSwordLayer(sim, dt, 'a');
     g.setTransform(1, 0, 0, 1, 0, 0);
     if (sim.bigDragon) this.drawBigDragon(sim, dt);
@@ -4532,6 +4536,7 @@ class Renderer {
     if (e.type === 'spider' && !(e.polyT > 0)) lift += 3; // up on its legs
     if (e.climbUpT > 0) lift -= Math.round(e.climbUpT * 8); // hauling itself back over the edge
     if (e.liftT > 0) lift += Math.round(Math.min(1, (1 - e.liftT) * 4) * 10);
+    if (e.def.celestial && this.celestialPre) lift = this.celestialPre(sim, e, lift); // celestial.js: a rabbit in the sky, the new moon
     if (egg) { mode = e.flash > 0 ? 'flash' : null; g.globalAlpha = 1; }
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'pre');
     if (e.def.venerable && !(e.polyT > 0)) this.drawVenerableHalo(sim, e, lift);
@@ -4541,6 +4546,7 @@ class Renderer {
     if (dragon && e.type === 'emperor' && e.stage === 3) this.drawTrueDragon(sim, e, EASTERN_DRAGONS.emperor(e), jx, lift, mode === 'flash');
     else if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
     else if (e.type === 'lifetree' && !(e.polyT > 0)) this.drawLifeTree(sim, e, lift, mode === 'flash');
+    else if (e.taiji && this.drawTaijiFigure && !(e.polyT > 0)) this.drawTaijiFigure(sim, e, lift, mode === 'flash');
     else if (!(def.yellowKing && e.phase === 2)) this.sprite(pic, e.x + jx, e.y, flip && !egg, mode, lift, scale);
     if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
     g.globalAlpha = 1;
