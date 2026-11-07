@@ -38,11 +38,20 @@ Build order steps 1 to 8 and the leftover pass are done and committed; steps 9 a
 | Art | A painted shading pass on every new sprite (lit and shaded edges, grain); a hand-painted, live-drawn Life Tree (roots, bark, a face, a lit crown; blossoms when awake); the Emperor's sky-spanning coils above the stage in his true body; distinct art for each of the five phase beams (leaves, flames, falling stones, sparks, spray) | this pass |
 | Fix | Live-drawn dragons were also drawing their plain sprite on top (from the pearl change in `ce7425a`) | this pass |
 
+### Celestial passes (2026-11-07): done
+| Item | What was built |
+|---|---|
+| Life Tree, Rabbit, Emperor, Venerables, Taiji | Painted Life Tree that keeps its elves like the Queen, pale and taller below half, and the White Stag at 0 HP; the Rabbit's moon phases and new kit; the Celestial Dragon at 1.7x; The Golden Dragon Coils the Heavens; unique Sun and Moon arts with enhanced Act 2 ultimates and The Two Poles Turn Back; the Taiji Venerable redrawn with its own kit, Yin/Yang shift and two ultimates (`js/celestial.js`) |
+| 16.2 The Last Keeper | Its own definition (800 base HP), drawn as a man of light with a starburst head: three stages (the Keeper of the Jar, the Finished Gu at 60%, What Remains of Him at 25%), He Has Watched Every Life, your Former Selves, The Lid Is Lowered, Ten Thousand Iterations, The Keeper's Last Light. Still the Time Administrator's room with `finalKeeper` (`js/celestial2.js`) |
+| 16.4 Sword Immortal stage 3 | At the Summit only: the Thirteenth reveals the Sword Without a Head (black robe, a burst of black blades for a head); stage 2's swords corrupted to ink, each answered by an ink afterimage; Black Sea Tide; the Fourteenth Sword: Cut at 10% (the world becomes a page and folds flat, a pencil line, one bare blade; step off the line and he sheathes and falls, or he draws it again) |
+| Ancestor | Painted as the ferryman with a fishing pole under a board of eyes, then the river's shape bound in ribbons of eyes; elites every 6-7.5s, two at a time in his true form; spider lilies, golden water; a Six Paths wheel where every path is its own |
+| Fox | Painted as a lady in red with a fan and a crown of fox ears; the Heavenly Fox a vast white fox with nine flame-like tails, and her clones take that shape; The Heavenly Fox Swallows the Moon; fixed her Heavenly stat boost, which a comment had swallowed |
+
 ### Still open
 - Sprites remain compact pixel grids, now shaded; a fuller repaint of individual bosses at larger sizes is still possible later.
 
 **Not started: build steps 9 and 10**
-- Section 16 late-game pass: Time Administrator buff; the Keeper of the Iterations (800 base HP); Yun Xi (1,000 HP, 80% cap, the Last Bet); Sword Immortal stage 3 (Sword Without a Head, the twisted moveset, Fourteenth Sword: Cut with the page and dimension reduction).
+- Section 16 late-game pass: Time Administrator buff; Yun Xi (1,000 HP, 80% cap, the Last Bet). (The Last Keeper and the Sword Immortal's third stage are done, above.)
 - Section 13.3 ending rework: Ending three, The Die; Ending two as the Sword Emperor.
 - Section 13: the Thousand Skins collection, the Four Symbols secret, and the secret ending with the lobby's open sky.
 

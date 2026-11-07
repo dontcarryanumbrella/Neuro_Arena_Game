@@ -1334,34 +1334,36 @@ ENEMY_TYPES.spring = foe('beast', {
 });
 ENEMY_TYPES.ancestor = boss('necromancer', {
   name: 'Yellow Spring Ancestor', hp: 440, r: 6, mass: 3, speed: 36, postureMul: 0.4, undead: true, ancestor: true, raiseDead: false,
-  sprite: 'b_ancestor', sprite2: 'b_ancestor2', form2: 'Nine Springs Domain', color: '#e8c860', lore: 'THE RIVER REMEMBERS NOTHING',
+  sprite: 'b_ancestor', sprite2: 'b_ancestor2', form2: 'Nine Springs Domain', color: '#e8c860', lore: 'THE RIVER REMEMBERS NOTHING', celestial: true,
   moves: moveSet({ strike: { dmg: 11, range: 22, wind: 0.3 }, heavy: { dmg: 20, range: 24 } }),
   specials: [
     { id: 'surge', kind: 'cone', range: 60, angle: 0.8, wind: 0.55, recover: 0.5, dmg: 12, kb: -150, hitPosture: 10, cd: 4, unblockable: true, variant: 'wind', forget: 1 },   // Yellow Springs Surge (the hands pull you in)
     { id: 'reflection', kind: 'reflection', maxRange: 999, wind: 0.5, recover: 0.4, cd: 7 },                                                                               // Forgotten Reflection
-    { id: 'fishcast', kind: 'fishcast', maxRange: 999, wind: 0.9, recover: 0.6, cd: 13 },                                                                                  // Casting for Lost Souls
-    { id: 'waters', kind: 'shoot', proj: 'venom', shots: 1, speed: 200, dmg: 8, minRange: 20, maxRange: 180, wind: 0.45, recover: 0.4, cd: 5, sealSkill: 4, forget: 1 },     // Waters of Forgetfulness
+    { id: 'fishcast', kind: 'fishcast', maxRange: 999, wind: 0.8, recover: 0.5, cd: 7.5 },                                                                                  // Casting for Lost Souls
+    { id: 'waters', kind: 'shoot', proj: 'yellowwater', shots: 1, speed: 200, dmg: 8, minRange: 20, maxRange: 180, wind: 0.45, recover: 0.4, cd: 5, sealSkill: 4, forget: 1 },     // Waters of Forgetfulness
   ],
   phase2: { speedMul: 1.15, cdMul: 0.7, dmgMul: 1.25, heal: 0.25, flags: { springBound: true },
-    replace: { waters: { id: 'waters', kind: 'shoot', proj: 'venom', shots: 3, spread: 0.3, speed: 210, dmg: 9, minRange: 20, maxRange: 190, wind: 0.45, recover: 0.4, cd: 5, sealSpecial: 4, forget: 1 } },
+    replace: { fishcast: { id: 'fishcast', kind: 'fishcast', maxRange: 999, wind: 0.7, recover: 0.5, cd: 6, catches: 2 }, waters: { id: 'waters', kind: 'shoot', proj: 'yellowwater', shots: 3, spread: 0.3, speed: 210, dmg: 9, minRange: 20, maxRange: 190, wind: 0.45, recover: 0.4, cd: 5, sealSpecial: 4, forget: 1 } },
     add: [
       { id: 'springstep', kind: 'springstep', maxRange: 999, wind: 0.3, recover: 0.2, cd: 6 },                                                                             // he travels between his springs
-      { id: 'othershore', kind: 'sigil', pattern: 'scatter', count: 4, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 14, radius: 13, delay: 0.9, root: 1.0, cd: 6, unblockable: true, variant: 'hellfire' }, // The Other Shore
+      { id: 'othershore', kind: 'sigil', pattern: 'scatter', count: 4, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 14, radius: 13, delay: 0.9, root: 1.0, cd: 6, unblockable: true, variant: 'spiderlily' }, // The Other Shore
     ] },
   passive: ['Broth of Forgetting; Yellow Springs Never Dry, Forgotten Mortal World, Samsara Without End', 'His water makes you forget: at 3 stacks a talent, at 6 your strongest. In his true form he cannot die while any of his nine springs flows (each revival dries one), standing near a spring you forget your special, and his fallen spirits come back as something else.'],
   active: ['Surge, Reflection, Casting for Lost Souls, Waters of Forgetfulness; The Other Shore', 'A wave of yellow water whose hands drag you in; your own technique cast back at you; a creature fished out of the river; water that seals the skill you last used (your special, in his true form). Then spider lilies that trap and burn, and a step from spring to spring.'],
   ult: { name: 'No Return from the Yellow Spring', charge: 1.4, dur: 4.6, cd: 16, dark: 'rgba(40,30,0,0.5)',
     steps: [[0, 'riverrise', { dur: 4.4 }], [0.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 60, delay: 0.8, aimed: true, turn: 1.57, drag: true }],
       [1.8, 'beam', { variant: 'ferry', len: 300, width: 26, dmg: 12, kb: 60, delay: 0.8, aimed: true, turn: 0.6, drag: true }], [2.8, 'whirlpool', { dur: 1.0, dmg: 18 }],
-      [3.8, 'sigil', { variant: 'seal', radius: 14, dmg: 24, delay: 0.6, kb: 180 }]] },
-  ult2: { name: 'Wheel of Six Paths', charge: 1.6, dur: 6.0, cd: 18, dark: 'rgba(20,10,0,0.6)',
-    steps: [[0, 'lightning', { count: 4, variant: 'goldlightning', dmg: 16 }],                                   // Deva: celestial judgement
-      [1.0, 'summonEdge', { type: 'general', count: 2 }],                                                         // Asura: warriors charge
-      [1.8, 'pastechoall', { dmg: 14 }],                                                                          // Human: your own attacks again
-      [2.6, 'radial', { count: 10, kind: 'orb', dmg: 9, speed: 120 }],                                            // Animal: beasts rush through
-      [3.4, 'drain', { range: 90, dmg: 6 }],                                                                      // Hungry Ghost: hands that drink
-      [4.2, 'sigil', { variant: 'hellfire', pattern: 'scatter', count: 5, radius: 13, dmg: 16, delay: 0.8 }],      // Hell: chains and fire
-      [5.0, 'springserupt', { dmg: 20 }], [5.2, 'whirlpool', { dur: 0.7, dmg: 22 }]] },                           // the wheel falls into the springs
+      [3.8, 'sigil', { variant: 'seal', radius: 14, dmg: 24, delay: 0.6, kb: 180 }], [0.1, 'spectacle', { kind: 'yellowriver', dur: 4.6 }], [2.0, 'celestial', { move: 'fish', n: 1 }]] },
+  // the wheel of rebirth turns over the stage and every path of the six comes round in turn, each its own
+  ult2: { name: 'Wheel of Six Paths', charge: 1.6, dur: 7.2, cd: 18, dark: 'rgba(20,10,0,0.65)',
+    steps: [[0, 'spectacle', { kind: 'sixpaths', dur: 7.2 }],
+      [0.2, 'celestial', { move: 'devapath', dmg: 16 }],                    // Deva: lotus light falls from the heaven-realm
+      [1.2, 'celestial', { move: 'asurapath', dmg: 15 }],                   // Asura: the war-realm's blades cross the stage
+      [2.2, 'pastechoall', { dmg: 15 }],                                     // Human: your own life, played back at you
+      [3.0, 'celestial', { move: 'animalpath', dmg: 10 }],                  // Animal: spirit beasts stampede through
+      [4.0, 'celestial', { move: 'ghostpath', dmg: 12 }], [4.0, 'drain', { range: 90, dmg: 6 }],   // Hungry Ghost: hands out of the floor that drink
+      [5.0, 'celestial', { move: 'hellpath', dmg: 16 }],                    // Hell: chains and fire
+      [6.2, 'springserupt', { dmg: 20 }], [6.4, 'whirlpool', { dur: 0.7, dmg: 22 }], [6.6, 'celestial', { move: 'fish', n: 2 }]] },  // the wheel falls into the springs
 });
 
 // ---------- Tamamo-no-Mae (玉藻前), the Nine-Tailed Fox: nine lives, a tail for each ----------
@@ -1385,19 +1387,19 @@ const FOX_TAILS = { // the art each tail brings (the first she has from the star
 const FOX_TAIL_NAMES = ['', 'FOXFIRE', 'PHANTOM GUISE', 'BEWITCHING GAZE', 'THOUSAND-FACED FAN', 'SOUL LANTERN', 'DREAMWEAVER', 'CURSED MOON', 'KILLING STONE', 'HEAVENLY FOX'];
 ENEMY_TYPES.tamamo = boss('magician', {
   name: 'Tamamo-no-Mae', hp: 70, r: 5, mass: 1.6, speed: 54, postureMul: 0.6, floating: true, foxLives: 9, trueForm: null, decoy: false,
-  sprite: 'b_fox', sprite2: 'b_fox2', form2: 'Heavenly Fox', color: '#ffe0a0', lore: 'A LADY, A FOX, A STONE',
+  sprite: 'b_fox', sprite2: 'b_fox2', form2: 'Heavenly Fox', color: '#ffe0a0', lore: 'A LADY, A FOX, A STONE', celestial: true,
   moves: moveSet({ strike: { dmg: 10, range: 16, wind: 0.16 }, heavy: { dmg: 18, range: 18 } }),
   specials: FOX_TAILS[1].slice(),
   passive: ['Nine Lives, Ninefold Sovereignty, The Fox That Cannot Be Caught', 'She has nine lives: each time one ends she rises with one more tail, more health and a new art. She cannot be thrown out of the ring. With the ninth she becomes the Heavenly Fox: every art fiercer and faster, and strike her the same way too often and an illusion takes the blow.'],
   active: ['Foxfire, Phantom Guise, Bewitching Gaze, Thousand-Faced Fan, Soul Lantern, Dreamweaver, Cursed Moon, Killing Stone', 'One per tail: homing foxfire; clones; a golden eye that scrambles you if you keep facing her; fan blades; lanterns that drain your energy (break them to get it back); false hazards among real ones; a blood-red moon that curses you; stones that poison the air.'],
   ult: { name: 'Dance of a Hundred Foxes', charge: 1.0, dur: 3.4, cd: 16, dark: 'rgba(60,10,30,0.4)',
     steps: [[0, 'foxdance', { n: 8 }], [0.8, 'radial', { count: 10, kind: 'orb', dmg: 8, speed: 100 }], [2.0, 'foxreveal', {}], [2.9, 'foxburst', { dmg: 14 }]] },
-  ult2: { name: 'Nine Tails Eclipse the Moon', untouchable: true, charge: 1.4, dur: 4.4, cd: 16, dark: 'rgba(60,0,10,0.6)',
-    steps: [[0, 'bloodmoon', { dur: 4.4 }], [0.3, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 4, radius: 14, dmg: 18, delay: 0.9 }],
-      [0.9, 'radial', { count: 16, kind: 'orb', dmg: 9, speed: 110 }], [1.4, 'sigil', { variant: 'orbital', pattern: 'scatter', count: 4, radius: 14, dmg: 18, delay: 0.9 }],
-      [2.2, 'beam', { variant: 'exterminate', len: 320, width: 26, dmg: 30, kb: 200, delay: 0.9, aimed: true }],
-      [3.3, 'dash', { dmg: 20, speed: 380, time: 0.3, breaksGuard: true, hitPosture: 25, parryPosture: 30, kb: 160, shock: { radius: 30, dmg: 16 } }],
-      [3.7, 'radial', { count: 18, kind: 'orb', dmg: 9, speed: 150 }], [4.0, 'radial', { count: 18, kind: 'orb', dmg: 9, speed: 110, offset: 0.17 }]] },
+  // The Heavenly Fox Swallows the Moon: a red moon rises, her nine tails lash across the stage one after another, the fox's
+  // eyes open in the sky and cut down, and she leaps into the moon and comes down on you in foxfire
+  ult2: { name: 'The Heavenly Fox Swallows the Moon', untouchable: true, charge: 1.4, dur: 5.8, cd: 16, dark: 'rgba(70,0,12,0.65)',
+    steps: [[0, 'spectacle', { kind: 'foxmoon', dur: 5.8 }], ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => [0.3 + i * 0.2, 'celestial', { move: 'tailsweep', i, dmg: 12 }]),
+      [2.4, 'celestial', { move: 'foxeyes', count: 12, dmg: 12 }], [3.4, 'celestial', { move: 'foxeyes', count: 8, dmg: 12 }],
+      [4.0, 'celestial', { move: 'foxpounce', dmg: 34, radius: 30 }], [4.9, 'radial', { count: 18, kind: 'foxflame', dmg: 9, speed: 130 }], [5.2, 'radial', { count: 18, kind: 'foxflame', dmg: 9, speed: 100, offset: 0.17 }]] },
 });
 ENEMY_TYPES.tamamo.phase2 = null;
 for (const [t, s] of [['tamamo', 240], ['ancestor', 240], ['sunvenerable', 240], ['emperor', 240]]) ENEMY_TYPES[t].bossTime = s; // the longest fights get longer rooms
@@ -1421,6 +1423,38 @@ ENEMY_TYPES.timeadmin = boss('ninja', {
 ENEMY_TYPES.timeadmin.ult = { name: 'The Stopped Clock', charge: 1.0, dur: 3.2, cd: 15, dark: 'rgba(10,30,60,0.55)',
   steps: [[0, 'timefreeze', { dur: 2.6 }], ...[0.3, 0.55, 0.8, 1.05, 1.3].map(t => [t, 'shot', { dmg: 12, speed: 360, breaksGuard: true, proj: 'clockhand' }]),
     [1.7, 'radial', { count: 12, kind: 'clockhand', dmg: 12, speed: 150 }], [2.2, 'rift', {}], [2.5, 'radial', { count: 12, kind: 'clockhand', dmg: 12, speed: 150, offset: 0.26 }]] };
+
+
+// ---------- the Last Keeper (its own definition; the Time Administrator's room at the Bottom of the Jar becomes this) ----------
+const KEEPER_KIT = [
+  { id: 'keeperrays', kind: 'celestial', move: 'keeperrays', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 16, n: 5, cd: 3.6 },        // Light Through the Lid
+  { id: 'longhands', kind: 'celestial', move: 'longhands', minRange: 18, maxRange: 220, wind: 0.45, recover: 0.4, dmg: 18, cd: 4.2 },          // The Long Hands
+  { id: 'formerselves', kind: 'celestial', move: 'formerselves', minRange: 0, maxRange: 999, wind: 0.7, recover: 0.4, count: 2, cd: 11 },      // Former Selves
+  { id: 'refine', kind: 'celestial', move: 'refine', minRange: 0, maxRange: 999, wind: 0.6, recover: 0.4, dmg: 15, cd: 7 },                   // Refining the Gu
+  { id: 'tally', kind: 'celestial', move: 'tally', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 15, cd: 5.5 },                  // Every Life Counted
+];
+const KEEPER_DEF = { ...ENEMY_TYPES.timeadmin, name: 'The Last Keeper', hp: 800, color: '#fff0c0', sprite: 'b_timeadmin', sprite2: 'b_timeadmin', form2: 'The Finished Gu', form3: 'What Remains of Him',
+  lore: 'HE KEPT THE JAR. NOW THE JAR KEEPS HIM', keeperModel: true, celestial: true, pastRevive: false, glitch: false, anyUlt: false, phasing: 0.12, phasing2: 0.12, phaseGate: true,
+  r: 9, scale: 1.4, speed: 46, superBoss: true, statusImmune: false, kbOut: 0.7,
+  moves: moveSet({ strike: { dmg: 16, range: 24 }, heavy: { dmg: 30, range: 26 } }),
+  specials: KEEPER_KIT, phase2At: 0.6,
+  phase2: { speedMul: 1.2, cdMul: 0.7, dmgMul: 1.3, heal: 0.2, flags: { keeperStage: 2 },
+    replace: { keeperrays: { ...KEEPER_KIT[0], n: 8, cd: 3 }, formerselves: { ...KEEPER_KIT[2], count: 3, cd: 10 } },
+    add: [{ id: 'iterations', kind: 'celestial', move: 'iterations', minRange: 0, maxRange: 999, wind: 0.6, recover: 0.5, dmg: 16, n: 6, cd: 7 },     // Ten Thousand Iterations
+      { id: 'jarturn', kind: 'celestial', move: 'jarturn', minRange: 0, maxRange: 999, wind: 0.6, recover: 0.4, cd: 12 }] },                        // The Jar Turns
+  phase3: { at: 0.25, dur: 3.0, speedMul: 1.35, cdMul: 0.55, dmgMul: 1.6, heal: 0.15, flags: { keeperStage: 3 }, replace: {},
+    add: [{ id: 'flicker', kind: 'celestial', move: 'flicker', minRange: 0, maxRange: 999, wind: 0.35, recover: 0.3, dmg: 15, cd: 4.5 }] },          // Flickering Trace
+  passive: ['He Has Watched Every Life, Light Has No Shadow', 'He kept the jar through every one of your lives and knows how you fight: hit him the same way again and again and it does less and less (back to full if you change). Some blows pass through his light. At 60% he becomes the Finished Gu; at 25% only a trace of him is left, and it flickers.'],
+  active: ['Light Through the Lid, the Long Hands, Former Selves, Refining the Gu, Every Life Counted', 'Rays of light from his head across the whole floor; long hands out of the ground where you stand; your own past selves set on you; a jar-mouth ring that closes (leave by the gap); tally marks struck in rows of five. Then a thousand of your lives crossing the stage, the jar turning, and a trace that flickers from place to place.'],
+  ult: { name: 'The Lid Is Lowered', charge: 1.4, dur: 4.4, cd: 16, dark: 'rgba(0,0,0,0.55)',
+    steps: [[0, 'spectacle', { kind: 'lid', dur: 4.2, dmg: 34 }], [3.0, 'celestial', { move: 'keeperrays', n: 9, dmg: 16 }]] },
+  ult2: { name: 'Ten Thousand Iterations', charge: 1.4, dur: 5.4, cd: 15, dark: 'rgba(10,6,0,0.65)',
+    steps: [[0, 'spectacle', { kind: 'iterations', dur: 5.4 }], [0.3, 'celestial', { move: 'iterations', n: 8, dmg: 15 }], [1.5, 'celestial', { move: 'iterations', n: 8, dmg: 15 }],
+      [2.4, 'celestial', { move: 'formerselves', count: 3 }], [3.0, 'celestial', { move: 'iterations', n: 10, dmg: 15 }], [4.4, 'pastechoall', { dmg: 18 }]] },
+};
+KEEPER_DEF.stage3Ult = { name: 'The Keeper\'s Last Light', charge: 1.6, dur: 6.4, cd: 14, dark: 'rgba(0,0,0,0.8)',
+  steps: [[0, 'spectacle', { kind: 'lastlight', dur: 6.4 }], [0.4, 'celestial', { move: 'raysweep', n: 18, dir: 1 }], [2.0, 'celestial', { move: 'raysweep', n: 18, dir: -1 }],
+    [3.4, 'spectacle', { kind: 'lid', dur: 2.6, dmg: 30, quick: true }], [5.2, 'sigil', { variant: 'lastlight', radius: 34, dmg: 44, delay: 1.0, kb: 240 }]] };
 
 // The Yellow Court uses the same boss lifecycle and combat accounting as other foes.
 ENEMY_TYPES.courtier = foe('beast', {
@@ -1941,6 +1975,19 @@ ENEMY_TYPES.swordsaint = boss('cultivator', {
   ult2: { name: 'Thirteenth Sword: Heaven and Earth, One Sword', unbreakable: true, untouchable: true, charge: 1.4, dur: 3.0, cd: 22, dark: 'rgba(0,0,0,0.45)',
     steps: [[0, 'stillness', {}], [0.9, 'onesword', { dmg: 45, pct: 0.15 }], [2.6, 'forbidden', {}]] },
 });
+
+
+// At Heaven's End Summit the Thirteenth Sword is not the end: the Black Sea had already been inside him. He has no head
+// either. Stage 3, the Sword Without a Head: the second form's swords, corrupted to ink, drawn in pairs (each answered
+// by its ink afterimage a moment later), bigger and more; Black Sea water at his feet dulls every blow struck from it.
+// At a tenth of his health he draws the Fourteenth Sword, Cut: the world becomes a page and one stroke removes a dimension.
+const CORRUPT_ONLY = [9, 10, 11, 12].map(n => { const u = { ...swordOf(n), ...(UNFINISHED[n] || {}) }; for (const k of ['count', 'lines', 'cuts']) if (u[k]) u[k] = Math.round(u[k] * 1.25); if (u.radius) u.radius = Math.min(92, u.radius * 1.1); return u; });
+ENEMY_TYPES.swordsaint.phase3 = { at: -1, manual: true, dur: 3.6, speedMul: 1.3, cdMul: 0.6, dmgMul: 1.62, healTo: 0.35, flags: { corrupt: true, unity: true, cycle: 0, cycleWait: 0.9 }, only: CORRUPT_ONLY };
+ENEMY_TYPES.swordsaint.form3 = 'Sword Without a Head';
+ENEMY_TYPES.swordsaint.stage3Ult = { ...ENEMY_TYPES.swordsaint.ult2, name: 'Thirteenth Sword, Drowned: Heaven and Earth Sink', charge: 1.2,
+  steps: [[0, 'spectacle', { kind: 'inksea', dur: 3.0 }], ...ENEMY_TYPES.swordsaint.ult2.steps.filter(s => s[1] !== 'forbidden')] };
+const FOURTEENTH = { name: 'Fourteenth Sword: Cut', unbreakable: true, untouchable: true, charge: 1.6, dur: 4.6, cd: 99, dark: 'rgba(0,0,0,0.2)',
+  steps: [[0, 'spectacle', { kind: 'pagecut', dur: 4.4, dmg: 62 }], [4.3, 'celestial', { move: 'sheathe' }]] };
 
 // every ultimate's beats run in time order (the runner walks them in sequence, so one out of place holds back the rest)
 for (const d of Object.values(ENEMY_TYPES)) for (const k of ['ult', 'ult2', 'ult3']) if (d[k]) d[k].steps.sort((a, b) => a[0] - b[0]);
@@ -3090,6 +3137,7 @@ class Sim {
         f.chain = (f.chain || 0) + 1; f.chainAt = this.t + Math.min(atk.recover, 0.18);
       } else f.chain = 0;
     }
+    if (f.corrupt && !atk.inkEcho && atk.kind !== 'melee' && atk.kind !== 'pounce') (f.inkEchoes = f.inkEchoes || []).push({ t: 0.45, atk: { ...atk, inkEcho: true, copy: 1 } }); // the Corrupted Manual
     if (atk.kind !== 'melee') return this.special(f);
     let hits = 0;
     for (const t of this.victims(f)) {
@@ -3431,7 +3479,7 @@ class Sim {
     if (t.stance === 'unyielding' && atk.id === 'strike') mult *= 0.5; // Unyielding: strikes glance off; heavies and posture break through
     if (t.def && t.def.goldenBody && t.stage === 3) mult *= atk.id === 'strike' ? 0.6 : atk.id === 'heavy' ? 0.75 : 1; // the true body: strikes barely scratch it
     if (this.taijiDial || (t.def && t.def.venerable) || (by && by.def && by.def.venerable)) mult *= this.taijiMult(t, by);
-    if ((t.def && t.def.celestial) || (by && by.def && by.def.celestial)) mult *= this.celestialMult(t, by, atk);
+    if ((t.def && t.def.celestial) || (by && by.def && by.def.celestial) || t.corrupt) mult *= this.celestialMult(t, by, atk);
     if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
     if (t.def && t.def.resistProj && proj) mult *= t.def.resistProj;
     if (t.past) mult *= 0.5; // the past self is hard to change
@@ -3526,6 +3574,8 @@ class Sim {
       if (this.holdYield) this.yieldScene = t; // a watched fight stops here for his last draw (a cutscene); see updateYield
       else this.emit('teacheryield', t.x, t.y);
     }
+    if (t.corrupt && !t.fourteenthDone && t.hp - dmg < t.maxHp * 0.1) { dmg = Math.max(0, t.hp - t.maxHp * 0.1); t.fourteenthQueued = true; } // he will draw the Fourteenth before he falls
+    if (t.corrupting) dmg = 0;
     if (t.def && t.def.manual && t.phase === 2 && !t.manualDone && !t.teacher && t.hp - dmg < 1) { // the manual is not finished: he will not fall until the Thirteenth Sword is drawn
       dmg = Math.max(0, t.hp - 1);
       if (!t.deathBound) { t.deathBound = true; this.emit('deathbound', t.x, t.y); }
@@ -3696,6 +3746,7 @@ class Sim {
     if (w.elite) e.elite = true;
     if (w.teacher && e.def.manual) this.makeTeacher(e);
     if (w.finalKeeper && e.type === 'timeadmin') this.makeFinalKeeper(e);
+    if (w.summit && e.type === 'swordsaint') e.summit = true;
     if (w.modifier === 'shielded') { e.maxHp = Math.round(e.maxHp * 1.25); e.hp = e.maxHp; }
     if (w.modifier === 'swift') e.speedMul *= 1.2;
     if (w.modifier === 'vampiric') e.def = { ...e.def, lifesteal: true };
@@ -3703,20 +3754,16 @@ class Sim {
 
   }
 
-  // A separate reconstruction for the Bottom of the Jar. Never changes the shared enemy definition.
+  // The Bottom of the Jar: the Last Keeper. What is left of the one who kept the jar: no body, a trace of his
+  // consciousness in the shape of a man, made of the light that came in when the lid was lifted. A final boss of three
+  // stages, with its own kit. Never changes the shared enemy definition.
   makeFinalKeeper(e) {
-    const base = e.def;
     e.finalKeeper = true;
-    e.maxHp = e.hp = Math.round(e.maxHp * 1.5);
-    e.tuneDmg = (e.tuneDmg || 1) * 1.2;
-    const hands = { id: 'hands', kind: 'shoot', proj: 'clockhand', shots: 3, spread: 0.28, speed: 220, dmg: 14, minRange: 20, maxRange: 170, wind: 0.5, recover: 0.4, cd: 3 };
-    const echo = { id: 'pastecho', kind: 'pastecho', maxRange: 999, wind: 0.65, recover: 0.45, dmg: 18, cd: 6 };
-    e.specials = base.specials.map(sp => sp.id === 'hands' ? hands : sp.id === 'timestop' ? { ...sp, dur: 1.9, cd: 10 } : sp.id === 'rift' ? { ...sp, cd: 4.5 } : sp);
-    e.specials.push(echo); e.cds.pastecho = 2;
-    e.def = { ...base, name: 'The Last Keeper', color: '#e0b778', form2: 'The Finished Gu', lore: 'THE CLOCK RUNS BACKWARD', anyUlt: false,
-      ult: { name: 'The Hour Closes', charge: 1.2, dur: 3.5, cd: 15, dark: 'rgba(35,20,40,0.6)', steps: [[0, 'timefreeze', { dur: 2.2 }], [0.5, 'radial', { count: 10, kind: 'clockhand', dmg: 14, speed: 145 }], [1.4, 'pastechoall', { dmg: 16 }], [2.3, 'radial', { count: 12, kind: 'clockhand', dmg: 14, speed: 165, offset: 0.26 }]] },
-      ult2: { name: 'A Future Already Written', charge: 1.3, dur: 3.8, cd: 14, dark: 'rgba(30,16,45,0.65)', steps: [[0.3, 'pastechoall', { dmg: 16 }], [1.0, 'rewindall', {}], [1.5, 'timefreeze', { dur: 1.4 }], [2.0, 'radial', { count: 16, kind: 'clockhand', dmg: 15, speed: 165 }], [3.0, 'pastechoall', { dmg: 16 }]] },
-      phase2: { ...base.phase2, speedMul: 1.3, cdMul: 0.7, dmgMul: 1.4, add: [{ id: 'yesterday', kind: 'rewindfoe', maxRange: 999, wind: 0.65, recover: 0.45, cd: 9 }], replace: { hands: { ...hands, shots: 5, spread: 0.24 }, timestop: { ...base.specials[0], dur: 2, cd: 9 } } } };
+    e.maxHp = e.hp = Math.round(e.maxHp * 800 / 340);
+    e.tuneDmg = (e.tuneDmg || 1) * 1.15;
+    e.def = KEEPER_DEF; e.specials = KEEPER_DEF.specials.map(sp => ({ ...sp })); e.cds = { ult: 6 };
+    for (const sp of e.specials) e.cds[sp.id] = 1 + this.rand() * 2;
+    e.watch = {};
   }
 
   // The Sword Immortal teaching instead of killing: no true damage, slower draws, a lesson for a second form, and he
@@ -4337,7 +4384,8 @@ class Sim {
     if (e.ultT >= u.dur && !(e.dashT > 0)) {
       e.state = 'recover'; e.st = 0.7; e.batForm = false; e.swordForm = false; e.ult = null;
       if (e.exhaustT) { e.state = 'stun'; e.st = e.exhaustT; e.exhaustT = 0; } // spent by the forbidden sword
-      if (e.deathBound && e.def.manual) { e.deathBound = false; e.manualDone = true; e.hp = 0; this.emit('manualend', e.x, e.y, { survived: !!(this.p && !this.p.dead) }); } // the last sword is drawn; now he may fall
+      if (e.deathBound && e.def.manual && e.summit && !e.corrupt && !e.corrupting) { e.deathBound = false; e.manualDone = true; this.corruptSword(e); } // at the Summit: he has no head either
+      else if (e.deathBound && e.def.manual) { e.deathBound = false; e.manualDone = true; e.hp = 0; this.emit('manualend', e.x, e.y, { survived: !!(this.p && !this.p.dead) }); } // the last sword is drawn; now he may fall
       if (e.lastStand) { e.lastStand = false; e.ultMulti = 0; e.hp = 0; } // the gamble is spent
     }
   }
@@ -4658,7 +4706,8 @@ class Sim {
     for (const sp of FOX_TAILS[n] || []) { f.specials.push({ ...sp }); f.cds[sp.id] = 1.6; } // and shows it at once
     if (n === f.def.foxLives) { // the Heavenly Fox: everything fiercer and faster
       f.specials.push({ id: 'ninefold', kind: 'foxcombo', maxRange: 999, wind: 0.5, recover: 0.5, cd: 5 }); f.cds.ninefold = 2.5; // Ninefold Sovereignty
-      f.phase = 2; f.spriteNow = 'b_fox2'; f.r = 9; f.def = { ...f.def, scale: 2 }; // the true shape, twice her size f.dmgMul = 1.4; f.speedMul = 1.15; f.cdMul = 0.6; f.cds.ult = 1.6;
+      f.phase = 2; f.spriteNow = 'b_fox2'; f.r = 12; f.def = { ...f.def, scale: 2.4 }; // the true shape: a vast white fox
+      f.dmgMul = 1.4; f.speedMul = 1.15; f.cdMul = 0.6; f.cds.ult = 1.6;
     }
     if (Math.hypot(f.x, f.y) > R - 12) { const d = Math.hypot(f.x, f.y); f.x *= (R - 20) / d; f.y *= (R - 20) / d; }
     this.emit('foxtail', f.x, f.y, { n, name: FOX_TAIL_NAMES[n], final: n === f.def.foxLives });
@@ -5201,9 +5250,7 @@ class Sim {
       case 'reflection': if (e.phase === 2 && e.recentSpecial) { const keep = e.special; e.special = e.recentSpecial; this.heroFinale(e, tgt); e.special = keep; this.emit('reflected', e.x, e.y); } else if (e.recentTech) this.paintingCasts(e, e.recentTech); else this.ultStep(e, 'sigil', { variant: 'seal', radius: 12, dmg: 12, delay: 0.7 }, tgt); break; // Forgotten Reflection: your own technique, out of the river
       case 'fishcast': { // Casting for Lost Souls: an elite out of the river; in his true form, sometimes a boss
         if (e.phase === 2 && this.rand() < 0.4 && this.openBossProjection(e)) { this.emit('fishcast', e.x, e.y); break; }
-        const type = ANCESTOR_ELITES[Math.floor(this.rand() * ANCESTOR_ELITES.length)], a = this.rand() * 6.2832;
-        const m = this.spawnMinion(type, Math.cos(a) * 40, Math.sin(a) * 40, e);
-        if (m) { m.def = { ...ENEMY_TYPES[type], summon: true }; m.specials = ENEMY_TYPES[type].specials.map(s => ({ ...s })); m.maxHp = m.hp = Math.round(m.maxHp * 1.3); m.elite = true; m.spirit = true; this.emit('fishcast', m.x, m.y); }
+        this.fishElites(e, atk.catches || 1);
         break;
       }
       case 'springstep': { // from one spring to another
@@ -6642,5 +6689,178 @@ Object.assign(Sim.prototype, {
     f.invulnT = Math.max(f.invulnT || 0, f.def.phase3.dur + 0.5);
     this.emit('stagrise', f.x, f.y);
     this.emit('transformStart', f.x, f.y, { color: '#ffffff', name: f.def.form3, stage: 3, stag: true });
+  },
+});
+
+
+// ---------- the second celestial pass: the Last Keeper, the Sword Without a Head, the Ancestor's paths, the Heavenly Fox ----------
+Object.assign(Sim.prototype, {
+  // Casting for Lost Souls: elites out of the river (two at a time in his true form; sometimes a boss instead)
+  fishElites(e, n) {
+    for (let i = 0; i < n; i++) {
+      if (e.phase === 2 && this.rand() < 0.3 && this.openBossProjection(e)) { this.emit('fishcast', e.x, e.y); continue; }
+      const type = ANCESTOR_ELITES[Math.floor(this.rand() * ANCESTOR_ELITES.length)], a = this.rand() * 6.2832;
+      const m = this.spawnMinion(type, Math.cos(a) * 40, Math.sin(a) * 40, e);
+      if (m) { m.def = { ...ENEMY_TYPES[type], summon: true }; m.specials = ENEMY_TYPES[type].specials.map(s => ({ ...s })); m.maxHp = m.hp = Math.round(m.maxHp * 1.3); m.elite = true; m.spirit = true; this.emit('fishcast', m.x, m.y); }
+    }
+  },
+  // the Thirteenth drawn at the Summit: the head was never there, and the Black Sea comes up through him
+  corruptSword(e) {
+    e.corrupting = true; e.hp = Math.max(e.hp, 1);
+    this.hazards = this.hazards.filter(h => h.src !== e); this.proj = this.proj.filter(pr => pr.src !== e);
+    const d = e.def.phase3.dur;
+    e.phase = 1.5; e.toStage = 3; e.state = 'transform'; e.st = d; e.guard = false; e.plan = null; e.ult = null; e.invulnT = Math.max(e.invulnT || 0, d + 0.5);
+    this.emit('swordcorrupt', e.x, e.y);
+    this.emit('transformStart', e.x, e.y, { color: '#141018', name: e.def.form3, stage: 3, corrupt: true });
+  },
+  // per step: the corrupted Sword Immortal's ink, his afterimages, and the Fourteenth when it is time
+  updateCorrupt() {
+    for (const e of this.enemies) {
+      if (!e.corrupt && !e.corrupting) continue;
+      if (e.corrupt && e.corrupting && e.state !== 'transform') e.corrupting = false;
+      if (e.dead) continue;
+      for (const h of this.hazards) if (h.src === e && !h.tint) h.tint = '#120a18';   // every sword of his is ink now
+      for (const pr of this.proj) if (pr.src === e && !pr.tint) pr.tint = '#120a18';
+      if (e.inkEchoes && e.inkEchoes.length) { // the Corrupted Manual: each sword answered by its ink afterimage
+        for (const k of e.inkEchoes) k.t -= DT;
+        const due = e.inkEchoes.filter(k => k.t <= 0); e.inkEchoes = e.inkEchoes.filter(k => k.t > 0);
+        for (const k of due) {
+          if (e.state === 'transform' || e.state === 'ult') continue;
+          const keep = [e.atk, e.state, e.st]; e.atk = k.atk; this.emit('inkecho', e.x, e.y); this.special(e); [e.atk, e.state, e.st] = keep;
+        }
+      }
+      if (e.fourteenthQueued && !e.fourteenthDone && e.state !== 'ult' && e.state !== 'transform' && this.t >= (e.fourteenthAgainAt || 0)) { // the Fourteenth Sword: Cut
+        e.fourteenthQueued = false; const u = FOURTEENTH;
+        e.state = 'ult'; e.ult = u; e.ultT = -u.charge; e.ultIdx = 0; e.guard = false; e.plan = null; e.dashT = 0; e.invulnT = Math.max(e.invulnT || 0, u.charge + u.dur);
+        this.emit('ultCharge', e.x, e.y, { name: u.name, color: '#ffffff', charge: u.charge, dur: u.dur, dark: u.dark, boss: e.def.form3 });
+      }
+    }
+  },
+});
+const BASE_CELESTIAL_MOVE = Sim.prototype.celestialMove, BASE_START_SPECTACLE = Sim.prototype.startSpectacle, BASE_UPDATE_SPECTACLES = Sim.prototype.updateSpectacles, BASE_CELESTIAL_MULT = Sim.prototype.celestialMult, BASE_UPDATE_CELESTIAL = Sim.prototype.updateCelestial;
+Object.assign(Sim.prototype, {
+  startSpectacle(e, o, p) {
+    const S = BASE_START_SPECTACLE.call(this, e, o, p);
+    if (o.kind === 'lid') { // the lid comes down over the jar; light gets in through a few holes only
+      S.holes = []; const n = o.quick ? 2 : 3;
+      for (let i = 0; i < n; i++) {
+        let x, y;
+        if (i === 0) { const a = this.rand() * 6.2832, r = 26 + this.rand() * 14; x = p.x + Math.cos(a) * r; y = p.y + Math.sin(a) * r; }
+        else { const a = this.rand() * 6.2832, r = this.rand() * (R - 22); x = Math.cos(a) * r; y = Math.sin(a) * r; }
+        const rr = Math.hypot(x, y); if (rr > R - 16) { x *= (R - 16) / rr; y *= (R - 16) / rr; }
+        S.holes.push({ x, y, r: 14 });
+      }
+      S.at = o.quick ? 1.8 : 2.6;
+    }
+    if (o.kind === 'pagecut') { S.ang = (this.rand() - 0.5) * 0.5; S.ax = p.x; S.ay = p.y; }
+    if (o.kind === 'jarturn') S.w = (this.rand() < 0.5 ? -1 : 1) * 0.9;
+    return S;
+  },
+  updateSpectacles() {
+    this.updateCorrupt();
+    if (this.spectacles) for (const S of this.spectacles) {
+      const e = S.owner, alive = e && !e.dead; if (!alive) continue;
+      const foes = this.hostiles(e), tgt = this.targetOf(e) || this.p;
+      if (S.kind === 'lid' && !S.hit && S.t + DT >= S.at) { // everything not standing in the light is pressed under the lid
+        S.hit = true; this.emit('lidclose', 0, 0);
+        for (const v of foes) if (!S.holes.some(h => Math.hypot(v.x - h.x, v.y - h.y) < h.r + v.r)) this.receiveHit(v, null, { id: 'lid', dmg: S.dmg || 34, kb: 40, hitPosture: 30, unblockable: true, src: e }, 0, 0, true);
+      }
+      if (S.kind === 'jarturn') for (const v of foes) { // the jar turns, and everything in it turns with it
+        const c = Math.cos(S.w * DT), q = Math.sin(S.w * DT), x = v.x; v.x = x * c - v.y * q; v.y = x * q + v.y * c;
+      }
+      if (S.kind === 'pagecut') { // the Fourteenth Sword: the pencil line follows you, locks, and one stroke cuts the page
+        if (S.t < 2.0 && tgt) { S.ax = tgt.x; S.ay = tgt.y; }
+        if (!S.cut && S.t >= 2.3) {
+          S.cut = true; const ux = Math.cos(S.ang), uy = Math.sin(S.ang);
+          for (const v of this.fighters()) {
+            if (v.team === e.team || v.dead) continue;
+            const d = Math.abs((v.x - S.ax) * -uy + (v.y - S.ay) * ux); // airborne or not: a dimension is gone
+            if (d < 9 + v.r) { this.receiveHit(v, null, { id: 'fourteenth', dmg: S.dmg || 62, kb: 0, hitPosture: 60, unblockable: true, trueDmg: true, src: e }, 0, 0, true); if (v === this.p) S.hitHero = true; }
+          }
+          (this.pageScars = this.pageScars || []).push({ x: S.ax, y: S.ay, a: S.ang });
+          e.lastCutHit = !!S.hitHero;
+          this.emit('pagecut', S.ax, S.ay, { a: S.ang });
+        }
+      }
+    }
+    BASE_UPDATE_SPECTACLES.call(this);
+  },
+  celestialMult(t, by, atk) {
+    let m = BASE_CELESTIAL_MULT.call(this, t, by, atk);
+    if (t.finalKeeper && t.watch && atk && atk.id) { // He Has Watched Every Life: the same blow again and again does less and less
+      const n = t.watch[atk.id] = (t.watch[atk.id] || 0) + 1;
+      if (n > 3) m *= Math.max(0.35, 1 - (n - 3) * 0.1);
+    }
+    if (t.corrupt && by && Math.hypot(by.x - t.x, by.y - t.y) < 30) m *= 0.7; // Black Sea Tide: blows struck from the ink at his feet lose their edge
+    return m;
+  },
+  updateCelestial(e) {
+    BASE_UPDATE_CELESTIAL.call(this, e);
+    if (e.watch && (e.watchT = (e.watchT || 0) + DT) >= 1) { e.watchT = 0; for (const k in e.watch) { e.watch[k] *= 0.8; if (e.watch[k] < 0.5) delete e.watch[k]; } }
+    if (e.flickT > 0 && (e.flickT -= DT) <= 0 && e.flickTo) { e.x = e.flickTo.x; e.y = e.flickTo.y; e.flickTo = null; this.emit('reappear', e.x, e.y); }
+  },
+  celestialMove(e, o, tgt) {
+    const dx = tgt.x - e.x, dy = tgt.y - e.y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d, a0 = Math.atan2(dy, dx), r = () => this.rand(), dmg = o.dmg || 0;
+    const ring = (n, rad, cx, cy, fn) => { for (let i = 0; i < n; i++) { const a = i / n * 6.2832; fn(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, a, i); } };
+    switch (o.move) {
+      case 'fish': this.fishElites(e, o.n || 1); return;
+      // --- the Heavenly Fox ---
+      case 'tailsweep': { const a = a0 - 1.3 + o.i * 0.33; this.celestialBeam(e, e.x, e.y, a, { variant: 'foxtail', len: 150, w: 16, delay: 0.55, dmg, kb: 130 }); return; }
+      case 'foxeyes': for (let i = 0; i < (o.count || 10); i++) { const a = r() * 6.2832, rr = i ? 8 + r() * 46 : 0; this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'foxeye', r: 9, dmg, delay: 0.6 + i * 0.06, kb: 60, charm: 0 }); } return;
+      case 'foxpounce': {
+        this.celestialSig(e, tgt.x, tgt.y, { variant: 'foxland', r: o.radius || 30, dmg, delay: 0.9, kb: 220 });
+        e.landAt = { x: tgt.x, y: tgt.y, t: 0.9, dur: 0.9 }; e.invulnT = Math.max(e.invulnT || 0, 1); this.emit('rabbitleap', e.x, e.y); return;
+      }
+      // --- the Six Paths ---
+      case 'devapath': ring(6, 30, tgt.x, tgt.y, (x, y, a, i) => this.celestialSig(e, x, y, { variant: 'devalotus', r: 13, dmg, delay: 0.7 + i * 0.07, kb: 80 })); this.celestialSig(e, tgt.x, tgt.y, { variant: 'devalotus', r: 14, dmg, delay: 1.2, kb: 120 }); return;
+      case 'asurapath': for (let i = 0; i < 6; i++) { const a = r() * 6.2832, bx = tgt.x - Math.cos(a) * 100, by = tgt.y - Math.sin(a) * 100; this.celestialBeam(e, bx, by, a, { variant: 'asurablade', len: 200, w: 8, delay: 0.55 + i * 0.1, dmg, kb: 90 }); } return;
+      case 'animalpath': for (let k = 0; k < 3; k++) { const a = r() * 6.2832, sx0 = Math.cos(a) * (R - 6), sy0 = Math.sin(a) * (R - 6); for (let i = 0; i < 4; i++) { const b = Math.atan2(tgt.y - sy0, tgt.x - sx0) + (i - 1.5) * 0.18; const pr = this.fire(e, Math.cos(b), Math.sin(b), 150, dmg, 'beastspirit'); pr.x = sx0; pr.y = sy0; pr.life = 2.4; pr.radius = 4; pr.kb = 120; } } this.emit('beaststampede', 0, 0); return;
+      case 'ghostpath': ring(8, 24, tgt.x, tgt.y, (x, y, a, i) => this.celestialSig(e, x, y, { variant: 'ghosthand', r: 10, dmg, delay: 0.6 + (i % 2) * 0.25, kb: -120, root: 0.5 })); return;
+      case 'hellpath': for (let k = 0; k < 2; k++) { const a = a0 + (k ? 1.57 : 0); for (let i = -3; i <= 3; i++) this.celestialSig(e, tgt.x + Math.cos(a) * i * 13, tgt.y + Math.sin(a) * i * 13, { variant: 'hellchain', r: 9, dmg, delay: 0.6 + Math.abs(i) * 0.08 + k * 0.4, kb: 70, root: 0.6, burnAfter: k === 1 }); } return;
+      // --- the Last Keeper ---
+      case 'keeperrays': { // light through the lid: long thin rays out of his head across the whole floor, one of them at you
+        const n = o.n || 5;
+        for (let i = 0; i < n; i++) { const a = i === 0 ? a0 : a0 + (r() - 0.5) * 2.8; this.celestialBeam(e, e.x, e.y, a, { variant: 'keeperray', len: 300, w: 6, delay: 0.55 + i * 0.07, dmg, kb: 60 }); }
+        this.emit('keeperflare', e.x, e.y); return;
+      }
+      case 'longhands': for (const s of [0, -1, 1]) { const px = -uy * s * 22, py = ux * s * 22; this.celestialSig(e, tgt.x + px, tgt.y + py, { variant: 'keeperhand', r: 12, dmg: s ? dmg * 0.7 : dmg, delay: 0.65 + Math.abs(s) * 0.15, kb: 90, root: 0.8 }); } return;
+      case 'formerselves': // your own former lives, set on you
+        for (let i = 0; i < (o.count || 2); i++) {
+          if (this.enemies.filter(m => m.summoner === e.id && !m.dead).length >= 5) break;
+          const a = r() * 6.2832, x = tgt.x + Math.cos(a) * 30, y = tgt.y + Math.sin(a) * 30, rr = Math.hypot(x, y), k = rr > R - 10 ? (R - 10) / rr : 1;
+          const m = this.spawnMinion('shadowclone', x * k, y * k, e, true);
+          if (m) { m.life = 10; m.formerSelf = true; m.maxHp = m.hp = 40; m.dmgMul = 1.2; if (this.p && this.p.skin) m.skin = this.p.skin; }
+        }
+        this.emit('formerselves', e.x, e.y); return;
+      case 'refine': { // the mouth of the jar closes round you: one way out
+        const gap = Math.floor(r() * 10);
+        ring(10, 34, tgt.x, tgt.y, (x, y, a, i) => { if (i !== gap) this.celestialSig(e, x, y, { variant: 'jarmouth', r: 10, dmg, delay: 1.1, kb: -60, poison: 3, poisonT: 2 }); });
+        this.celestialSig(e, tgt.x, tgt.y, { variant: 'gucore', r: 16, dmg: dmg * 1.4, delay: 1.5, kb: 120, corrode: 3 });
+        return;
+      }
+      case 'tally': { // every life counted, in rows of five: four strokes, then the one across them
+        const px = -uy, py = ux;
+        for (let row = -1; row <= 1; row++) for (let i = 0; i < 4; i++) { const off = (i - 1.5) * 9, ahead = row * 22; this.celestialSig(e, tgt.x + px * off + ux * ahead, tgt.y + py * off + uy * ahead, { variant: 'tallymark', r: 6, dmg: dmg * 0.6, delay: 0.5 + i * 0.08 + (row + 1) * 0.2, kb: 40 }); }
+        this.celestialBeam(e, tgt.x - px * 40, tgt.y - py * 40, Math.atan2(py, px), { variant: 'tallystrike', len: 80, w: 10, delay: 1.4, dmg, kb: 140 });
+        return;
+      }
+      case 'iterations': { // ten thousand of your lives cross the stage at once, every one of them at you
+        const n = o.n || 6, base = r() * 6.2832;
+        for (let i = 0; i < n; i++) { const a = base + i / n * 6.2832, sx0 = tgt.x + Math.cos(a) * 110, sy0 = tgt.y + Math.sin(a) * 110; this.celestialBeam(e, sx0, sy0, a + Math.PI, { variant: 'iteration', len: 220, w: 9, delay: 0.7 + i * 0.09, dmg, kb: 80 }); }
+        this.emit('iterations', tgt.x, tgt.y, { n }); return;
+      }
+      case 'jarturn': (this.spectacles = this.spectacles || []).push({ kind: 'jarturn', owner: e, t: 0, dur: 3.2, w: (r() < 0.5 ? -1 : 1) * 0.9 }); this.celestialMove(e, { move: 'keeperrays', n: 6, dmg: 14 }, tgt); this.emit('jarturn', 0, 0); return;
+      case 'flicker': { // what's left of him can't hold one place: it goes out here and lights there, firing as it goes
+        for (let i = 0; i < 3; i++) { const a = r() * 6.2832, rr = 30 + r() * 40, x = Math.cos(a) * rr, y = Math.sin(a) * rr; const b = Math.atan2(tgt.y - y, tgt.x - x); this.celestialBeam(e, x, y, b, { variant: 'keeperray', len: 260, w: 7, delay: 0.5 + i * 0.25, dmg, kb: 60 }); if (i === 2) { e.flickTo = { x, y }; e.flickT = 0.6; } }
+        this.emit('vanish', e.x, e.y); return;
+      }
+      case 'raysweep': { const n = o.n || 18, dir = o.dir || 1, a = r() * 6.2832; for (let i = 0; i < n; i++) this.celestialBeam(e, e.x, e.y, a + dir * i * 0.35, { variant: 'keeperray', len: 300, w: 8, delay: 0.5 + i * 0.07, dmg: 14, kb: 60 }); return; }
+      // --- the Sword Without a Head ---
+      case 'sheathe':
+        if (e.lastCutHit && this.p && !this.p.dead) { e.fourteenthAgainAt = this.t + 6; e.fourteenthQueued = true; this.emit('sheathe', e.x, e.y, { again: true }); }
+        else { e.fourteenthDone = true; e.hp = 0; this.emit('sheathe', e.x, e.y, { fell: true }); }
+        return;
+    }
+    return BASE_CELESTIAL_MOVE.call(this, e, o, tgt);
   },
 });

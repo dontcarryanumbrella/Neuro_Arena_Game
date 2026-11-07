@@ -4547,13 +4547,14 @@ class Renderer {
     else if (dragon) this.drawEasternDragon(sim, e, EASTERN_DRAGONS[e.type](e), jx, lift, mode === 'flash', scale);
     else if (e.type === 'lifetree' && !(e.polyT > 0)) this.drawLifeTree(sim, e, lift, mode === 'flash');
     else if (e.taiji && this.drawTaijiFigure && !(e.polyT > 0)) this.drawTaijiFigure(sim, e, lift, mode === 'flash');
+    else if (this.drawCelestialFigure && !(e.polyT > 0) && this.drawCelestialFigure(sim, e, lift, mode === 'flash')) { /* celestial.js painted it */ }
     else if (!(def.yellowKing && e.phase === 2)) this.sprite(pic, e.x + jx, e.y, flip && !egg, mode, lift, scale);
     if (dragon && e.type === 'emperor' && e.stage === 3) this.drawDragonPearl(sim, e, lift);
     g.globalAlpha = 1;
     if (!(e.polyT > 0)) this.drawFoeExtras(sim, e, pic, scale, lift, flip, jx, 'post');
     this.drawStatus(sim, e, lift);
     if (def.glitch) this.drawGlitch(sim, e, name, scale, lift, glitching, flip);
-    if (e.finalKeeper) { // a broken gold dial follows every form of the reconstructed keeper
+    if (e.finalKeeper && !e.def.keeperModel) { // a broken gold dial follows every form of the reconstructed keeper
       const g = this.g, x = sx(e.x), y = sy(e.y) - 18 - lift, a = sim.t * (e.past ? -1.8 : 1.1);
       g.save(); g.globalAlpha = 0.8; g.fillStyle = '#d7aa67';
       for (let i = 0; i < 12; i++) { if (i === 3 || i === 8) continue; const q = a + i * Math.PI / 6; g.fillRect(Math.round(x + Math.cos(q) * 13), Math.round(y + Math.sin(q) * 13), 2, 2); }
@@ -4641,7 +4642,7 @@ class Renderer {
       if (type === 'spider') this.drawSpiderLegs(e, X, base, lift, t, F);
       if (def.sprite === 'kitsune') this.drawTails(at, t, F, e.state === 'wind');
       if (e.heads) this.drawHeads(e, at, t, F, 'necks');
-      if (def.manual) this.drawImmortalBack(sim, e, X, y0, F, t);
+      if (def.manual && !e.corrupt) this.drawImmortalBack(sim, e, X, y0, F, t);
       return;
     }
     if (e.heads) this.drawHeads(e, at, t, F, 'heads');
@@ -4656,7 +4657,7 @@ class Renderer {
       } else if (r() < 0.25) this.parts.push({ kind: 'px', x: X + (r() - .5) * 12, y: Math.round(sy(e.y)), vx: (r() - .5) * 8, vy: -2, life: 0.5, max: 0.5, color: r() < 0.5 ? '#ffffff' : '#ffe9a8' });
     }
     if (def.scholar) this.drawScholar(sim, e, at, X, y0, w, h, F, t);
-    if (def.manual) this.drawImmortalFront(sim, e, X, y0, base, lift, F, t); // his flying sword, his ribbons, his Sword Intent
+    if (def.manual && !e.corrupt) this.drawImmortalFront(sim, e, X, y0, base, lift, F, t); // his flying sword, his ribbons, his Sword Intent
     if (e.spinGuardT > 0) { // the staff spun into a golden wheel in front of him
       const cy = y0 + Math.round(h * 0.45), L = e.giant ? 20 : 11;
       for (let k = 0; k < 3; k++) { // a blur of the last few turns

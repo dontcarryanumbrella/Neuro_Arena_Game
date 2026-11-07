@@ -48,11 +48,12 @@
   <div id="info"></div>
 </main>
 <script src="js/sfx.js"></script><script src="js/agent.js"></script><script src="js/sim.js"></script><script src="js/campaign.js"></script><script src="js/lore.js"></script>
-<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script><script src="js/celestial.js"></script>
+<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script><script src="js/celestial.js"></script><script src="js/celestial2.js"></script>
 <script>
 // One live arena per expansion addition, drawn by the game's own renderer in the world it belongs to.
 const $d = id => document.getElementById(id);
 const demoFoe = (type, world, desc) => ({ label: ENEMY_TYPES[type] ? ENEMY_TYPES[type].name : type, world, desc, foes: [type] });
+const corruptIt = (s, e) => { e.summit = true; s.p.maxHp = s.p.hp = 1e9; s.dealDamage(e, 99999, s.p, 0, 0, 0); for (let i = 0; i < 150; i++) s.step(null); e.manualDone = true; s.corruptSword(e); for (let i = 0; i < 240; i++) s.step(null); };
 const GROUPS = [
   ['Primordial Forest (Tier II)', 'forest', [
     { label: 'The arena: a dawn clearing', world: 'forest', desc: 'The painted forest arena under the Life Tree, with its ambient life. No foes.', foes: [] },
@@ -79,6 +80,13 @@ const GROUPS = [
   ['Netherworld Abyss (Tier III)', 'abyss', [
     { ...demoFoe('ancestor', 'abyss', 'Phase 1, Keeper of the Yellow Springs: Broth of Forgetting, sealing, ferries that drag you.'), boss: true, label: 'Yellow Spring Ancestor · phase 1', talents: true },
     { ...demoFoe('ancestor', 'abyss', 'Phase 2, Nine Springs Domain: reforming from springs, Samsara, fishing, Forgotten Reflection.'), boss: true, label: 'Yellow Spring Ancestor · phase 2', stages: 1, talents: true },
+  ]],
+  ['The Last Bosses', 'bottom', [
+    { label: 'The Last Keeper · the Keeper of the Jar', world: 'bottom', foes: ['timeadmin'], boss: true, setup: (s, e) => s.makeFinalKeeper(e), desc: 'A trace of the jar keeper himself, made of light. Light Through the Lid, the Long Hands, your Former Selves, Refining the Gu (one gap out), Every Life Counted. Passive: the same blow again and again does less and less. Ultimate: The Lid Is Lowered (stand in the light).' },
+    { label: 'The Last Keeper · the Finished Gu', world: 'bottom', foes: ['timeadmin'], boss: true, stages: 1, setup: (s, e) => s.makeFinalKeeper(e), desc: 'At 60%: four arms, more rays, Ten Thousand Iterations (your lives crossing the stage), The Jar Turns.' },
+    { label: 'The Last Keeper · What Remains of Him', world: 'bottom', foes: ['timeadmin'], boss: true, stages: 2, setup: (s, e) => s.makeFinalKeeper(e), desc: 'At 25%: a flickering trace. Ultimate: The Keeper’s Last Light.' },
+    { label: 'Sword Immortal · Sword Without a Head', world: 'summit', foes: ['swordsaint'], boss: true, setup: corruptIt, desc: 'Summit only, after the Thirteenth Sword. Corrupted swords in ink, each answered by an ink afterimage; Black Sea Tide dulls blows struck from his feet.' },
+    { label: 'Sword Immortal · the Fourteenth Sword', world: 'summit', foes: ['swordsaint'], boss: true, setup: (s, e) => { corruptIt(s, e); e.fourteenthQueued = true; }, desc: 'At 10%: Cut. The world becomes a page and folds flat; a pencil line follows you; one bare blade cuts the page. Step off the line.' },
   ]],
   ['Eastern Isles (Tier IV)', 'isles', [
     { ...demoFoe('tamamo', 'isles', 'Life 1 of nine. Next stage takes a life: each brings a tail and a new art.'), boss: true, label: 'Nine-Tailed Fox · first life' },
@@ -111,6 +119,7 @@ function start(d) {
   demoSim = new Sim('custom', 7, { visual: true, timeLimit: 9999, roster: ['bandit'], atOnce: 1 });
   demoSim.enemies.length = 0;
   const spawned = d.foes.map((t, i) => { const [x, y] = d.at || [40 + i * 20, (i ? 20 : -10)]; const e = demoSim.spawnEnemy(t, x, y); e.state = 'idle'; e.st = 0; return e; });
+  if (d.setup) d.setup(demoSim, spawned[0]);
   if (d.talents) demoSim.applyTalents(demoSim.p, ['ripple', 'vampfist', 'dragonbreath'], 'unformed');
   demoSim.p.x = -70; demoSim.p.y = 20; demoSim.waveIdx = 1; demoSim.step(null);
   demoBoss = spawned[0] || null;

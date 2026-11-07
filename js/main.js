@@ -670,7 +670,9 @@ function newViewSim() {
   else if (v.mode === 'trial') v.sim = new Sim(v.trialId, seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   else if (v.mode === 'campaign' && curRoom()) {
     const room = curRoom();
-    const foes = state.campaign.run.world === 'bottom' && room.boss === 'timeadmin' ? room.foes.map(f => ({ ...f, finalKeeper: true })) : room.foes;
+    const world = state.campaign.run.world;
+    const foes = world === 'bottom' && room.boss === 'timeadmin' ? room.foes.map(f => ({ ...f, finalKeeper: true }))
+      : world === 'summit' ? room.foes.map(f => ({ ...f, summit: true })) : room.foes; // at the Summit the Sword Immortal has a third stage
     v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   }
   else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });

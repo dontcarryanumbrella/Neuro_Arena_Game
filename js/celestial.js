@@ -661,4 +661,6 @@ RP.drawCelestialParts = function (dt) {
   }
   this.cparts = L.filter(p => p.life > 0);
 };
+// shared with celestial2.js
+window.CEL = { TAU, hash, dith, mk, whiteOf, outline, disc, glow, star4, E, crescent, sunDisc, yinyang, trigram, fall, HZ, BEAMS, PROJ, BURST, BIG };
 })();

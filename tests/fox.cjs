@@ -30,7 +30,7 @@ const run = (s, sec) => { for (let i = 0; i < sec * 60; i++) s.step(null); };
   assert.ok(seen.every((h, i) => h > (i ? seen[i - 1] : hp1)), 'every life is longer than the last');
   for (const id of ['foxfire', 'guise', 'gaze', 'fan', 'lanterns', 'dream', 'cursedmoon', 'stones']) assert.ok(e.specials.some(x => x.id === id), 'has ' + id);
   assert.equal(e.phase, 2); assert.equal(e.spriteNow, 'b_fox2');
-  e.cds.ult = 0; s.startUlt(e); assert.equal(e.ult.name, 'Nine Tails Eclipse the Moon');
+  e.cds.ult = 0; s.startUlt(e); assert.equal(e.ult.name, 'The Heavenly Fox Swallows the Moon'); assert.ok(e.r === 12 && e.dmgMul === 1.4, 'the Heavenly Fox is vast, and fiercer');
   e.state = 'idle'; e.ult = null; e.invulnT = 0; e.hp = 0; s.resolveFalls();
   assert.ok(e.dead, 'the ninth life is the last');
 }
