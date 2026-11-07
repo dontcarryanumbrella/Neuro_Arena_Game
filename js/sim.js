@@ -1020,7 +1020,7 @@ Object.assign(ENEMY_TYPES, {
       { id: 'court', kind: 'summon', wind: 0.8, recover: 0.6, cd: 12, minions: ['general', 'general'], cap: 2 },                                                  // Summon Heavenly Soldiers
     ],
     phase2: { speedMul: 1.15, cdMul: 0.55, dmgMul: 1.25, heal: 0.2, add: [] },
-    phase3: { at: 0.3, dur: 2.2, speedMul: 1.1, cdMul: 0.45, dmgMul: 1.6, heal: 0.3, flags: { r: 26, mass: 40, giant: true }, replace: {},
+    phase3: { at: 0.3, dur: 2.2, speedMul: 1.1, cdMul: 0.45, dmgMul: 1.6, heal: 0.3, flags: { r: 26, mass: 40, giant: true, skyRoam: false, speedBase: undefined }, replace: {},
       add: [
         { id: 'wuxing', kind: 'wuxing', maxRange: 999, wind: 0.55, recover: 0.5, cd: 3 },                                                                           // Breath of the Five Phases
         { id: 'pearlorbs', kind: 'shoot', proj: 'orb', shots: 5, spread: 1.1, speed: 120, dmg: 10, minRange: 0, maxRange: 220, wind: 0.4, recover: 0.4, cd: 5, homing: 1.4 }, // Dragon Pearl Barrage
@@ -1133,7 +1133,7 @@ const PHASE2 = {
         [3.0, 'dragonbreath', { range: 90, angle: 0.6, dmg: 20 }], [3.5, 'orbs', { count: 8, dmg: 14 }]] },
   },
   emperor: {
-    flags: { court: true, r: 19 },
+    flags: { court: true, r: 13, skyRoam: true, speedBase: 78 },
     // the Celestial Dragon: the edict becomes a chain of thunder; the claw, the seal and the cloud-leap give way to rain, tide and fire
     replace: {
       thunder: { id: 'thunder', kind: 'sigil', pattern: 'scatter', count: 6, maxRange: 999, wind: 0.5, recover: 0.5, dmg: 22, radius: 13, delay: 0.85, cd: 4, unblockable: true, variant: 'goldlightning' }, // Thunder Chain
@@ -1240,10 +1240,12 @@ ENEMY_TYPES.lifetree = boss('golem', {
       [1.3, 'celestial', { move: 'pollen', count: 6, dmg: 5 }], [2.2, 'sigil', { variant: 'roots', pattern: 'scatter', count: 8, radius: 13, dmg: 14, delay: 0.8, root: 1.4 }],
       [3.0, 'radial', { count: 18, kind: 'feather', dmg: 8, speed: 150 }]] },
 });
-// the White Stag's ultimate: its halo opens over the whole clearing, antlers of light turn through it, and its star falls on you
-ENEMY_TYPES.lifetree.stage3Ult = { name: 'Mercy of the White Stag', charge: 1.4, dur: 4.4, cd: 15, dark: 'rgba(250,250,240,0.25)',
-  steps: [[0, 'spectacle', { kind: 'stagnova', dur: 4.4 }], [0.2, 'celestial', { move: 'stagrays', n: 10, turn: 0 }], [1.2, 'celestial', { move: 'stagrays', n: 10, turn: 0.31 }],
-    [2.0, 'celestial', { move: 'starmotes', count: 16, dmg: 8 }], [2.6, 'sigil', { variant: 'holystar', radius: 26, dmg: 34, delay: 1.2, kb: 200 }], [3.9, 'celestial', { move: 'stagheal', pct: 0.15 }]] };
+// the White Stag's ultimate: the old forest rises round the clearing, and the god runs with its herd. Spirit deer stampede
+// across the stage in lanes, the Stag charges through you, a ring of antlers closes, and the forest blooms to heal it.
+ENEMY_TYPES.lifetree.stage3Ult = { name: 'The Herd of the Deep Forest', charge: 1.2, dur: 5.8, cd: 15, dark: 'rgba(8,24,16,0.5)',
+  steps: [[0, 'spectacle', { kind: 'stagwood', dur: 5.8 }], [0.2, 'celestial', { move: 'herd', lanes: 3, dmg: 14 }], [1.3, 'celestial', { move: 'herd', lanes: 4, dmg: 14 }],
+    [2.4, 'celestial', { move: 'stagcharge', dmg: 24 }], [3.0, 'celestial', { move: 'antlerring', dmg: 16 }], [3.7, 'celestial', { move: 'stagcharge', dmg: 24 }],
+    [4.5, 'celestial', { move: 'herd', lanes: 5, dmg: 14 }], [5.2, 'celestial', { move: 'bloom', pct: 0.15 }]] };
 for (const t of ['elfranger', 'elfsentinel', 'elfspellweaver']) ENEMY_TYPES[t].keepSkills = true; // the tree's guardians keep their arts
 
 // ---------- the True Sun and True Moon Venerables: one seal, two bodies, yin and yang ----------
@@ -4136,6 +4138,10 @@ class Sim {
       vx = ux * (radial + weave) - uy * e.strafe * 0.8; vy = uy * (radial + weave) + ux * e.strafe * 0.8;
       if (def.ai === 'serpent' && gap < reach * 0.9) { vx = 0; vy = 0; }
     }
+    if (e.skyRoam) { // the Celestial Dragon never settles: it flies long loops round the whole stage
+      const a = this.t * 0.75 + e.id * 1.7, tx = Math.cos(a) * 58, ty = Math.sin(a * 1.3) * 42, dx = tx - e.x, dy = ty - e.y, dd = Math.hypot(dx, dy) || 1;
+      vx = dx / dd; vy = dy / dd;
+    }
     const er = Math.hypot(e.x, e.y);
     if (er > R - 14) { vx -= e.x / er * 0.5; vy -= e.y / er * 0.5; }
     const vm = Math.hypot(vx, vy);
@@ -6716,6 +6722,10 @@ Object.assign(Sim.prototype, {
   // per step: the corrupted Sword Immortal's ink, his afterimages, and the Fourteenth when it is time
   updateCorrupt() {
     for (const e of this.enemies) {
+      if (e.skyRoam && !e.dead && e.state !== 'transform' && e.state !== 'stun' && !(e.frozenT > 0) && !(e.dashT > 0)) { // the Celestial Dragon keeps flying while it casts
+        const a = this.t * 0.75 + e.id * 1.7, tx = Math.cos(a) * 58, ty = Math.sin(a * 1.3) * 42, dx = tx - e.x, dy = ty - e.y, dd = Math.hypot(dx, dy) || 1, v = Math.min(dd, 46 * DT);
+        e.x += dx / dd * v; e.y += dy / dd * v; if (Math.abs(dx) > 1) e.fx = Math.sign(dx);
+      }
       if (!e.corrupt && !e.corrupting) continue;
       if (e.corrupt && e.corrupting && e.state !== 'transform') e.corrupting = false;
       if (e.dead) continue;
@@ -6804,6 +6814,18 @@ Object.assign(Sim.prototype, {
     const ring = (n, rad, cx, cy, fn) => { for (let i = 0; i < n; i++) { const a = i / n * 6.2832; fn(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, a, i); } };
     switch (o.move) {
       case 'fish': this.fishElites(e, o.n || 1); return;
+      // --- the White Stag and its herd ---
+      case 'herd': { // spirit deer stampede across the stage in parallel lanes, the middle one through you
+        const a = r() * 6.2832, n = o.lanes || 3, px = -Math.sin(a), py = Math.cos(a);
+        for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2) * 24, cx = tgt.x + px * off, cy = tgt.y + py * off; this.celestialBeam(e, cx - Math.cos(a) * 130, cy - Math.sin(a) * 130, a, { variant: 'deerherd', len: 260, w: 14, delay: 0.8 + i * 0.12, dmg, kb: 170 }); }
+        this.emit('herdcall', e.x, e.y); return;
+      }
+      case 'antlerring': for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; this.celestialSig(e, tgt.x + Math.cos(a) * 30, tgt.y + Math.sin(a) * 30, { variant: 'antler', r: 9, dmg, delay: 0.6 + (i % 3) * 0.08, kb: -120, root: 0.6 }); } return;
+      case 'bloom': { // the forest blooms under the god, and it is whole a little more
+        const n = Math.min(e.maxHp - e.hp, e.maxHp * (o.pct || 0.15)); e.hp += n; if (n > 0) this.emit('heal', e.x, e.y, { n: Math.round(n) });
+        for (let i = 0; i < 6; i++) { const a = r() * 6.2832, rr = 10 + r() * 40; this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'antler', r: 10, dmg: 14, delay: 0.5 + i * 0.05, kb: 90 }); }
+        this.emit('forestbloom', e.x, e.y); return;
+      }
       // --- the Heavenly Fox ---
       case 'tailsweep': { const a = a0 - 1.3 + o.i * 0.33; this.celestialBeam(e, e.x, e.y, a, { variant: 'foxtail', len: 150, w: 16, delay: 0.55, dmg, kb: 130 }); return; }
       case 'foxeyes': for (let i = 0; i < (o.count || 10); i++) { const a = r() * 6.2832, rr = i ? 8 + r() * 46 : 0; this.celestialSig(e, tgt.x + Math.cos(a) * rr, tgt.y + Math.sin(a) * rr, { variant: 'foxeye', r: 9, dmg, delay: 0.6 + i * 0.06, kb: 60, charm: 0 }); } return;

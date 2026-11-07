@@ -368,4 +368,58 @@ RP.celestialEvent = function (ev) {
   }
   return baseEvent.call(this, ev);
 };
+
+// =====================================================================================================
+// the White Stag's herd: an old forest of pale trunks round the clearing, and spirit deer running the lanes
+// =====================================================================================================
+const deer = (g, x, y, F, ph, a = 1) => { // a little spirit deer mid-gallop
+  g.globalAlpha = a; g.fillStyle = '#f4f8ff'; g.beginPath(); g.ellipse(x, y - 4, 4, 1.8, 0, 0, TAU); g.fill();
+  g.fillRect(Math.round(x + F * 3), Math.round(y - 7), 1.5, 3); g.fillRect(Math.round(x + F * 3.5), Math.round(y - 8), 2 * F, 1.4);
+  const s1 = ph ? 2 : -1, s2 = ph ? -1 : 2; g.fillRect(Math.round(x + F * 2 + s1), Math.round(y - 3), 1, 3); g.fillRect(Math.round(x - F * 2 + s2), Math.round(y - 3), 1, 3);
+  g.strokeStyle = '#ffffff'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x + F * 3.5, y - 8); g.lineTo(x + F * 2.5, y - 11); g.lineTo(x + F * 1.5, y - 12); g.moveTo(x + F * 3, y - 10); g.lineTo(x + F * 4.5, y - 12); g.stroke();
+  g.globalAlpha = 1;
+};
+BEAMS.deerherd = ['#d8ffe0', '#ffffff'];
+Object.assign(BURST, { });
+const baseEvent2 = RP.celestialEvent;
+RP.celestialEvent = function (ev) {
+  if (ev.type === 'beamhit' && ev.variant === 'deerherd') {
+    (this.cparts = this.cparts || []).push({ kind: 'herd', x0: sx(ev.x), y0: sy(ev.y), x1: sx(ev.x1), y1: sy(ev.y1), life: 0.6, max: 0.6, seed: Math.random() * 100 });
+    this.shake = Math.max(this.shake, 4); this.snd('whoosh'); return true;
+  }
+  if (ev.type === 'herdcall') { this.banner = { text: 'THE HERD RUNS', life: 1, small: true, color: '#d8ffe0' }; this.snd('roar'); return true; }
+  if (ev.type === 'forestbloom') { for (let i = 0; i < 40; i++) this.parts.push({ kind: 'px', x: sx(ev.x) + (Math.random() - 0.5) * 60, y: sy(ev.y) + (Math.random() - 0.5) * 30, vx: 0, vy: -10 - Math.random() * 10, life: 1, max: 1, color: ['#ffffff', '#ffd8ec', '#c8ffb0', '#fff6c0'][i % 4] }); this.flash('rgba(220,255,220,0.3)', 0.15); this.snd('holy'); return true; }
+  return baseEvent2.call(this, ev);
+};
+const baseParts = RP.drawCelestialParts;
+RP.drawCelestialParts = function (dt) {
+  const g = this.g;
+  for (const p of this.cparts || []) if (p.kind === 'herd') { // a dozen spirit deer galloping down the lane, trailing light
+    const u = 1 - p.life / p.max, F = p.x1 >= p.x0 ? 1 : -1;
+    for (let i = 0; i < 9; i++) {
+      const v = u * 1.4 - (i % 5) * 0.09 - hash(i, 2, p.seed | 0) * 0.15; if (v < 0 || v > 1) continue;
+      const x = p.x0 + (p.x1 - p.x0) * v, y = p.y0 + (p.y1 - p.y0) * v + (hash(i, 3, p.seed | 0) - 0.5) * 8;
+      g.globalAlpha = 0.3; g.fillStyle = '#c8ffd8'; g.fillRect(Math.round(x - F * 8), Math.round(y - 4), 6, 1);
+      glow(g, x, y - 5, 4, '#d8ffe0', 0.4); deer(g, x, y, F, Math.floor((u * 30 + i) % 2), 0.95);
+    }
+  }
+  baseParts.call(this, dt);
+};
+const baseSpect2 = RP.drawSpectacles;
+RP.drawSpectacles = function (sim, layer) {
+  baseSpect2.call(this, sim, layer);
+  if (layer !== 'back') return;
+  const g = this.g, t = sim.t;
+  for (const S of sim.spectacles || []) if (S.kind === 'stagwood') { // the old forest rises round the clearing: pale trunks, mist, leaves falling
+    const k = Math.min(1, S.t / 0.6, (S.dur - S.t) / 0.5);
+    g.globalAlpha = 0.4 * k; g.fillStyle = '#081a10'; g.fillRect(0, 13, W, H - 13); g.globalAlpha = 1;
+    for (let i = 0; i < 14; i++) {
+      const side = i < 7 ? 0 : 1, j = i % 7, x = side ? W - 10 - j * 7 - (hash(i, 1, 4)) * 4 : 6 + j * 7 + hash(i, 1, 4) * 4, h = 60 + hash(i, 2, 4) * 60 - j * 4, rise = Math.min(1, S.t / (0.4 + i * 0.04)); // round the edge of the clearing, not across it
+      g.globalAlpha = 0.55 * k; g.fillStyle = '#e8f0ec'; g.fillRect(Math.round(x), Math.round(13 + (1 - rise) * 40), 3, Math.round(h * rise));
+      g.fillStyle = '#5a6a62'; for (let y = 20; y < h; y += 9) g.fillRect(Math.round(x + (y % 2)), Math.round(13 + y), 2, 1); // birch marks
+    }
+    for (let i = 0; i < 30; i++) { const u = (t * 0.15 + hash(i, 5, 4)) % 1; g.globalAlpha = 0.8 * k * (1 - u); g.fillStyle = i % 3 ? '#c8ffb0' : '#ffffff'; g.fillRect(Math.round(hash(i, 6, 4) * W + Math.sin(t * 2 + i) * 6), Math.round(14 + u * 120), 1, 1); }
+    g.globalAlpha = 0.18 * k; g.fillStyle = '#e8fff0'; g.fillRect(0, 100, W, 44); g.globalAlpha = 1; // mist low on the floor
+  }
+};
 })();

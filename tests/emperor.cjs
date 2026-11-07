@@ -16,7 +16,7 @@ const ids = e => e.specials.map(x => x.id).sort().join(',');
   s.dealDamage(e, 99999, s.p, 0, 0, 0);
   assert.ok(e.hp > 0 && e.hp < e.maxHp * 0.65, 'gated at 65%');
   s.p.x = -160; run(s, 2.5);
-  assert.equal(e.phase, 2); assert.equal(e.stage, 2); assert.equal(e.r, 19, 'the Celestial Dragon is big');
+  assert.equal(e.phase, 2); assert.equal(e.stage, 2); assert.equal(e.r, 13); assert.ok(e.skyRoam, 'the Celestial Dragon flies loops');
   for (const id of ['tide', 'dragonfire', 'rain', 'gust', 'court', 'thunder']) assert.ok(e.specials.some(x => x.id === id), 'stage 2 has ' + id);
   assert.equal(s.T(s.p, 'x'), 0);
   // the true body

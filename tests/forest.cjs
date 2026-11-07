@@ -66,7 +66,7 @@ for (const t of [...NEW, 'jaderabbit', 'lifetree']) for (let seed = 1; seed <= 2
   assert.ok(e.stag && e.stage === 3 && e.hp === e.maxHp, 'the White Stag, whole');
   assert.ok(!e.specials.some(x => x.kind === 'summon'), 'the Stag does not summon');
   const x0 = e.x; for (let i = 0; i < 300; i++) { s.p.x = -70; s.p.y = 30; s.step(null); } assert.ok(Math.abs(e.x - x0) > 3, 'and it moves');
-  e.cds.ult = 0; e.state = 'idle'; s.startUlt(e); assert.equal(e.ult.name, 'Mercy of the White Stag');
+  e.cds.ult = 0; e.state = 'idle'; s.startUlt(e); assert.equal(e.ult.name, 'The Herd of the Deep Forest');
   e.hp = e.maxHp * 0.5; const h0 = e.hp; s.celestialDealt(e, s.p, 40); assert.ok(e.hp > h0, 'the Stag heals from its wounds');
 }
 // the Rabbit's moon: four phases, each its own animal

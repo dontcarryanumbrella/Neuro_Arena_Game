@@ -2779,7 +2779,7 @@ const EASTERN_DRAGONS = {
   eastdragon: () => ({ body: '#3f8a4a', dark: '#2a5e33', belly: '#d9c27a', mane: '#e8c34a', horn: '#ece4d2', eye: '#ffe14d', len: 30, th: 4 }),
   emperor: e => e.stage === 3
     ? { body: '#ffcc40', dark: '#c8901c', belly: '#fff3c0', mane: '#ff7a2a', horn: '#ffffff', eye: '#ff3030', len: 46, th: 6, big: 3.2 } // the true body: the dragon's own proportions, three times over
-    : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6, big: 1.7 },  // the Celestial Dragon: azure and gold, and vast
+    : { body: '#4a8ad0', dark: '#2a5a9a', belly: '#ffe9a8', mane: '#ffd84a', horn: '#ffffff', eye: '#ffd84a', len: 46, th: 6 },  // the Celestial Dragon: azure and gold
   inkdragon: () => ({ body: '#1e1e24', dark: '#0a0a0e', belly: '#4a4a52', mane: '#5a5f66', horn: '#8a8f9c', eye: '#ff2a2a', len: 28, th: 4 }),
 };
 // a dragon's head, facing right: h horn, M mane, B head, D shade, e eye, n nostril, w teeth, j jaw
