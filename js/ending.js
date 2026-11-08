@@ -460,14 +460,20 @@ function jarMouth(g, k, t, gap = 0.15, lift = 0) {
   k.rect(-4, -90, W + 8, 92, k.vgrad(-90, 2, ['#040201', '#0b0603', '#140b06']));
   for (let i = 0; i < 4; i++) k.curve([[0, -6 - i * 18], [128, -20 - i * 20], [256, -6 - i * 18]], 'rgba(96,62,38,0.28)', 0.6);
   k.poly([[-4, -90], [70, -90], [104, 4], [-4, 40]], 'rgba(0,0,0,0.45)'); k.poly([[W + 4, -90], [186, -90], [152, 4], [W + 4, 40]], 'rgba(0,0,0,0.45)');
-  // the mouth: light behind wherever the lid does not cover it
-  const open = Math.max(gap, lift);
-  cutLight(g, () => { k.glow(128, 0, 34 + open * 60, '#fff0c8', 0.35 + open * 0.6, 12 + open * 20); });
-  k.oval(128, 0, 21, 5.4, '#3a2416'); k.oval(128, 0, 18, 4.2, '#fff4d4'); k.oval(128, -0.3, 13, 2.8, '#ffffff');
-  if (lift < 1) { // the lid: slid aside, a crescent of daylight along its edge, or lifting away
+  // the mouth: a lip of clay round the opening; the light is only in the part of the opening the lid leaves bare
+  const open = Math.max(gap, lift), [ol, or] = mouthOpen(gap, lift), oc = (ol + or) / 2, ow = Math.max(1, or - ol);
+  k.oval(128, 0.6, 23, 6, '#24160c'); k.oval(128, 0, 21, 5.4, '#4e3422'); // the lip, its top lit a little
+  k.with(() => { // the opening, clipped to itself: sky where nothing covers it, the lid's own shadow where something does
+    g.beginPath(); g.ellipse(128, 0, 18, 4.2, 0, 0, Math.PI * 2); g.clip();
+    k.rect(108, -6, 40, 12, '#120a05');
+    if (lift < 1) k.with(() => { g.beginPath(); g.rect(ol, -6, ow, 12); g.clip(); k.oval(128, 0, 18, 4.2, '#fff4d4'); k.oval(oc, 0, Math.min(13, ow * 0.45), 2.6, '#ffffff'); });
+    else { k.oval(128, 0, 18, 4.2, '#fff4d4'); k.oval(128, -0.3, 13, 2.8, '#ffffff'); }
+  });
+  cutLight(g, () => k.glow(oc, 0, 14 + ow * 1.6 + open * 40, '#fff0c8', 0.25 + Math.min(1, ow / 36) * 0.5 + open * 0.3, 8 + ow * 0.6)); // its light, from where it comes in
+  if (lift < 1) { // the lid: slid aside on the lip, or lifting away
     const lx = 128 + gap * 40 + lift * 10, ly = -0.6 - easeIn(lift) * 70, r = 21 + lift * 8;
-    cutLight(g, () => k.oval(lx - r + 1, 0.6, 3 + gap * 20, 4.4, `rgba(255,250,228,${0.5 + gap * 2})`));
     k.oval(lx, ly + 1.2, r, 5.4 + lift * 2, '#140b06'); k.oval(lx, ly, r, 5.2 + lift * 2, '#2e1c10'); k.oval(lx - 2, ly - 1, r * 0.8, 2.6 + lift, '#3e2818');
+    if (lift <= 0) cutLight(g, () => k.rect(lx - r, ly - 0.4, 1.4, 1.6, `rgba(255,244,212,${0.4 + gap * 2})`)); // daylight catching the lid's near edge
   }
   for (let i = 0, n = ALL_SEALS.length; i < n; i++) { // every talisman's burnt stub, dark against the light, an ember on a few
     const x = 113 + i * 29.4 / (n - 1), len = 2.5 + (i * 7) % 5, sw = Math.sin(t * 0.8 + i) * 0.3, ly = -easeIn(lift) * 70;
@@ -477,13 +483,16 @@ function jarMouth(g, k, t, gap = 0.15, lift = 0) {
   // dust shaken from the rim, falling through the gap's light
   for (let i = 0; i < 10; i++) { const v = (t * 0.22 + i / 10) % 1, x = 108 + (i * 13) % 26 + Math.sin(t + i) * 1.5; k.px(x, 3 + v * 40, `rgba(255,232,190,${(1 - v) * 0.7 * Math.min(1, open * 6)})`); }
 }
-// rays of the mouth's light, falling to the floor; w: how wide they spread, a: how strong
-function jarRays(g, k, t, w = 1, a = 1) {
+// how much of the mouth is bare: [left, right] across its opening (it spans 110..146); the lid, slid right, covers the rest
+function mouthOpen(gap, lift) { return lift > 0 ? [110, 146] : [110, Math.max(111, Math.min(146, 107 + gap * 40))]; }
+// rays of the mouth's light, falling to the floor from the part of it that is bare; w: how wide they spread, a: how strong
+function jarRays(g, k, t, w = 1, a = 1, gap = 0.15, lift = 0) {
+  const [ol, or] = mouthOpen(gap, lift), oc = (ol + or) / 2, half = Math.max(2, (or - ol) / 2);
   cutLight(g, () => {
-    k.poly([[128 - 14 * w, 2], [128 + 14 * w, 2], [128 + 46 * w, 92], [128 - 46 * w, 92]], k.vgrad(0, 92, [`rgba(255,236,190,${0.16 * a})`, `rgba(255,226,170,${0.04 * a})`]));
+    k.poly([[oc - half, 2], [oc + half, 2], [128 + 46 * w, 92], [128 - 46 * w, 92]], k.vgrad(0, 92, [`rgba(255,236,190,${0.16 * a})`, `rgba(255,226,170,${0.04 * a})`]));
     for (let i = 0; i < 5; i++) { // thin beams, each breathing on its own
-      const x = 128 + (i - 2) * 7 * w, sp = (i - 2) * 9 * w, b = (0.05 + 0.04 * Math.sin(t * 0.9 + i * 1.7)) * a;
-      k.poly([[x - 1.6, 4], [x + 1.6, 4], [x + sp + 4, 96], [x + sp - 4, 96]], k.vgrad(4, 96, ['rgba(255,240,205,0)', `rgba(255,240,205,${b})`, `rgba(255,240,205,${b * 0.6})`, 'rgba(255,240,205,0)']));
+      const x0 = oc + (i - 2) * half * 0.35, x = 128 + (i - 2) * 7 * w, sp = (i - 2) * 9 * w, b = (0.05 + 0.04 * Math.sin(t * 0.9 + i * 1.7)) * a; // each beam leaves the bare part of the mouth
+      k.poly([[x0 - 1.2, 4], [x0 + 1.2, 4], [x + sp + 4, 96], [x + sp - 4, 96]], k.vgrad(4, 96, ['rgba(255,240,205,0)', `rgba(255,240,205,${b})`, `rgba(255,240,205,${b * 0.6})`, 'rgba(255,240,205,0)']));
     }
     k.oval(128, 104, 34 * w + 10, 9, `rgba(255,214,150,${0.09 * a})`); // where it lands on the clay
   });
@@ -500,8 +509,16 @@ function jarFraming(k, t, a = 1) {
 }
 // her, or the one in her coat; drop lowers the head, rise lifts from a kneel to standing
 function jarHer(g, echo, { x = YX, drop = 0, crop = 3, alpha = 1, filter } = {}) {
-  if (echo) cutEcho(g, x, FLOOR + drop, { crop, alpha, filter: filter || 'grayscale(1) brightness(0.48)' });
-  else cutSprite(g, 'b_yunxi', x, FLOOR - 2 + drop, { crop, alpha, filter: filter || 'none' });
+  if (echo) { cutEcho(g, x, FLOOR + drop, { crop, alpha, filter: filter || 'grayscale(1) brightness(0.48)' }); return; }
+  const kneel = Math.min(1, crop / 3), k = cutKit(g);
+  if (kneel > 0) { // kneeling: her skirt pooled round her on the clay, her feet folded under it behind
+    g.save(); g.globalAlpha = alpha; if (filter) g.filter = filter;
+    k.rect(Math.round(x + 4), FLOOR - 2, 6, 2, '#0e0e14'); k.rect(Math.round(x + 8), FLOOR - 2, 2, 1, '#141414'); // a foot, folded back under
+    k.rect(Math.round(x - 9 * kneel), FLOOR - 4, Math.round(18 * kneel), 2, '#2a2a35'); k.rect(Math.round(x - 10 * kneel), FLOOR - 2, Math.round(20 * kneel), 2, '#1e1e28'); // the skirt, spread on the floor
+    k.rect(Math.round(x - 9 * kneel), FLOOR - 4, Math.round(18 * kneel), 1, '#45455a'); // its top edge, catching the light
+    g.restore();
+  }
+  cutSprite(g, 'b_yunxi', x, FLOOR - 2 * kneel - 2 + drop + Math.round(kneel * 0), { crop, alpha, filter: filter || 'none' });
 }
 // you: the sword lowered at your side, and the page, if you carry it
 // a sword drawn on the sprites' own grid (whole units, no thin lines): the hand at (hx, hy), the point at (tx, ty)
@@ -524,8 +541,8 @@ function jarScene(g, k, t, o, actors) {
   k.rect(0, 0, W, H, '#000');
   cam(g, o.x0 || 0, o.y0 || 0, o.z || 1, () => {
     cutJar(g, k, t, o.lift || 0);
-    jarMouth(g, k, t, o.gap == null ? 0.15 : o.gap, o.lift || 0);
-    jarRays(g, k, t, o.rays || 1, o.raysA == null ? 1 : o.raysA);
+    jarMouth(g, k, t, o.gap == null ? 0.2 : o.gap, o.lift || 0);
+    jarRays(g, k, t, o.rays || 1, o.raysA == null ? 1 : o.raysA, o.gap == null ? 0.2 : o.gap, o.lift || 0);
     actors();
   });
   if (o.framing !== false && (o.z || 1) === 1) jarFraming(k, t);
@@ -1220,11 +1237,23 @@ function swordEmperorBeats(cycle) {
       draw(g, k, t, u) { // close: the hilt and the tied page, snow settling on them one flake at a time
         k.rect(0, 0, W, H, k.vgrad(0, H, ['#0a1024', '#16224a', '#0a1024']));
         cutLight(g, () => k.glow(128, 70, 80, '#9fb8e8', 0.12));
-        k.poly([[40, 96], [216, 66], [218, 74], [42, 104]], '#1a1214'); k.poly([[40, 96], [216, 66], [217, 69], [41, 99]], '#3a2a2a'); // the sheath, lacquered
-        k.rect(198, 60, 6, 18, '#c9a65a'); k.rect(204, 63, 30, 8, '#2f4f8a'); for (let i = 0; i < 5; i++) k.rect(206 + i * 5, 63, 2, 8, '#c9a65a'); k.oval(236, 67, 4, 4, '#e8c34a'); // the guard and the hilt
-        k.poly([[120, 76], [150, 71], [154, 92], [124, 97]], '#f4ecd8'); k.poly([[120, 76], [150, 71], [151, 74], [121, 79]], '#d8ccb0'); k.rect(142, 84, 6, 6, '#c23b22'); k.rect(143, 85, 4, 4, '#e0483a'); // the page, tied, its seal
-        k.line(118, 82, 156, 75, '#c23b22', 0.8); k.line(120, 92, 156, 85, '#c23b22', 0.8); // the cord
-        for (let i = 0; i < 26; i++) { const v = Math.min(1, ((t * 0.35 + i * 0.137) % 1.4)), x = 30 + (i * 41) % 200, y = v * 110 - 10; if (y < 60 + (x - 40) * -0.17 + 36) k.px(x, y, 'rgba(240,246,255,0.85)'); else k.rect(x, 96 - (x - 40) * 0.17 - 1, 1, 1, '#eef4ff'); }
+        const SA = Math.atan2(-30, 176), OX = 24, top = x => 102 + (x - OX) * Math.tan(SA) - 4; // the whole sword on one axis
+        k.with(() => {
+          g.translate(OX, 102); g.rotate(SA);
+          k.rect(0, -4, 178, 8, '#1a1214'); k.rect(0, -4, 178, 2, '#3a2a2a'); k.rect(0, 3, 178, 1, '#0c0808'); // the scabbard, lacquered, lit along its top
+          for (let i = 12; i < 170; i += 22) k.rect(i, -4, 1, 8, 'rgba(90,60,50,0.35)'); // its grain
+          k.rect(0, -4.5, 7, 9, '#c9a65a'); k.rect(0, -4.5, 7, 2, '#ffe9a0'); // the chape at its end
+          k.rect(172, -4.5, 6, 9, '#c9a65a'); k.rect(172, -4.5, 6, 2, '#ffe9a0'); // the collar at its mouth
+          k.rect(178, -10, 5, 20, '#8a6a30'); k.rect(178, -10, 4, 19, '#c9a65a'); k.rect(178, -10, 4, 2, '#ffe9a0'); // the guard, square to the blade
+          k.rect(183, -3.5, 32, 7, '#2f4f8a'); k.rect(183, -3.5, 32, 2, '#3f6aa8'); // the hilt, bound in blue
+          for (let i = 0; i < 5; i++) { k.rect(186 + i * 6, -3.5, 2, 7, '#c9a65a'); k.rect(186 + i * 6, -3.5, 2, 1, '#ffe9a0'); } // its gold wrap
+          k.oval(218, 0, 4, 4, '#a8862e'); k.oval(217.5, -0.5, 3.4, 3.4, '#e8c34a'); k.rect(216, -2.5, 2, 1, '#fff4c0'); // the pommel
+          k.rect(82, -8, 30, 16, '#d8ccb0'); k.rect(82, -8, 30, 13, '#f4ecd8'); k.rect(82, -8, 30, 2, '#ffffff'); // the page, wrapped round it
+          for (let i = 0; i < 4; i++) k.rect(86 + i * 6, -4 + (i % 2), 4, 0.6, 'rgba(150,130,100,0.35)'); // ruled, never written on
+          k.rect(84, -9, 1.5, 18, '#c23b22'); k.rect(108, -9, 1.5, 18, '#c23b22'); // the cord, bound twice
+          k.rect(100, -1, 6, 6, '#a8322a'); k.rect(101, 0, 4, 4, '#e0483a'); // its seal
+        });
+        for (let i = 0; i < 26; i++) { const v = Math.min(1, ((t * 0.35 + i * 0.137) % 1.4)), x = 30 + (i * 41) % 200, y = v * 110 - 10; if (x < OX || x > OX + 178 || y < top(x)) k.px(x, y, 'rgba(240,246,255,0.85)'); else k.rect(Math.round(x), Math.round(top(x)), 1, 1, '#eef4ff'); } // snow, settling on its top edge
         cutVignette(g, 0.6, '0,0,8', 40);
       } },
     { dur: 5, line: `New Game+ ${cycle}. You wait at the Peaks now, for the next one to climb.`,
