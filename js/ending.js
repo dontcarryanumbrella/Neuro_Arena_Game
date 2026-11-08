@@ -396,7 +396,7 @@ function teacherBeats() {
       draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); scene(g, k, { snowT: snow(t, 1 - u * 0.55), dim: u * 0.12 }); } },
     { dur: 3.8, line: '“Enough.”', noFade: true, // closer: him, in his own cold light
       draw(g, k, t, u) {
-        k.rect(0, 0, W, H, '#000'); scene(g, k, { z: 2, x0: 40, y0: 52, snowT: snow(t, 0.45 - u * 0.3), dim: 0.12 + u * 0.08 });
+        k.rect(0, 0, W, H, '#000'); scene(g, k, { z: 2, x0: 30, y0: 52, snowT: snow(t, 0.45 - u * 0.3), dim: 0.12 + u * 0.08 });
         if (u > 0.08) cutOnce('word', () => sfx.play('gong'));
       } },
     { dur: 2.6, line: '', noFade: true, // the pause: the snow stops in the air, the light drains toward his blade, the world leans in
@@ -504,10 +504,19 @@ function jarHer(g, echo, { x = YX, drop = 0, crop = 3, alpha = 1, filter } = {})
   else cutSprite(g, 'b_yunxi', x, FLOOR - 2 + drop, { crop, alpha, filter: filter || 'none' });
 }
 // you: the sword lowered at your side, and the page, if you carry it
-function jarYou(g, k, t, { x = HX0, walk = false, crop = 0, sword = true, page = false, filter = 'none', alpha = 1 } = {}) {
+// a sword drawn on the sprites' own grid (whole units, no thin lines): the hand at (hx, hy), the point at (tx, ty)
+function pxSword(k, hx, hy, tx, ty, { blade = '#dfe9f5', edge = '#ffffff', a = 1 } = {}) {
+  const n = Math.max(1, Math.round(Math.hypot(tx - hx, ty - hy))), ux = (tx - hx) / n, uy = (ty - hy) / n;
+  for (let i = 1; i <= n; i++) k.rect(Math.round(hx + ux * i), Math.round(hy + uy * i), 1, 1, i === n ? edge : i % 4 === 2 ? edge : blade);
+  k.rect(Math.round(hx - uy) - 1, Math.round(hy + ux * 0.5), 3, 1, '#c9a65a'); // the guard, across the blade
+  for (let i = 1; i <= 2; i++) k.rect(Math.round(hx - ux * i), Math.round(hy - uy * i), 1, 1, '#2f4f8a'); // the hilt
+  k.rect(Math.round(hx - ux * 3), Math.round(hy - uy * 3), 1, 1, '#c9a65a');
+}
+function jarYou(g, k, t, { x = HX0, walk = false, crop = 0, sword = true, page = false, holding = false, filter = 'none', alpha = 1 } = {}) {
   k.oval(x, FLOOR, 8, 1.6, 'rgba(0,0,0,0.35)');
   cutSprite(g, walk && Math.floor(t * 7) % 2 ? 'hero_walk' : 'hero', x, FLOOR + crop * 2, { flip: true, crop, filter, alpha });
-  if (sword) { k.line(x - 6, FLOOR - 9 + crop * 2, x - 12, FLOOR - 1, '#dfe9f5', 0.7); k.rect(x - 7, FLOOR - 10 + crop * 2, 2, 1, '#c9a65a'); }
+  if (sword) pxSword(k, x - 6, FLOOR - 9 + crop * 2, x - 13, FLOOR - 1);
+  if (holding) { const hx = x - 7, hy = FLOOR - 9 + crop * 2; cutLight(g, () => k.glow(hx + 1, hy + 1, 6, '#ffd88a', 0.3 + 0.12 * Math.sin(t * 3))); cutDie(k, hx - 1, hy - 1, 1); } // her die, kept
   if (page) { k.rect(x + 5, FLOOR - 11 + crop * 2, 3, 4, '#f4f0e0'); cutLight(g, () => k.glow(x + 6.5, FLOOR - 9 + crop * 2, 7, '#ffd88a', 0.35 + 0.2 * Math.sin(t * 2.2))); }
 }
 // the floor of the jar with its light; o: { z, x0, y0, gap, lift, rays, raysA, framing }
@@ -538,15 +547,15 @@ function finaleBeats(echo, page, symbols) {
         jarScene(g, k, t, {}, () => {
           k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)');
           jarHer(g, echo, { crop: Math.round(kneel * 3), drop: 0 });
-          jarYou(g, k, t);
+          jarYou(g, k, t, { page });
         });
         if (kneel >= 1) cutOnce('knee', () => sfx.play('thud'));
       } },
     { dur: 3.8, line: '', noFadeOut: true,
       draw(g, k, t, u) { // close on the clay: the die leaves her hand and comes to rest at your feet
-        jarScene(g, k, t, { z: 3, x0: 96, y0: 72 }, () => {
+        jarScene(g, k, t, { z: 3, x0: 86 + span(u, 0, 1) * 4, y0: 72 }, () => { // a slow drift after the die
           k.oval(DIE[0] + 2, DIE[1] + 6, 14, 3, 'rgba(255,214,150,0.12)');
-          jarHer(g, echo); jarYou(g, k, t);
+          jarHer(g, echo); jarYou(g, k, t, { page });
           const v = dieRoll(k, span(u, 0.08, 0.92));
           if (v >= 0.5) cutOnce('b1', () => sfx.play('pop'));
           if (v >= 1) cutOnce('b2', () => sfx.play('pop'));
@@ -569,7 +578,7 @@ function finaleBeats(echo, page, symbols) {
         });
         if (u > 0.6) cutOnce('creak', () => sfx.play('rock'));
       } },
-    { choices: [['Open the door', () => playCutscene(doorBeats(echo), afterDoor), true], ['Pick up the die', () => { endCutscene(); chooseDie(); }], ...(page ? [['Sheathe the sword', () => { endCutscene(); chooseSwordEmperor(); }]] : []), ...(page && symbols ? [['Close the circle', () => { endCutscene(); chooseSymbols(); }]] : []), ['Not yet', () => endCutscene()]],
+    { choices: [['Open the door', () => playCutscene(doorBeats(echo, page), afterDoor), true], ['Pick up the die', () => { endCutscene(); chooseDie(); }], ...(page ? [['Sheathe the sword', () => { endCutscene(); chooseSwordEmperor(); }]] : []), ...(page && symbols ? [['Close the circle', () => { endCutscene(); chooseSymbols(); }]] : []), ['Not yet', () => endCutscene()]],
       line: page && symbols ? 'Above you, the lid is loose. In your hand, the Fourteenth Page. Around the rim, five shapes are waiting.' : page ? 'Above you, the lid is loose. In your hand, the Fourteenth Page.' : 'Above you, the lid is loose. At your feet, her die.',
       draw(g, k, t) { // the choice, held: the two of you under the loose lid
         jarScene(g, k, t, { gap: 0.15 + Math.sin(t * 0.8) * 0.02, raysA: 1 + Math.sin(t * 1.3) * 0.15 }, () => {
@@ -676,15 +685,16 @@ function seaHandShadow(g, k, top) {
 }
 
 // Ending one, the Door: the lid lifts, the core rises out of the jar into a hand held open, and the face becomes a clock.
-function doorBeats(echo) {
+const DOORX = 119; // where you stand under the mouth: in the light, the die at your feet
+function doorBeats(echo, page) {
   return [
     { dur: 6.4, line: 'The lid lifts. Light pours in.', sound: 'riser', noFadeIn: true,
       draw(g, k, t, u) { // you step under the mouth; the lid grinds aside and lifts away; the light comes down on you both
-        const walk = span(u, 0, 0.32), lift = easeIn(span(u, 0.34, 0.8)), x = HX0 - easeInOut(walk) * (HX0 - 128);
+        const walk = span(u, 0, 0.32), lift = easeIn(span(u, 0.34, 0.8)), x = HX0 - easeInOut(walk) * (HX0 - DOORX);
         jarScene(g, k, t, { gap: 0.15 + lift * 0.4, lift, rays: 1 + lift * 1.6, raysA: 1 + lift * 2.4 }, () => {
           k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)');
           jarHer(g, echo, { drop: Math.round(2 - span(u, 0.45, 0.6) * 2) }); cutDie(k, DIE[0], DIE[1], 1);
-          jarYou(g, k, t, { x, walk: walk > 0 && walk < 1 });
+          jarYou(g, k, t, { x, walk: walk > 0 && walk < 1, page });
           k.poly([[YX - 3, FLOOR], [YX + 3, FLOOR], [YX - 8 - lift * 10, FLOOR + 6 + lift * 6], [YX - 16 - lift * 10, FLOOR + 6 + lift * 6]], `rgba(0,0,0,${0.18 + lift * 0.2})`); // shadows thrown long by the light
         });
         if (u > 0.34) cutOnce('grind', () => sfx.play('rock'));
@@ -694,21 +704,23 @@ function doorBeats(echo) {
       draw(g, k, t, u) { // close on you in the full light; the core climbs out of you and the camera follows it up
         const rise = easeInOut(span(u, 0.25, 1)), cy = 97 - rise * 116, look = easeInOut(span(u, 0.35, 1));
         jarScene(g, k, t, { z: 2, x0: 64, y0: 52 - look * 100, lift: 1, rays: 2.6, raysA: 3.2 }, () => {
-          jarHer(g, echo, { drop: 0 });
-          jarYou(g, k, t, { x: 128, sword: true, filter: `grayscale(${span(u, 0.1, 0.6)}) brightness(${1 - span(u, 0.1, 0.6) * 0.35})` });
-          cutLight(g, () => { k.glow(128, cy, 10 + 6 * Math.sin(t * 5), '#7fe0a8', 0.55); k.line(128, 97, 128, cy, 'rgba(160,240,200,0.35)', 0.5); });
-          for (let i = 1; i < 8; i++) k.px(128 + Math.sin(t * 6 + i) * 1.4, cy + i * 2.5, `rgba(200,255,220,${0.6 - i * 0.07})`);
-          k.circle(128, cy, 2.2, '#7fe0a8'); k.circle(128, cy, 1.3, '#cfffe0'); k.px(127.5, cy - 0.5, '#ffffff');
+          jarHer(g, echo, { drop: 0 }); cutDie(k, DIE[0], DIE[1], 1);
+          jarYou(g, k, t, { x: DOORX, sword: true, page, filter: `grayscale(${span(u, 0.1, 0.6)}) brightness(${1 - span(u, 0.1, 0.6) * 0.35})` });
+          const cx = DOORX + (128 - DOORX) * easeInOut(span(u, 0.35, 0.9)); // out of your chest, drifting to the middle of the mouth as it climbs
+          cutLight(g, () => { k.glow(cx, cy, 10 + 6 * Math.sin(t * 5), '#7fe0a8', 0.55); k.line(DOORX, 97, cx, cy, 'rgba(160,240,200,0.35)', 0.5); });
+          for (let i = 1; i < 8; i++) k.px(cx + Math.sin(t * 6 + i) * 1.4, cy + i * 2.5, `rgba(200,255,220,${0.6 - i * 0.07})`);
+          k.circle(cx, cy, 2.2, '#7fe0a8'); k.circle(cx, cy, 1.3, '#cfffe0'); k.px(cx - 0.5, cy - 0.5, '#ffffff');
         });
         cutWash(g, '#fff6e0', Math.max(1 - span(t, 0, 0.9), easeIn(span(u, 0.86, 1)) * 0.8) * 0.92);
       } },
-    { dur: 7, line: 'Beyond the rim: black water, far lights,', sound: 'wind', noFadeOut: true,
+    { dur: 7, line: 'Beyond the rim: black water, far lights,', sound: 'wind', noFadeIn: true, noFadeOut: true,
       draw(g, k, t, u) { // outside: the rim fills the picture, then the jar falls away to a speck on the sea
         const v = easeOut(span(u, 0, 0.85)), s = 7 - v * 6.2, y = 108 + v * 5;
         seaScene(g, k, t);
         seaJar(g, k, t, 128, y, s);
         seaCore(g, k, 128, y, 128, y - 4 - (1 - v) * 40);
         cutVignette(g, 0.55, '0,0,0', 40);
+        cutWash(g, '#fff6e0', (1 - span(t, 0, 0.8)) * 0.74); // out of the white you went up into
       } },
     { dur: 9.5, line: 'and a hand held open.', sound: 'gong', noFadeIn: true,
       draw(g, k, t, u) { // the same sea, and over it, coming down out of the dark where the stars were, a hand
@@ -975,9 +987,17 @@ function pageBeats() {
       WORLD_SCENES.summit.ambient(paintKit(g), t, null);
       for (let i = 0; i < 14; i++) { const x = ((i * 47 + t * (18 + i % 4 * 6)) % (W + 40)) - 20, y = 70 + (i * 17) % 60; k.line(x, y, x + 5, y + 0.4, 'rgba(200,220,255,0.25)', 0.3); } // wind across the summit
       const gone = o.gone || 0;
+      for (const [x, y, a] of [[60, 120, -0.25], [96, 128, 0.3], [128, 116, -0.05], [150, 132, 0.45], [176, 122, -0.4], [205, 130, 0.2], [228, 118, -0.15]]) { // the Fourteenth's seven scars, still in the snow
+        k.line(x - Math.cos(a) * 24, y - Math.sin(a) * 7, x + Math.cos(a) * 24, y + Math.sin(a) * 7, 'rgba(14,16,34,0.8)', 0.8); k.line(x - Math.cos(a) * 24, y - Math.sin(a) * 7 - 0.8, x + Math.cos(a) * 24, y + Math.sin(a) * 7 - 0.8, 'rgba(230,240,255,0.6)', 0.5);
+      }
       k.oval(TX, FY, 10, 1.6, `rgba(0,0,0,${0.35 * (1 - gone)})`); k.oval(HX, FY, 8, 1.6, 'rgba(0,0,0,0.35)');
-      cutSprite(g, 'b_swordsaint', TX, FY, { crop: 4, alpha: 1 - gone });
-      if (o.page) { const [x, y] = o.page; k.rect(x, y, 4, 5, '#f2ead4'); k.rect(x, y, 0.6, 5, '#c8bc9e'); cutLight(g, () => k.glow(x + 2, y + 2.5, 6, '#ffe0a0', 0.35 + 0.15 * Math.sin(t * 3))); }
+      cutSprite(g, 'b_swordsaint2', TX, FY - Math.round(gone * 6), { crop: 4, alpha: 1 - gone, filter: gone > 0 ? `brightness(${1 + gone * 1.5})` : 'none' });
+      if (!gone) for (let i = 0; i < 6; i++) { const v = (t * 0.35 + i / 6) % 1; k.px(TX - 4 + (i * 5) % 11 + Math.sin(t * 2 + i) * 1.5, FY - 6 - v * 22, `rgba(12,10,20,${(1 - v) * 0.8 * (o.ink ?? 1)})`); } // the last of the ink leaving him
+      if (o.reach) { // his arm held out, the page in his hand: pale-blue sleeve, a white cuff, his hand
+        const ax = TX + 4, ay = FY - 10, ex = ax + o.reach * 8, ey = ay - o.reach * 2;
+        for (let i = 0; i <= 4; i++) { const q = i / 4; k.rect(Math.round(ax + (ex - ax) * q) - 1, Math.round(ay + (ey - ay) * q) - 1, 2, 2, q > 0.85 ? '#e6c6a2' : q > 0.7 ? '#eef4fa' : '#9fc8e8'); }
+      }
+      if (o.page) { const [x, y] = o.page; k.rect(x, y, 4, 5, '#f2ead4'); k.rect(x, y, 1, 5, '#c8bc9e'); k.rect(x + 3, y + 4, 1, 1, '#c23b22'); cutLight(g, () => k.glow(x + 2, y + 2.5, 6, '#ffe0a0', 0.35 + 0.15 * Math.sin(t * 3))); }
       cutSprite(g, 'hero', HX, FY, { flip: true });
     });
     cutVignette(g, 0.62, '2,4,12', 40);
@@ -995,7 +1015,7 @@ function pageBeats() {
     { const k = cutKit(lg);
       const px = Math.round(104 + take * 14), py = Math.round(34 + take * 3), flutter = Math.sin(t * 4.2) * (1.6 - reach);
       // his hand behind the page: the fingers under it
-      const hx = Math.round(-46 * (1 - enter) - let_go * 80);
+      const hx = Math.round(-46 * (1 - enter) - let_go * 170);
       k.poly([[-14 + hx, 62], [64 + hx, 70], [68 + hx, 100], [-14 + hx, 110]], '#8eaccb'); k.poly([[-14 + hx, 66], [64 + hx, 72], [64 + hx, 78], [-14 + hx, 74]], '#a8c4de'); // the sleeve, pale blue
       k.rect(58 + hx, 70, 8, 28, '#eef4fa'); // the white cuff under it
       k.poly([[64 + hx, 74], [100 + hx, 76], [110 + hx, 82], [108 + hx, 90], [86 + hx, 96], [66 + hx, 96]], '#e6c6a2'); // the hand
@@ -1008,7 +1028,7 @@ function pageBeats() {
       k.line(px + 52 + flutter, py - 1 + flutter * 0.3, px + 52, py + 74, 'rgba(160,140,110,0.6)', 0.5);
       for (let i = 0; i < 6; i++) k.rect(px + 8, py + 10 + i * 9, 36, 0.4, 'rgba(150,130,100,0.18)'); // ruled for writing, never written on
       k.rect(px + 41, py + 62, 6, 6, '#a8322a'); k.rect(px + 42, py + 63, 4, 4, '#c8483a'); k.rect(px + 43, py + 64, 2, 2, '#a8322a');
-      k.rect(px - 4 + hx * 0.02, 74, 12, 5, '#e6c6a2'); k.rect(px - 4 + hx * 0.02, 74, 12, 1, '#f2d8b8'); // his thumb on the page
+      if (let_go < 0.25) { k.rect(px - 4 + hx * 0.02 - let_go * 40, 74, 12, 5, '#e6c6a2'); k.rect(px - 4 + hx * 0.02 - let_go * 40, 74, 12, 1, '#f2d8b8'); } // his thumb on the page, until he lets go
       // your hand, coming in from the right
       const yx = Math.round(260 - reach * 104 + take * 14);
       k.poly([[yx + 50, 64], [W + 20, 58], [W + 20, 104], [yx + 52, 100]], '#e4e0d4'); k.rect(yx + 44, 66, 8, 30, '#c8c0b0'); // your sleeve
@@ -1029,7 +1049,7 @@ function pageBeats() {
     { dur: 5.6, line: '“The Thirteenth Sword cuts heaven and earth apart. The Fourteenth was never written in ink.”', noFadeOut: true,
       draw(g, k, t, u) { // nearer: from his robe he takes the page torn from his manual's end, and holds it out to you
         const out = easeOut(span(u, 0.45, 0.75));
-        scene(g, k, t, { z: 2, x0: 72, y0: 58, page: u > 0.45 ? [TX + 5 + out * 9, FY - 13 - out * 3] : null });
+        scene(g, k, t, { z: 2, x0: 72, y0: 58, reach: out, page: u > 0.45 ? [TX + 4 + out * 8, FY - 13 - out * 2] : null });
         if (u > 0.45) cutOnce('draw', () => sfx.play('wind'));
       } },
     { dur: 7.4, line: '', noFadeIn: true,
@@ -1041,8 +1061,12 @@ function pageBeats() {
     { dur: 6, line: '“It is to sheathe it. Carry that page to the door.”',
       draw(g, k, t, u) { // wide again: you hold the page; he goes up into the split sky as light
         const gone = easeIn(span(u, 0.2, 0.9));
-        scene(g, k, t, { gone, page: [HX + 5, FY - 13] });
-        cutLight(g, () => { for (let i = 0; i < 24; i++) { const v = ((t * 0.25 + i / 24) % 1) * span(u, 0.15, 1), x = TX + Math.sin(i * 1.9 + t) * 4 * (1 + v * 4), y = 100 - v * 90; k.px(x, y, `rgba(159,216,255,${(1 - v) * gone})`); } });
+        scene(g, k, t, { gone, page: [HX - 10, FY - 11], ink: 0 }); // the page in your hand now, held before you
+        cutLight(g, () => {
+          for (let i = 0; i < 40; i++) { const v = ((t * 0.25 + i / 40) % 1) * span(u, 0.15, 1), x = TX + Math.sin(i * 1.9 + t) * 4 * (1 + v * 4), y = 100 - v * 90; k.px(x, y, `rgba(159,216,255,${(1 - v) * Math.min(1, gone * 2)})`); } // he goes up as light
+          k.glow(TX, FY - 10 - gone * 20, 8 + gone * 10, '#cfe8ff', gone * (1 - gone) * 1.4);
+          const flare = span(u, 0.75, 1); if (flare > 0) for (let x = 0; x < W; x += 2) k.px(x, SKY_SCAR(x), `rgba(223,242,255,${Math.sin(flare * Math.PI) * 0.7})`); // the split in the sky takes him in, and brightens once
+        });
       } },
   ];
 }
@@ -1050,69 +1074,146 @@ function pageBeats() {
 // ---------- the four endings: who you become (plan section 13.3) ----------
 // Ending three, the Die: what "Sheathe the sword" used to be. You put the sword down and pick up her die; she leaves
 // you her coat; you are the next one.
-function dieBeats(cycle) {
-  const b = stayBeats(cycle, 'THE DIE');
-  b[0].line = 'You put the sword down, and pick up the die.';
-  b.splice(1, 0, { dur: 4.6, line: 'It is still warm from her hand.', noFadeIn: true,
-    draw(g, k, t, u) { // close on the clay: your hand comes down, closes on the die, and lifts it; its face will not settle
-      const reach = easeInOut(span(u, 0.05, 0.4)), lift = easeInOut(span(u, 0.45, 0.85));
-      jarScene(g, k, t, { z: 3, x0: 104, y0: 74, raysA: 0.8 }, () => {
-        jarHer(g, false, { drop: 2 });
-        const dx = DIE[0], dy = DIE[1] - lift * 10, face = u < 0.85 ? 1 + Math.floor(t * 14) % 4 : 1;
-        cutLight(g, () => k.glow(dx + 2.5, dy + 2.5, 6 + lift * 6, '#ffd88a', 0.25 + lift * 0.4));
-        cutDie(k, dx, dy, face);
-        const hx = dx + 14 - reach * 9, hy = dy - 16 + reach * 12; // your hand
-        k.poly([[hx + 4, hy - 12], [hx + 12, hy - 14], [hx + 9, hy + 2], [hx + 1, hy + 3]], '#e4e0d4');
-        k.poly([[hx - 1, hy], [hx + 8, hy - 1], [hx + 7, hy + 6], [hx - 2, hy + 5]], '#d8a47a'); k.line(hx - 2, hy + 2, hx + 4, hy + 2, 'rgba(140,90,60,0.6)', 0.4);
-      });
-      if (lift > 0.1) cutOnce('lift', () => sfx.play('pop'));
-      if (u > 0.85) cutOnce('settle', () => sfx.play('chime'));
-    } });
-  return b;
+function dieBeats(cycle, page) {
+  const KX = 142; // where you kneel: at the die
+  const swordLaid = (k, v, x = KX) => { // from held at your side to lying flat on the clay in front of you
+    const hx = x - 6 + (x - 14 - (x - 6)) * v, hy = FLOOR - 9 + 9 * v, tx = x - 13 + (x - 30 - (x - 13)) * v, ty = FLOOR - 1 + 1 * v;
+    pxSword(k, hx, hy, tx, ty);
+  };
+  const coat = (k, x, fold = 1) => { // her coat, folded on the clay: a dark bundle, its collar and a fold of lining
+    const w = Math.round(6 + fold * 6);
+    k.rect(x - w / 2, FLOOR - 3, w, 3, '#17151b'); k.rect(x - w / 2 + 1, FLOOR - 4, w - 2, 1, '#2a2630'); k.rect(x - w / 2, FLOOR - 1, w, 1, '#0c0b0e');
+    if (fold > 0.5) { k.rect(x - 1, FLOOR - 3, 1, 2, '#3a3448'); k.rect(x + w / 2 - 2, FLOOR - 4, 2, 1, '#8a2a3a'); } // where it folds, a little of its red lining
+  };
+  const arm = (k, x, reach, lift) => { // your arm on the sprites' grid: white sleeve, a hand
+    const sx = x - 3, sy = FLOOR - 8, ex = x - 3 - reach * 9, ey = FLOOR - 8 + reach * 6 - lift * 8;
+    const n = Math.max(1, Math.round(Math.hypot(ex - sx, ey - sy) / 2));
+    for (let i = 0; i <= n; i++) { const u = i / n; k.rect(Math.round(sx + (ex - sx) * u) - 1, Math.round(sy + (ey - sy) * u) - 1, 2, 2, u > 0.8 ? '#e2b48a' : '#ece4d2'); }
+    return [ex, ey];
+  };
+  return [
+    { dur: 6.2, line: 'You put the sword down, and pick up the die.', noFadeIn: true,
+      draw(g, k, t, u) { // you walk to the die, kneel, and lay the blade on the clay; the light from the gap grows gentler
+        const walk = easeInOut(span(u, 0.05, 0.4)), x = HX0 + (KX - HX0) * walk, kneel = easeOut(span(u, 0.42, 0.58)), v = easeInOut(span(u, 0.55, 0.85));
+        jarScene(g, k, t, { raysA: 1 - u * 0.3 }, () => {
+          k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 2 }); cutDie(k, DIE[0], DIE[1], 1);
+          jarYou(g, k, t, { x, walk: walk > 0 && walk < 1, crop: Math.round(kneel * 2), sword: false, page });
+          swordLaid(k, v, x);
+        });
+        if (v >= 1) cutOnce('lay', () => { sfx.play('ring'); sfx.play('gong'); });
+      } },
+    { dur: 5, line: 'It is still warm from her hand.', noFadeIn: true,
+      draw(g, k, t, u) { // close: your hand comes down to it, closes, and lifts it; its pips turn and will not settle, then do
+        const reach = easeInOut(span(u, 0.05, 0.35)), lift = easeInOut(span(u, 0.45, 0.8));
+        jarScene(g, k, t, { z: 3, x0: 104, y0: 74, raysA: 0.8 }, () => {
+          cutLight(g, () => k.oval(DIE[0] + 2, DIE[1] + 4, 10, 3, `rgba(255,214,150,${0.14 + lift * 0.2})`));
+          swordLaid(k, 1);
+          jarYou(g, k, t, { x: KX, crop: 2, sword: false, page });
+          const [hx, hy] = arm(k, KX, reach * (1 - lift * 0.6), lift);
+          const dx = lift > 0 ? hx - 3 : DIE[0], dy = lift > 0 ? hy - 3 : DIE[1], face = u < 0.82 ? 1 + Math.floor(t * 12) % 4 : 1;
+          cutLight(g, () => k.glow(dx + 2.5, dy + 2.5, 5 + lift * 7, '#ffd88a', 0.2 + lift * 0.45));
+          cutDie(k, dx, dy, face);
+        });
+        if (reach >= 1) cutOnce('touch', () => sfx.play('pop'));
+        if (u > 0.82) cutOnce('settle', () => sfx.play('chime'));
+      } },
+    { dur: 7.4, line: 'Yun Xi leaves her coat beside you, and finally rests.', sound: 'chime',
+      draw(g, k, t, u) { // she stands, crosses to you, lays the coat down beside you, and goes up into the light
+        const stand = span(u, 0.04, 0.2), cross = easeInOut(span(u, 0.18, 0.42)), lay = span(u, 0.42, 0.52), go = easeIn(span(u, 0.55, 0.97));
+        const hx = YX + cross * 22;
+        jarScene(g, k, t, { z: 2, x0: 66, y0: 54, raysA: 0.8 + go * 1.2 }, () => {
+          if (lay > 0.5) coat(k, KX - 16, 1);
+          k.oval(hx, FLOOR, 9 * (1 - go), 1.6, `rgba(0,0,0,${0.35 * (1 - go)})`);
+          jarHer(g, false, { x: hx, drop: -Math.round(go * 10), crop: Math.round(3 - stand * 3) + (lay > 0 && lay < 1 ? 1 : 0), alpha: 1 - go, filter: `brightness(${1 + go * 0.8})` });
+          if (lay > 0 && lay <= 0.5) coat(k, hx + 6, 0.5); // in her hands, going down
+          swordLaid(k, 1); jarYou(g, k, t, { x: KX, crop: 2, sword: false, page, holding: true });
+          cutLight(g, () => { for (let i = 0; i < 26; i++) { const v = ((t * 0.3 + i / 26) % 1) * span(u, 0.5, 1), x = hx + Math.sin(i * 2.4 + t) * 5 * (1 + v * 3), y = 100 - v * 100; k.px(x, y, `rgba(232,196,120,${(1 - v) * span(u, 0.5, 0.75)})`); } k.glow(hx, 96 - go * 20, 16, '#ffe0a0', go * 0.6); });
+        });
+        if (lay > 0.5) cutOnce('coat', () => sfx.play('poof'));
+      } },
+    { dur: 5.6, line: 'The lid stays shut. The light goes out of the jar.',
+      draw(g, k, t, u) { // up to the lid: it settles shut, and the dark comes down after the light
+        const v = easeInOut(span(u, 0, 0.45)), shut = 1 - easeIn(span(u, 0.4, 0.62));
+        jarScene(g, k, t, { z: 2, x0: 64, y0: 54 - v * 82, gap: 0.15 * shut, raysA: shut }, () => {
+          coat(k, KX - 16, 1); swordLaid(k, 1); jarYou(g, k, t, { x: KX, crop: 2, sword: false, page, holding: true });
+        });
+        if (shut <= 0) cutOnce('shut', () => sfx.play('thud'));
+        cutWash(g, '#050302', 0.15 + easeIn(span(u, 0.6, 1)) * 0.85);
+      } },
+  ].concat(stayBeats(cycle, 'THE DIE').slice(3)).map((b, i, all) => i === all.length - 1 ? { ...b, draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); cutDie(k, 125.5, 50, 1, Math.min(1, u * 3)); cutLight(g, () => k.glow(128, 52.5, 10, '#ffd88a', 0.3 * Math.min(1, u * 3))); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE DIE', 128, 76); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, Math.max(0, u * 3 - 1))})`; g.fillText(`NEW GAME+ ${cycle}`, 128, 92); g.textAlign = 'left'; } } : b);
 }
 
 // Ending two, the Sheathed Sword: with the Fourteenth Page you sheathe the Fourteenth Sword. She rests (there is no
 // coat), and you go up to the highest peak, where the sword is never drawn again.
+// the scabbard at your hip (you face left, so it slants back and down to the right); the page bound at its throat
+function hipSheath(k, x, y, { page = true, t = 0 } = {}) {
+  for (let i = 0; i < 13; i++) k.rect(Math.round(x + 2 + i * 0.85), Math.round(y + i * 0.5), 1, 2, i === 12 ? '#c9a65a' : i % 3 === 1 ? '#3a2a2a' : '#1a1214'); // lacquer, a gold chape at its end
+  k.rect(x + 1, y - 1, 2, 1, '#c9a65a'); k.rect(x, y - 2, 1, 1, '#2f4f8a'); k.rect(x - 1, y - 3, 1, 1, '#2f4f8a'); k.rect(x - 2, y - 4, 1, 1, '#c9a65a'); // the guard and the hilt, out of it
+  if (page) { k.rect(x + 3, y, 3, 2, '#f4ecd8'); k.rect(x + 4, y + 1, 1, 1, '#c23b22'); } // the Fourteenth Page bound round it, its seal
+}
 function swordEmperorBeats(cycle) {
   const SX = 150, SY = 104; // where you stand on the summit's ledge
   return [
-    { dur: 6.2, line: 'You wrap the blade in the Fourteenth Page, and sheathe it.', noFadeIn: true,
-      draw(g, k, t, u) { // the page folds round the bare blade, the light running along it, and it slides home: one click
-        const wrap = easeInOut(span(u, 0.1, 0.5)), home = easeIn(span(u, 0.55, 0.72));
-        jarScene(g, k, t, { z: 2, x0: 70, y0: 54, raysA: 1 + home }, () => {
+    { dur: 7.2, line: 'You wrap the blade in the Fourteenth Page, and sheathe it.', noFadeIn: true,
+      draw(g, k, t, u) {
+        // 0-.18 you raise the bare blade upright before you; .14-.5 the page leaves your hand and winds up it, glowing;
+        // .52-.66 the blade tilts down to your hip; .66-.76 it slides home: one click, a ring of light; after, quiet
+        const up = easeOut(span(u, 0, 0.18)), wrap = easeInOut(span(u, 0.18, 0.5)), tilt = easeInOut(span(u, 0.52, 0.66)), home = easeIn(span(u, 0.66, 0.76));
+        const hx = HX0 - 6, hy = FLOOR - 9, sheathX = HX0 + 1, sheathY = FLOOR - 9;
+        jarScene(g, k, t, { z: 2, x0: 70, y0: 54, raysA: 1 + home * 1.5 }, () => {
           k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 1 }); cutDie(k, DIE[0], DIE[1], 1);
-          jarYou(g, k, t, { sword: false });
-          const bx = HX0 - 6, by = FLOOR - 9, len = 16 * (1 - home); // the blade, held out, then drawn back into its sheath
-          k.line(bx, by, bx - 18, by + 4, '#1a1214', 1.6); k.rect(bx - 1, by - 1, 2, 2, '#c9a65a'); // the sheath at your hip
-          if (len > 0.5) { k.line(bx, by - 1, bx + len, by - 4, '#dfe9f5', 0.8); k.line(bx, by - 1.5, bx + len * wrap, by - 4.5 * wrap, '#f4ecd8', 1.4); }
-          cutLight(g, () => { k.glow(bx + len * 0.5, by - 2.5, 6 + wrap * 6, '#ffe8b0', 0.2 + wrap * 0.4); if (home >= 1) k.glow(bx, by, 20 * (1 - span(u, 0.72, 1)), '#ffffff', 0.6); });
+          jarYou(g, k, t, { sword: false, page: wrap <= 0 });
+          if (home >= 1 || tilt > 0) hipSheath(k, sheathX, sheathY, { page: home >= 1 });
+          const len = 18 * (1 - home);
+          if (len > 0.5) {
+            const a0 = -Math.PI / 2 + 0.15 * (1 - up), a1 = Math.atan2(0.5, 0.85), a = up < 1 ? Math.PI * 0.75 + (a0 - Math.PI * 0.75) * up : a0 + (a1 - a0) * tilt; // lowered at your side, up before you, then down to the scabbard
+            const px0 = tilt > 0 ? hx + (sheathX - hx) * tilt : hx, py0 = hy - 2 * up * (1 - tilt);
+            const tx = px0 + Math.cos(a) * len, ty = py0 + Math.sin(a) * len;
+            pxSword(k, px0, py0, tx, ty);
+            if (wrap > 0) { // the page, wound round the blade from the guard up: a spiral of paper, its light running ahead of it
+              const n = Math.round(len * wrap);
+              for (let i = 1; i <= n; i++) { const q = i / len, x = px0 + Math.cos(a) * len * q, y = py0 + Math.sin(a) * len * q, s = i % 3 === 0 ? -1 : 1; k.rect(Math.round(x - Math.sin(a) * s), Math.round(y + Math.cos(a) * s), 1, 1, i % 2 ? '#f4ecd8' : '#d8ccb0'); }
+              if (wrap < 1) cutLight(g, () => k.glow(px0 + Math.cos(a) * len * wrap, py0 + Math.sin(a) * len * wrap, 5, '#ffe8b0', 0.6));
+              if (n > 6) k.rect(Math.round(px0 + Math.cos(a) * 5), Math.round(py0 + Math.sin(a) * 5), 1, 1, '#c23b22'); // the seal on it
+            }
+            if (wrap <= 0 && up > 0.5 && u > 0.12) { const fx = HX0 + 6 + (hx - (HX0 + 6)) * span(u, 0.12, 0.18), fy = FLOOR - 10 - 8 * span(u, 0.12, 0.18); k.rect(Math.round(fx), Math.round(fy), 3, 4, '#f4f0e0'); } // the page, lifting out of your hand to the blade
+          }
+          cutLight(g, () => {
+            if (wrap > 0 && wrap < 1) for (let i = 0; i < 6; i++) { const v = (t * 1.5 + i / 6) % 1; k.px(hx + Math.sin(t * 4 + i) * 3, hy - 4 - v * 16, `rgba(255,232,180,${1 - v})`); }
+            if (home >= 1) { const r = span(u, 0.76, 0.95); k.ring(sheathX, sheathY, 3 + r * 26, `rgba(255,250,230,${(1 - r) * 0.9})`, 0.8, (3 + r * 26) * 0.5); k.glow(sheathX, sheathY, 18 * (1 - r), '#ffffff', 0.7 * (1 - r)); }
+          });
         });
-        if (home >= 1) cutOnce('click', () => { sfx.play('ring'); sfx.play('gong'); });
+        if (up >= 1) cutOnce('raise', () => sfx.play('ring'));
+        if (home >= 1) cutOnce('click', () => { sfx.play('snap'); sfx.play('gong'); });
       } },
-    { dur: 6.4, line: 'Yun Xi smiles, and finally rests. There is no coat this time.', sound: 'chime',
+    { dur: 6.6, line: 'Yun Xi smiles, and finally rests. There is no coat this time.', sound: 'chime',
       draw(g, k, t, u) { // she stands, looks at you a moment, and goes up into the light, taking nothing and leaving nothing
-        const stand = span(u, 0.05, 0.25), go = easeIn(span(u, 0.4, 0.95));
+        const stand = span(u, 0.05, 0.25), go = easeIn(span(u, 0.42, 0.95));
         jarScene(g, k, t, { z: 2, x0: 66, y0: 54, raysA: 0.8 + go * 1.2 }, () => {
+          k.oval(YX, FLOOR, 9 * (1 - go), 1.6, `rgba(0,0,0,${0.35 * (1 - go)})`);
           jarHer(g, false, { drop: -Math.round(go * 10), crop: Math.round(3 - stand * 3), alpha: 1 - go, filter: `brightness(${1 + go * 0.8})` });
-          cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { sword: false });
-          k.line(HX0 - 6, FLOOR - 9, HX0 - 24, FLOOR - 5, '#1a1214', 1.6);
-          cutLight(g, () => { for (let i = 0; i < 26; i++) { const v = ((t * 0.3 + i / 26) % 1) * span(u, 0.35, 1), x = YX + Math.sin(i * 2.4 + t) * 5 * (1 + v * 3), y = 100 - v * 100; k.px(x, y, `rgba(232,196,120,${(1 - v) * span(u, 0.35, 0.6)})`); } });
+          cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { sword: false }); hipSheath(k, HX0 + 1, FLOOR - 9);
+          cutLight(g, () => { for (let i = 0; i < 26; i++) { const v = ((t * 0.3 + i / 26) % 1) * span(u, 0.38, 1), x = YX + Math.sin(i * 2.4 + t) * 5 * (1 + v * 3), y = 100 - v * 100; k.px(x, y, `rgba(232,196,120,${(1 - v) * span(u, 0.38, 0.6)})`); } k.glow(YX, 96 - go * 20, 16, '#ffe0a0', go * 0.6); });
         });
         cutWash(g, '#fff6e0', easeIn(span(u, 0.85, 1)) * 0.9);
       } },
-    { dur: 8.5, line: 'At the highest peak, the sword is never drawn again.', sound: 'wind', noFadeIn: true,
-      draw(g, k, t, u) { // the Summit: you on the ledge, the sheathed sword at your side; the split in the sky slowly closes
+    { dur: 9, line: 'At the highest peak, the sword is never drawn again.', sound: 'wind', noFadeIn: true,
+      draw(g, k, t, u) { // the Summit: out of the white, you on the ledge, the sheathed sword at your hip; the split in the sky slowly closes
         k.rect(0, 0, W, H, '#000');
         drawSummitArt(g); WORLD_SCENES.summit.ambient(paintKit(g), t, null);
-        const heal = easeInOut(span(u, 0.25, 0.95)); // the sky's wound knitting shut, from both ends to the middle
-        g.save(); g.beginPath(); g.rect(0, 0, W * heal * 0.5, 40); g.rect(W - W * heal * 0.5, 0, W * heal * 0.5, 40); g.clip();
-        for (let x = 0; x < W; x += 1) { const y = SKY_SCAR(x); k.rect(x, y - 3, 1, 6, k.vgrad(y - 3, y + 3, ['rgba(22,37,90,0)', '#203466', 'rgba(22,37,90,0)'])); }
+        const heal = easeInOut(span(u, 0.2, 0.92)); // the sky's wound knitting shut, from both ends to the middle
+        g.save(); g.beginPath(); g.rect(0, 0, W * heal * 0.5, 44); g.rect(W - W * heal * 0.5, 0, W * heal * 0.5, 44); g.clip();
+        for (let x = 0; x < W; x += 1) { const y = SKY_SCAR(x); k.rect(x, y - 4, 1, 8, k.vgrad(y - 4, y + 4, ['rgba(22,37,90,0)', '#1a2c5c', 'rgba(22,37,90,0)'])); }
         g.restore();
+        if (heal > 0 && heal < 1) { const x0 = W * heal * 0.5, x1 = W - x0; cutLight(g, () => { k.glow(x0, SKY_SCAR(x0), 6, '#dff2ff', 0.6); k.glow(x1, SKY_SCAR(x1), 6, '#dff2ff', 0.6); }); } // the two ends of the seam, closing
+        for (const [x, y, a] of [[70, 118, -0.2], [110, 126, 0.35], [180, 120, -0.5], [210, 132, 0.15]]) k.line(x - Math.cos(a) * 26, y - Math.sin(a) * 8, x + Math.cos(a) * 26, y + Math.sin(a) * 8, `rgba(20,24,48,${0.35 * (1 - heal)})`, 0.6); // the Fourteenth's scars on the snow, fading with it
         for (let i = 0; i < 40; i++) { const x = ((i * 53 + t * (10 + i % 5 * 4)) % (W + 20)) - 10, y = ((i * 31 + t * (14 + i % 3 * 5)) % 150) - 6; k.px(x, y, i % 3 ? 'rgba(230,240,255,0.7)' : 'rgba(255,255,255,0.9)'); } // snow
         k.oval(SX, SY, 9, 1.6, 'rgba(0,0,0,0.35)');
         cutSprite(g, 'hero', SX, SY, { flip: true });
-        k.line(SX - 6, SY - 9, SX - 20, SY - 4, '#1a1214', 1.6); k.rect(SX - 7, SY - 10, 2, 2, '#c9a65a'); k.rect(SX - 12, SY - 8, 3, 4, '#f4ecd8'); k.rect(SX - 11, SY - 6, 1, 1, '#c23b22'); // the sheath, the page tied round it, its seal
-        cutLight(g, () => k.glow(SX - 10, SY - 6, 8, '#ffe0a0', 0.18 + 0.08 * Math.sin(t * 2)));
+        hipSheath(k, SX + 1, SY - 9, { t });
+        const fl = Math.round(Math.sin(t * 6) * 1); k.rect(SX + 5, SY - 18 + fl, 2, 1, '#b8322a'); k.rect(SX + 7, SY - 17 + fl, 2, 1, '#9a2a22'); // the headband's tails in the wind
+        cutLight(g, () => k.glow(SX + 5, SY - 8, 8, '#ffe0a0', 0.15 + 0.08 * Math.sin(t * 2)));
+        cutWash(g, '#fff6e0', (1 - span(t, 0, 1.0)) * 0.9); // out of the white she went up into
         cutVignette(g, 0.5, '2,4,12', 50);
       } },
     { dur: 5.6, line: '“The Fourteenth is to sheathe it.”',
@@ -1137,15 +1238,17 @@ const SYMBOL_STARS = [ // [name, character, element colour, x, y in the jar's fr
   ['Azure Dragon', '青龙', '#5ad08a', 214, 64], ['Vermilion Bird', '朱雀', '#ff6a3a', 128, 128], ['Qilin', '麒麟', '#ffd84a', HX0, 70], ['White Tiger', '白虎', '#e8f0f8', 42, 64], ['Black Tortoise', '玄武', '#6a9aff', 128, 18],
 ];
 function symbolsBeats() {
-  const glyph = (g, k, t, i, a, big = 1) => { // one of the five: a ring of its colour, its name in brush
-    const [, cn, c, x, y] = SYMBOL_STARS[i]; if (a <= 0) return;
-    cutLight(g, () => { k.glow(x, y, 16 * big, c, 0.35 * a); k.ring(x, y, 9 * big + Math.sin(t * 2 + i) * 0.6, rgba(c, 0.8 * a), 0.6, 9 * big); });
-    g.save(); g.globalAlpha = a; g.font = `${Math.round(9 * big)}px ${typeof CJK_FONT !== 'undefined' ? CJK_FONT : 'serif'}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fffaf0'; g.shadowColor = c; g.shadowBlur = 4; g.fillText(cn, x, y); g.restore();
+  const BEAST = ['eastdragon', 'phoenix', 'qilin', 'tiger', 'tortoise'];
+  const glyph = (g, k, t, i, a, big = 1, at) => { // one of the five: the beast you wore, standing in its own light, its name in brush under it
+    const [, cn, c, x0, y0] = SYMBOL_STARS[i], [x, y] = at || [x0, y0]; if (a <= 0) return;
+    cutLight(g, () => k.glow(x, y - 4, 18 * big, c, 0.3 * a));
+    cutSprite(g, BEAST[i], x, y + 3 + Math.sin(t * 1.6 + i) * 1, { scale: big >= 1 ? 2 : 1, alpha: a, filter: 'brightness(1.5) saturate(0.7)' });
+    g.save(); g.globalAlpha = a * 0.9; g.font = `6px ${typeof CJK_FONT !== 'undefined' ? CJK_FONT : 'serif'}`; g.textAlign = 'center'; g.textBaseline = 'top'; g.fillStyle = '#fffaf0'; g.shadowColor = c; g.shadowBlur = 3; g.fillText(cn, x, y + 5); g.restore();
   };
   const ORDER = [0, 1, 2, 3, 4]; // wood, fire, earth, metal, water: each gives birth to the next
   const ELEM = [['#7ad87a', '#3a8a4a'], ['#ffb04a', '#ff4a1a'], ['#ffe08a', '#b8913c'], ['#ffffff', '#c8d4e0'], ['#8ac8ff', '#3a6ad0']];
   return [
-    { dur: 6, line: 'Five shapes stand around the rim of the lid. Yun Xi looks up.', sound: 'riser',
+    { dur: 6, line: 'The five you wore take their places: east, south, west, north, and over you. Yun Xi looks up.', sound: 'riser',
       draw(g, k, t, u) {
         jarScene(g, k, t, { gap: 0.15, raysA: 1 }, () => { k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 0 }); cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { page: true }); });
         for (let i = 0; i < 5; i++) glyph(g, k, t, i, span(u, 0.15 + i * 0.12, 0.35 + i * 0.12) * (0.5 + 0.2 * Math.sin(t * 3 + i)));
@@ -1167,16 +1270,17 @@ function symbolsBeats() {
         cutWash(g, '#fffaf0', easeIn(span(u, 0.88, 1)) * 0.85);
       } },
     { dur: 8.6, line: 'One by one, the worlds come back: alive, not sealed.', sound: 'chime', noFadeIn: true,
-      draw(g, k, t, u) { // windows open on the worlds, each moving again
+      draw(g, k, t, u) { // windows open on the worlds, each moving again; out of the white the array burned
         k.rect(0, 0, W, H, k.vgrad(0, H, ['#1a1208', '#2a1e10', '#120a04']));
+        cutLight(g, () => { for (let i = 0; i < 30; i++) { const v = (t * 0.1 + i / 30) % 1; k.px((i * 37) % W, H - v * H, `rgba(255,230,180,${0.3 * (1 - v)})`); } });
         const ids = Object.keys(WORLD_SCENES).filter(id => id !== 'bottom' && id !== 'summit').slice(0, 8);
         ids.forEach((id, i) => {
           const a = easeOut(span(u, i * 0.09, i * 0.09 + 0.18)); if (a <= 0) return;
           const col = i % 4, row = Math.floor(i / 4), w = 54, h = 34, x = 14 + col * 60, y = 26 + row * 44, s = 0.8 + a * 0.2;
           g.save(); g.globalAlpha = a; g.translate(x + w / 2, y + h / 2); g.scale(s, s); g.translate(-w / 2, -h / 2);
           k.rect(-2, -2, w + 4, h + 4, '#c9a65a'); g.beginPath(); g.rect(0, 0, w, h); g.clip();
-          g.drawImage(cutBg(id), 0, 0, W, H, -((t * 6 + i * 30) % 40), -10, W * 0.42, H * 0.42);
-          if (WORLD_SCENES[id].ambient) { g.save(); g.translate(-((t * 6 + i * 30) % 40), -10); g.scale(0.42, 0.42); try { WORLD_SCENES[id].ambient(paintKit(g), t, null); } catch (e) { } g.restore(); }
+          const pan = Math.sin(t * 0.3 + i) * 6 - 10; // each world as the films paint it (its sky and land, no stage), drifting
+          g.save(); g.translate(pan, -6); g.scale(0.5, 0.5); g.drawImage(cutLandscape(id), 0, 0, W, H); try { WORLD_SCENES[id].ambient(paintKit(g), t, null); } catch (e) { } g.restore();
           g.restore();
           cutLight(g, () => k.glow(x + w / 2, y + h / 2, 24, '#fff0c0', 0.1 * a));
           if (a >= 1) cutOnce('w' + i, () => sfx.play('pop'));
@@ -1187,7 +1291,7 @@ function symbolsBeats() {
       draw(g, k, t, u) { // the camera looks up; the lid thins to a mist of stars and spreads, and the rim of the jar becomes a horizon
         const look = easeInOut(span(u, 0, 0.45)), sky = easeInOut(span(u, 0.3, 1));
         jarScene(g, k, t, { z: 2, x0: 64, y0: 54 - look * 96, gap: 0.15 * (1 - sky), raysA: 1 + sky * 2 }, () => { jarYou(g, k, t, { page: true }); });
-        g.save(); g.globalAlpha = sky; // the sky, opening out from where the lid was
+        g.save(); g.globalAlpha = easeIn(sky); g.fillStyle = '#0c1838'; g.fillRect(0, 0, W, H); g.globalAlpha = sky; // the sky, opening out from where the lid was (and, by the end, all there is)
         const R = 20 + sky * 220, gr = g.createRadialGradient(128, look > 0.9 ? 40 : 0, 4, 128, look > 0.9 ? 40 : 0, R);
         gr.addColorStop(0, '#2a4a8a'); gr.addColorStop(0.6, '#142858'); gr.addColorStop(1, 'rgba(10,20,50,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
         for (let i = 0; i < 120; i++) { const x = (i * 97) % W, y = (i * 53) % H, d = Math.hypot(x - 128, y - 40); if (d < R * 0.9) k.px(x, y, rgba(i % 5 ? '#e8f0ff' : '#ffe8c0', 0.4 + 0.5 * Math.abs(Math.sin(t * 1.3 + i)))); }
@@ -1207,6 +1311,6 @@ function symbolsBeats() {
         cutVignette(g, 0.6, '0,0,0', 40);
       } },
     { dur: 5.5, line: 'THE FOUR SYMBOLS · Nobody keeps the jar now. New Game+ stays open.',
-      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); for (let i = 0; i < 5; i++) glyph(g, k, t, i, Math.min(1, u * 2) * 0.5, 0.8); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE FOUR SYMBOLS', 128, 74); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, Math.max(0, u * 3 - 1))})`; g.fillText('FREED', 128, 90); g.textAlign = 'left'; } },
+      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + [1, 2, 4, 3, 0][i] * Math.PI * 2 / 5 + t * 0.15; glyph(g, k, t, i, Math.min(1, u * 2) * 0.6, 0.8, [128 + Math.cos(a) * 108, 76 + Math.sin(a) * 54]); } /* round the title, turning slowly */ g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE FOUR SYMBOLS', 128, 74); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, Math.max(0, u * 3 - 1))})`; g.fillText('FREED', 128, 90); g.textAlign = 'left'; } },
   ];
 }
