@@ -24,9 +24,11 @@ const SWORD_CN =['拔剑', '追风', '落雨', '扫月', '归燕', '百影', '�
 const SWORD_EN = ['DRAWING THE SWORD', 'CHASING THE WIND', 'FALLING RAIN', 'SWEEPING THE MOON', 'RETURNING SWALLOW', 'HUNDRED SHADOWS', 'SEVERING THE RIVER',
   'PIERCING THE HEAVENS', 'TEN THOUSAND SWORDS RETURN', 'A SWORD WITHOUT FORM', 'SEVERING CAUSE AND EFFECT', 'MAN AND SWORD AS ONE', 'HEAVEN AND EARTH, ONE SWORD'];
 const SWORD_ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII'];
-const SW = { white: '#ffffff', pale: '#e8f4ff', blue: '#9fd8ff', deep: '#3f7fd0', gold: '#ffd88a', red: '#ff5a7a', steel: '#dfe9f5', shade: '#8fa3bd', ink: '#1c2440', scale: 1 };
+const SW = { white: '#ffffff', pale: '#e8f4ff', blue: '#9fd8ff', deep: '#3f7fd0', gold: '#ffd88a', red: '#ff5a7a', steel: '#dfe9f5', shade: '#8fa3bd', ink: '#1c2440', scale: 1, guard: '#ffd84a', hilt: '#2f4f8a', pommel: '#c9a65a', tassel: '#c23b22', tassel2: '#8f2416', rib1: '#9fc8e8', rib2: '#3f7fd0' };
 // the Unfinished Manual: the swords he has left, drawn in crimson and gold, and bigger
-const SW_BOUND = { white: '#fff4e0', pale: '#ffd8b0', blue: '#ff4a5a', deep: '#a01030', gold: '#ffcf4a', red: '#ffcf4a', steel: '#ffe6d6', shade: '#c0786a', ink: '#3a0a14', scale: 1.4 };
+const SW_BOUND = { white: '#fff4e0', pale: '#ffd8b0', blue: '#ff4a5a', deep: '#a01030', gold: '#ffcf4a', red: '#ffcf4a', steel: '#ffe6d6', shade: '#c0786a', ink: '#3a0a14', scale: 1.4, guard: '#ffd84a', hilt: '#2f4f8a', pommel: '#c9a65a', tassel: '#c23b22', tassel2: '#8f2416', rib1: '#9fc8e8', rib2: '#3f7fd0' };
+// the Corrupted Manual: the Black Sea in him, every sword drawn in ink (painted over the world, not lit into it)
+const SW_INK = { white: '#0a0710', pale: '#cfc8dc', blue: '#2a1c3a', deep: '#141018', gold: '#9a8ab8', red: '#f2eef8', steel: '#16121e', shade: '#4a4458', ink: '#000000', scale: 1.3, guard: '#d8d2e4', hilt: '#0c0a12', pommel: '#5a5268', tassel: '#0a0810', tassel2: '#3a3448', rib1: '#14101c', rib2: '#3a3050' };
 const SWORD_HAZARDS = new Set(['afterimage', 'swordrain', 'sword', 'cleave', 'riverwave', 'shadowcut', 'onethrust', 'onesword']);
 const CJK_FONT = '"KaiTi", "STKaiti", "Kaiti SC", "Kaiti TC", "BiauKai", "SimSun", "Noto Serif SC", serif';
 const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
@@ -36,8 +38,11 @@ Object.assign(Renderer.prototype, {
   // ---------- small brushes ----------
   swordFx(kind, o) { (this.swFx = this.swFx || []).push({ kind, age: 0, bound: this.boundNow, ...o }); },
   // draw something in the Unfinished Manual's colours and size, then put the ordinary ones back
-  bounded(on, fn) { if (!on) return fn(); const keep = { ...SW }; Object.assign(SW, SW_BOUND); try { return fn(); } finally { Object.assign(SW, keep); } },
-  lit(fn) { const g = this.g; g.save(); g.globalCompositeOperation = 'lighter'; fn(g); g.restore(); },
+  bounded(on, fn) { if (!on) return fn(); const keep = { ...SW }, ink0 = this.inkMode; Object.assign(SW, on === 'ink' ? SW_INK : SW_BOUND); this.inkMode = on === 'ink'; try { return fn(); } finally { Object.assign(SW, keep); this.inkMode = ink0; } },
+  // a colour written into an effect by hand: in the corrupted man's ink it comes out as ink (dark, or a pale edge if it was bright)
+  inkish(c) { if (!this.inkMode) return c; const m = /^#([0-9a-f]{6})$/i.exec(c), v = m ? parseInt(m[1].slice(0, 2), 16) * 0.3 + parseInt(m[1].slice(2, 4), 16) * 0.59 + parseInt(m[1].slice(4, 6), 16) * 0.11 : 0; if (!m) { const q = /rgba?\([^,]+,[^,]+,[^,]+,?\s*([0-9.]*)\)/.exec(c); return `rgba(20,14,30,${q && q[1] !== '' ? q[1] : 1})`; } return v > 215 ? '#d8d2e4' : v > 120 ? '#3a3448' : '#0a0710'; },
+  palOf(src) { return src ? (src.corrupt ? 'ink' : src.deathBound) : false; }, // whose colours: the bound man's crimson, or the corrupted one's ink
+  lit(fn) { const g = this.g; g.save(); g.globalCompositeOperation = this.inkMode ? 'source-over' : 'lighter'; fn(g); g.restore(); }, // ink is laid on, not lit
 
   // a soft round light
   glow(x, y, r, color, alpha) {
@@ -95,9 +100,9 @@ Object.assign(Renderer.prototype, {
     this.pline(x, y, x - dx * bl, y - dy * bl, shadow ? SW.ink : SW.steel);
     this.pix(x, y, shadow ? '#7f8cff' : SW.white);
     const gx = x - dx * bl, gy = y - dy * bl;
-    this.pline(gx - dy * 1.6, gy + dx * 1.6, gx + dy * 1.6, gy - dx * 1.6, shadow ? '#3a3f6a' : '#ffd84a'); // the guard
-    this.pline(gx - dx, gy - dy, x - dx * len, y - dy * len, shadow ? '#141830' : '#2f4f8a');      // the hilt
-    this.pix(x - dx * (len + 0.6), y - dy * (len + 0.6), shadow ? '#3a3f6a' : '#c9a65a');           // the pommel
+    this.pline(gx - dy * 1.6, gy + dx * 1.6, gx + dy * 1.6, gy - dx * 1.6, shadow ? '#3a3f6a' : SW.guard); // the guard
+    this.pline(gx - dx, gy - dy, x - dx * len, y - dy * len, shadow ? '#141830' : SW.hilt);      // the hilt
+    this.pix(x - dx * (len + 0.6), y - dy * (len + 0.6), shadow ? '#3a3f6a' : SW.pommel);           // the pommel
     g.globalAlpha = a0;
   },
 
@@ -135,16 +140,16 @@ Object.assign(Renderer.prototype, {
   swordEvent(ev) {
     const P = this.parts, r = Math.random;
     const sparks = (x, y, n, sp, colors, life = 0.4, grav = 0) => { for (let i = 0; i < n; i++) { const a = r() * Math.PI * 2, v = sp * (0.4 + r() * 0.6); P.push({ kind: 'px', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, g: grav, life: life * (0.6 + r() * 0.4), max: life, color: colors[i % colors.length] }); } };
-    this.boundNow = !!(this.sim && this.sim.enemies.some(e => e.def.manual && e.deathBound && !e.dead)); // effects begun now keep his last colours
+    { const m = this.sim && this.sim.enemies.find(e => e.def.manual && !e.dead && (e.corrupt || e.deathBound)); this.boundNow = m ? (m.corrupt ? 'ink' : true) : false; } // effects begun now keep his last colours
     const cast = ev.type === 'release' ? ev.id : ev.type; // melee swords announce themselves by name rather than as a release
     switch (/^sword\d+$/.test(cast || '') ? 'release' : ev.type) {
       case 'ultCharge': { // his ultimates are swords of the manual too: their names are written once the ULTIMATE banner clears
         const n = /^Ninth Sword/.test(ev.name || '') ? 9 : /^Thirteenth Sword/.test(ev.name || '') ? 13 : 0;
-        if (n) this.swordTitle = { n, t: -((ev.charge || 1) + 0.4), life: 2.4 };
+        if (n) this.swordTitle = { n, ink: this.boundNow === 'ink', t: -((ev.charge || 1) + 0.4), life: 2.4 };
         break;
       }
       case 'swordname':
-        this.swordTitle = { n: ev.n, adv: ev.adv, bound: ev.bound, t: 0, life: 1.8 };
+        this.swordTitle = { n: ev.n, adv: ev.adv, bound: ev.bound, ink: this.boundNow === 'ink', t: 0, life: 1.8 };
         this.swordFx('cast', { x: ev.x, y: ev.y, life: 0.45, adv: ev.adv });
         (this.swAdv = this.swAdv || {})[ev.n] = ev.adv;
         break;
@@ -248,7 +253,7 @@ Object.assign(Renderer.prototype, {
   },
 
   // ---------- the hazards his swords leave ----------
-  swordHazard(h, t) { return this.bounded(h.src && h.src.deathBound, () => this.swordHazardBase(h, t)); },
+  swordHazard(h, t) { return this.bounded(this.palOf(h.src), () => this.swordHazardBase(h, t)); },
   swordHazardBase(h, t) {
     const g = this.g, k = clamp01(1 - h.t / h.delay), r = Math.random;
     switch (h.variant) {
@@ -261,7 +266,7 @@ Object.assign(Renderer.prototype, {
           g.globalAlpha = 1;
         }
         const X = sx(h.x), Y = sy(h.y) - 8;
-        for (let i = 0; i < 3; i++) { const a = t * 6 + i * 2.1 + h.x; this.pix(X + Math.cos(a) * 7, Y + Math.sin(a) * 3, '#bff0e8'); } // the wind still turning round it
+        for (let i = 0; i < 3; i++) { const a = t * 6 + i * 2.1 + h.x; this.pix(X + Math.cos(a) * 7, Y + Math.sin(a) * 3, this.inkish('#bff0e8')); } // the wind still turning round it
         if (k > 0.55) this.flare(X + F * (3 + (k - 0.55) * 14), Y - 2 + (k - 0.55) * 8, 2 + k * 2, SW.white, (k - 0.55) * 2);
         return true;
       }
@@ -284,21 +289,21 @@ Object.assign(Renderer.prototype, {
         const X = sx(h.x), Yg = sy(h.y), R0 = h.r;
         this.lit(c => { // the light from above
           const w = 2 + k * 12, gr = c.createLinearGradient(0, 13, 0, Yg);
-          gr.addColorStop(0, 'rgba(255,240,200,0)'); gr.addColorStop(0.2, 'rgba(255,240,200,0.5)'); gr.addColorStop(1, 'rgba(160,215,255,0.65)');
+          gr.addColorStop(0, this.inkish('rgba(255,240,200,0)')); gr.addColorStop(0.2, this.inkish('rgba(255,240,200,0.5)')); gr.addColorStop(1, this.inkish('rgba(160,215,255,0.65)'));
           c.globalAlpha = 0.25 + k * 0.45; c.fillStyle = gr; c.fillRect(X - w / 2, 13, w, Yg - 13);
         });
         g.save(); g.globalAlpha = 0.85; // the clouds pulling apart
-        for (const s of [-1, 1]) for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#3a4258' : '#4c566e'; g.beginPath(); g.ellipse(X + s * (8 + k * 34 + i * 7), 17 + (i % 2) * 2, 9 - i, 3.5, 0, 0, Math.PI * 2); g.fill(); }
+        for (const s of [-1, 1]) for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? this.inkish('#3a4258') : this.inkish('#4c566e'); g.beginPath(); g.ellipse(X + s * (8 + k * 34 + i * 7), 17 + (i % 2) * 2, 9 - i, 3.5, 0, 0, Math.PI * 2); g.fill(); }
         g.restore();
         this.lit(c => { // the rune circle, turning
-          c.globalAlpha = 0.25 + k * 0.6; c.strokeStyle = '#ffe6a0'; c.lineWidth = 1;
+          c.globalAlpha = 0.25 + k * 0.6; c.strokeStyle = this.inkish('#ffe6a0'); c.lineWidth = 1;
           c.beginPath(); c.ellipse(X, Yg, R0, R0 * SQ, 0, 0, Math.PI * 2); c.stroke();
           c.setLineDash([3, 3]); c.lineDashOffset = -t * 20; c.beginPath(); c.ellipse(X, Yg, R0 * 0.72, R0 * 0.72 * SQ, 0, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
           for (let i = 0; i < 8; i++) { const a = t * 1.5 + i * Math.PI / 4; c.beginPath(); c.moveTo(X + Math.cos(a) * R0 * 0.78, Yg + Math.sin(a) * R0 * 0.78 * SQ); c.lineTo(X + Math.cos(a) * R0 * 0.95, Yg + Math.sin(a) * R0 * 0.95 * SQ); c.stroke(); }
           for (let i = 0; i < 4; i++) { const a = -t * 1.2 + i * Math.PI / 2, x = X + Math.cos(a) * R0 * 0.45, y = Yg + Math.sin(a) * R0 * 0.45 * SQ; c.fillStyle = SW.gold; c.beginPath(); c.moveTo(x, y - 2); c.lineTo(x + 1.5, y); c.lineTo(x, y + 2); c.lineTo(x - 1.5, y); c.closePath(); c.fill(); }
         });
         const tipY = k < 0.8 ? Yg - 78 + 56 * ease(k / 0.8) : Yg - 22 + 22 * Math.pow((k - 0.8) / 0.2, 2); // it comes down out of the sky, hangs over them, then falls
-        this.glow(X, tipY - 22, 18 + k * 8, 'rgba(160,215,255,1)', 0.25 + k * 0.3);
+        this.glow(X, tipY - 22, 18 + k * 8, this.inkish('rgba(160,215,255,1)'), 0.25 + k * 0.3);
         this.bigSword(X, tipY, Math.PI / 2, 60, 7, Math.min(1, k * 3), 'celestial', t);
         return true;
       }
@@ -308,18 +313,18 @@ Object.assign(Renderer.prototype, {
         this.lit(c => {
           c.lineWidth = 1;
           for (let j = 0; j < 3; j++) { // three warped copies of the air, out of step with one another
-            c.globalAlpha = (0.06 + 0.22 * k) * (j === 1 ? 1 : 0.6); c.strokeStyle = j === 1 ? '#e8f4ff' : '#bcc8d8'; c.beginPath();
+            c.globalAlpha = (0.06 + 0.22 * k) * (j === 1 ? 1 : 0.6); c.strokeStyle = j === 1 ? this.inkish('#e8f4ff') : this.inkish('#bcc8d8'); c.beginPath();
             for (let i = 0; i <= 16; i++) { const u = i / 16, w = Math.sin(u * 9 + t * 22 + j * 2) * (1.6 - k) * 1.4 + (j - 1) * 1.2 * (1 - k); c.lineTo(x0 + (x1 - x0) * u + nx * w, y0 + (y1 - y0) * u + ny * w); }
             c.stroke();
           }
         });
-        if (k > 0.8) this.lightLine(x0, y0, x1, y1, 0.3, '#ffffff', (k - 0.8) * 3); // the instant before: a hairline
+        if (k > 0.8) this.lightLine(x0, y0, x1, y1, 0.3, this.inkish('#ffffff'), (k - 0.8) * 3); // the instant before: a hairline
         return true;
       }
       case 'shadowcut': { // a shadow sword hanging where it will strike from, his shade behind it
         const X = sx(h.x), Y = sy(h.y) - 6, dx = Math.cos(h.a), dy = Math.sin(h.a) * SQ, dl = Math.hypot(dx, dy) || 1, a = Math.atan2(dy, dx), jit = k > 0.7 ? (r() - .5) * 1.2 : 0;
         if (h.src && !h.src.isPlayer && SPRITE_CACHE[spriteFor(h.src)]) { g.globalAlpha = 0.1 + k * 0.22; this.sprite(spriteFor(h.src), h.x - Math.cos(h.a) * 7, h.y - Math.sin(h.a) * 7, dx < 0, 'ghost', 4, 1); g.globalAlpha = 1; }
-        g.save(); g.globalAlpha = 0.3 * k; g.strokeStyle = '#7f8cff'; g.setLineDash([2, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(X, Y); g.lineTo(X + dx / dl * h.len * 0.8, Y + dy / dl * h.len * 0.8); g.stroke(); g.restore();
+        g.save(); g.globalAlpha = 0.3 * k; g.strokeStyle = this.inkish('#7f8cff'); g.setLineDash([2, 3]); g.lineWidth = 1; g.beginPath(); g.moveTo(X, Y); g.lineTo(X + dx / dl * h.len * 0.8, Y + dy / dl * h.len * 0.8); g.stroke(); g.restore();
         this.bigSword(X + dx / dl * 8 + jit, Y + dy / dl * 8 + jit, a, 16, 3, 0.25 + k * 0.75, 'shadow', t);
         return true;
       }
@@ -355,14 +360,14 @@ Object.assign(Renderer.prototype, {
   },
 
   // ---------- his flying swords ----------
-  swordProjectile(pr, t) { return (pr.kind === 'sword' || pr.kind === 'moonblade' || pr.kind === 'swallow') && this.bounded(pr.src && pr.src.deathBound, () => this.swordProjectileBase(pr, t)); },
+  swordProjectile(pr, t) { return (pr.kind === 'sword' || pr.kind === 'moonblade' || pr.kind === 'swallow') && this.bounded(this.palOf(pr.src), () => this.swordProjectileBase(pr, t)); },
   swordProjectileBase(pr, t) {
     const X = sx(pr.x), Y = sy(pr.y) - 5, ua = Math.atan2(pr.vy * SQ, pr.vx), moving = !(pr.delay > 0);
     const tr = pr._tr = pr._tr || [];
     if (moving && (!tr.length || Math.hypot(tr[0][0] - X, tr[0][1] - Y) > 1.5)) { tr.unshift([X, Y]); if (tr.length > (pr.kind === 'swallow' ? 16 : 8)) tr.pop(); }
     if (pr.kind === 'moonblade') { // the moon's edge, cut loose; fading echoes of it trail behind
       for (let i = tr.length - 1; i >= 2; i -= 2) this.crescent(tr[i][0] - Math.cos(ua) * 4, tr[i][1] - Math.sin(ua) * 4, 11, ua - 1.35, ua + 1.35, 3.5, 0.25 * (1 - i / tr.length), SW.pale, SW.blue, 1);
-      this.glow(X, Y, 12, 'rgba(180,225,255,1)', 0.3);
+      this.glow(X, Y, 12, this.inkish('rgba(180,225,255,1)'), 0.3);
       this.crescent(X - Math.cos(ua) * 4, Y - Math.sin(ua) * 4, 11, ua - 1.35, ua + 1.35, 4, 1, SW.white, SW.blue, 1);
       if (Math.random() < 0.5) this.parts.push({ kind: 'star', x: X + (Math.random() - .5) * 14, y: Y + (Math.random() - .5) * 10, life: 0.15, max: 0.15, s: 0.6, color: SW.pale });
       return true;
@@ -420,7 +425,7 @@ Object.assign(Renderer.prototype, {
   sw_skystroke(f) { // one line from his hand straight up to the sky he is cutting
     const [X, Y] = this.fxPos(f), u = f.age / f.life, top = SKY_SCAR(X), reach = Math.min(1, f.age / 0.12);
     this.lightLine(X, Y - 6, X, Y - 6 + (top - Y + 6) * reach, 1.6 * (1 - u * 0.5), SW.blue, 1 - u);
-    this.glow(X, Y - 8, 14, 'rgba(200,235,255,1)', 0.6 * (1 - u));
+    this.glow(X, Y - 8, 14, this.inkish('rgba(200,235,255,1)'), 0.6 * (1 - u));
   },
   sw_iaido(f) { // I: drawn and cut in the same instant; the sheath clicks shut after
     const [X, Y] = this.fxPos(f), u = f.age / f.life, sweep = Math.min(1, f.age / 0.06), alpha = f.age < 0.12 ? 1 : Math.max(0, 1 - (f.age - 0.12) / 0.3);
@@ -446,16 +451,16 @@ Object.assign(Renderer.prototype, {
   },
   sw_moon(f) { // IV: a pale moon rises behind him; he sweeps its edge loose
     const [X, Y] = this.fxPos(f), u = f.age / f.life, fade = Math.min(1, f.age / 0.12) * (1 - u), mx = X - Math.cos(f.a) * 4, my = Y - 12;
-    this.glow(mx, my, 20, 'rgba(200,230,255,1)', 0.35 * fade);
-    const g = this.g; g.save(); g.globalAlpha = 0.75 * fade; g.fillStyle = '#eef6ff'; g.beginPath(); g.arc(mx, my, 8, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#c8d8ea'; for (const [cx, cy, cr] of [[-3, -2, 1.6], [2, 2, 2], [3, -3, 1], [-1, 4, 1]]) { g.beginPath(); g.arc(mx + cx, my + cy, cr, 0, Math.PI * 2); g.fill(); } g.restore();
+    this.glow(mx, my, 20, this.inkish('rgba(200,230,255,1)'), 0.35 * fade);
+    const g = this.g; g.save(); g.globalAlpha = 0.75 * fade; g.fillStyle = this.inkish('#eef6ff'); g.beginPath(); g.arc(mx, my, 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = this.inkish('#c8d8ea'); for (const [cx, cy, cr] of [[-3, -2, 1.6], [2, 2, 2], [3, -3, 1], [-1, 4, 1]]) { g.beginPath(); g.arc(mx + cx, my + cy, cr, 0, Math.PI * 2); g.fill(); } g.restore();
     const s = Math.min(1, f.age / 0.1); this.crescent(X, Y, 17, f.a - 1.3, f.a - 1.3 + 2.6 * s, 4, Math.max(0, 1 - f.age / 0.35));
   },
   sw_flick(f) { const [X, Y] = this.fxPos(f), s = Math.min(1, f.age / 0.05); this.crescent(X, Y, 12, f.a + 1, f.a + 1 - 2 * s, 3, 1 - f.age / f.life, SW.white, f.red ? SW.red : SW.blue); },
   sw_darkring(f) { // VI: his shadows spill out of him
     const [X, Y] = this.fxPos(f), u = f.age / f.life, g = this.g;
-    g.save(); g.globalAlpha = 0.35 * (1 - u); g.strokeStyle = '#1c2440'; g.lineWidth = 3; g.beginPath(); g.ellipse(X, Y + 5, 6 + u * 26, (6 + u * 26) * 0.45, 0, 0, Math.PI * 2); g.stroke(); g.restore();
-    this.lit(c => { c.globalAlpha = 0.5 * (1 - u); c.strokeStyle = '#7f8cff'; c.lineWidth = 1; c.beginPath(); c.ellipse(X, Y + 5, 6 + u * 26, (6 + u * 26) * 0.45, 0, 0, Math.PI * 2); c.stroke(); });
+    g.save(); g.globalAlpha = 0.35 * (1 - u); g.strokeStyle = this.inkish('#1c2440'); g.lineWidth = 3; g.beginPath(); g.ellipse(X, Y + 5, 6 + u * 26, (6 + u * 26) * 0.45, 0, 0, Math.PI * 2); g.stroke(); g.restore();
+    this.lit(c => { c.globalAlpha = 0.5 * (1 - u); c.strokeStyle = this.inkish('#7f8cff'); c.lineWidth = 1; c.beginPath(); c.ellipse(X, Y + 5, 6 + u * 26, (6 + u * 26) * 0.45, 0, 0, Math.PI * 2); c.stroke(); });
   },
   sw_riverdraw(f) { const [X, Y] = this.fxPos(f), s = Math.min(1, f.age / 0.08); this.crescent(X, Y + 2, 22, f.a - 1.5, f.a - 1.5 + 3 * s, 3, 1 - f.age / f.life, SW.white, SW.blue, 0.35); },
   sw_skypoint(f) { const [X, Y] = this.fxPos(f), u = f.age / f.life; this.lightLine(X, 14, X, Y - 10, 0.6 + 1.2 * (1 - u), SW.gold, (1 - u) * 0.7); this.flare(X, Y - 12, 4, SW.white, 1 - u); },
@@ -469,11 +474,11 @@ Object.assign(Renderer.prototype, {
         const swell = 0.58 + 0.24 * Math.sin(s * 0.09 + a * 11) + 0.12 * Math.sin(s * 0.31 - a * 19) + 0.06 * Math.sin(s * 0.83 + a * 7); // waves on waves, never quite repeating
         const hh = hmax * rise * swell * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.05 + 0.02)), 0.3);
         if (hh < 1) continue;
-        const gr = g.createLinearGradient(0, y, 0, y - hh); gr.addColorStop(0, 'rgba(60,140,255,0.35)'); gr.addColorStop(0.75, 'rgba(160,215,255,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0.85)');
+        const gr = g.createLinearGradient(0, y, 0, y - hh); gr.addColorStop(0, this.inkish('rgba(60,140,255,0.35)')); gr.addColorStop(0.75, this.inkish('rgba(160,215,255,0.22)')); gr.addColorStop(1, this.inkish('rgba(255,255,255,0.85)'));
         g.globalAlpha = 0.85; g.fillStyle = gr; g.fillRect(x, y - hh, 1.6, hh);
         const k = (s * 7.31) % 11; // streaks of sword energy running up the wall
-        if (k < 1.6) { g.globalAlpha = 0.5; g.fillStyle = '#e8f4ff'; g.fillRect(x, y - hh * (0.3 + ((s * 3.7) % 1) * 0.6), 1, hh * 0.35); }
-        g.globalAlpha = 0.95; g.fillStyle = '#ffffff'; g.fillRect(x, y - hh - 0.5, 1.6, 1.2); // the crest, white with foam
+        if (k < 1.6) { g.globalAlpha = 0.5; g.fillStyle = this.inkish('#e8f4ff'); g.fillRect(x, y - hh * (0.3 + ((s * 3.7) % 1) * 0.6), 1, hh * 0.35); }
+        g.globalAlpha = 0.95; g.fillStyle = this.inkish('#ffffff'); g.fillRect(x, y - hh - 0.5, 1.6, 1.2); // the crest, white with foam
       }
     });
     if (a > 0.42 && Math.random() < 0.9) { const u = Math.random(); this.parts.push({ kind: 'px', x: x0 + (x1 - x0) * u, y: y0 + (y1 - y0) * u - hmax * rise, vx: (Math.random() - .5) * 30, vy: 20, g: 160, life: 0.5, max: 0.5, color: Math.random() < 0.5 ? SW.white : SW.blue }); }
@@ -484,14 +489,14 @@ Object.assign(Renderer.prototype, {
   },
   sw_heavenimpact(f) { // VIII: the celestial sword stands where it fell, then comes apart into light
     const X = sx(f.x), Y = sy(f.y), a = f.age < 0.45 ? 1 : Math.max(0, 1 - (f.age - 0.45) / 0.5);
-    this.glow(X, Y - 20, 26, 'rgba(200,230,255,1)', 0.5 * a);
+    this.glow(X, Y - 20, 26, this.inkish('rgba(200,230,255,1)'), 0.5 * a);
     this.bigSword(X, Y + 10, Math.PI / 2, 60, 7, a, 'celestial', this.tick || 0);
     if (f.age > 0.45 && Math.random() < 0.8) this.parts.push({ kind: 'px', x: X + (Math.random() - .5) * 8, y: Y - Math.random() * 50, vx: (Math.random() - .5) * 10, vy: -20 - Math.random() * 20, life: 0.8, max: 0.8, color: Math.random() < 0.5 ? SW.gold : SW.pale });
   },
   sw_cracks(f, layer) {
     if (layer !== 'g') return;
     const X = sx(f.x), Y = sy(f.y), u = f.age / f.life, g = this.g;
-    g.save(); g.globalAlpha = 0.8 * (1 - u); g.strokeStyle = '#141820'; g.lineWidth = 1.4;
+    g.save(); g.globalAlpha = 0.8 * (1 - u); g.strokeStyle = this.inkish('#141820'); g.lineWidth = 1.4;
     for (const pts of f.lines) { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(X + x, Y + y * SQ) : g.moveTo(X + x, Y + y * SQ)); g.stroke(); }
     g.restore();
     this.lit(c => { c.globalAlpha = 0.7 * (1 - u) * (1 - u); c.strokeStyle = SW.gold; c.lineWidth = 0.6; for (const pts of f.lines) { c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(X + x, Y + y * SQ) : c.moveTo(X + x, Y + y * SQ)); c.stroke(); } });
@@ -510,7 +515,7 @@ Object.assign(Renderer.prototype, {
     });
     const pulse = 0.6 + 0.4 * Math.sin(a * 10);
     this.flare(X, Y - 2, 4 + (a > f.d0 - 0.3 ? 6 : 0), SW.white, fade * pulse);
-    if (a > f.d0 && a < f.d0 + 0.3) this.glow(X, Y - 4, 30, 'rgba(200,235,255,1)', (1 - (a - f.d0) / 0.3) * 0.8);
+    if (a > f.d0 && a < f.d0 + 0.3) this.glow(X, Y - 4, 30, this.inkish('rgba(200,235,255,1)'), (1 - (a - f.d0) / 0.3) * 0.8);
   },
   sw_thrust(f) { // ...then one thrust: a spear of sword light
     const x0 = sx(f.x0), y0 = sy(f.y0) - 6, x1 = sx(f.x1), y1 = sy(f.y1) - 6, ext = ease(f.age / 0.07), u = f.age / f.life, ex = x0 + (x1 - x0) * ext, ey = y0 + (y1 - y0) * ext;
@@ -524,27 +529,27 @@ Object.assign(Renderer.prototype, {
   sw_cleavefield(f, layer) {
     if (layer !== 'a') return;
     const g = this.g, k = Math.min(1, f.age / 0.3, (f.life - f.age) / 0.4);
-    g.save(); g.globalAlpha = 0.35 * k; g.fillStyle = '#1a0408'; g.fillRect(0, 13, W, H - 13);
-    const vg = g.createRadialGradient(W / 2, H / 2, 30, W / 2, H / 2, 150); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(60,0,10,0.7)'); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
+    g.save(); g.globalAlpha = 0.35 * k; g.fillStyle = this.inkish('#1a0408'); g.fillRect(0, 13, W, H - 13);
+    const vg = g.createRadialGradient(W / 2, H / 2, 30, W / 2, H / 2, 150); vg.addColorStop(0, this.inkish('rgba(0,0,0,0)')); vg.addColorStop(1, this.inkish('rgba(60,0,10,0.7)')); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
   },
   // ...and each cleave: a razor-white slash outlined in black, whose two edges spring apart
   sw_cleavecut(f) {
     const x0 = sx(f.x0), y0 = sy(f.y0) - 4, x1 = sx(f.x1), y1 = sy(f.y1) - 4, L = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / L, ny = (x1 - x0) / L;
     const a = f.age, ext = ease(a / 0.04), ex = x0 + (x1 - x0) * ext, ey = y0 + (y1 - y0) * ext, gap = Math.min(2.2, a * 12), al = Math.max(0, 1 - a / f.life), g = this.g;
     if (a < 0.08) { // the cut itself
-      g.save(); g.lineCap = 'round'; g.strokeStyle = SW.scale > 1 ? SW.ink : '#000000'; g.lineWidth = 3 * SW.scale; g.globalAlpha = 0.85; g.beginPath(); g.moveTo(x0, y0); g.lineTo(ex, ey); g.stroke();
+      g.save(); g.lineCap = 'round'; g.strokeStyle = SW.scale > 1 ? SW.ink : this.inkish('#000000'); g.lineWidth = 3 * SW.scale; g.globalAlpha = 0.85; g.beginPath(); g.moveTo(x0, y0); g.lineTo(ex, ey); g.stroke();
       g.strokeStyle = SW.white; g.lineWidth = 1.4 * SW.scale; g.globalAlpha = 1; g.beginPath(); g.moveTo(x0, y0); g.lineTo(ex, ey); g.stroke(); g.restore();
-      this.glow((x0 + ex) / 2, (y0 + ey) / 2, 10, 'rgba(255,255,255,1)', 0.4);
+      this.glow((x0 + ex) / 2, (y0 + ey) / 2, 10, this.inkish('rgba(255,255,255,1)'), 0.4);
     } else for (const s of [-1, 1]) { // the air on either side of it, sliding apart
-      g.save(); g.globalAlpha = al; g.strokeStyle = '#000000'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x0 + nx * gap * s, y0 + ny * gap * s); g.lineTo(x1 + nx * gap * s, y1 + ny * gap * s); g.stroke();
-      g.strokeStyle = s < 0 ? SW.white : SW.scale > 1 ? SW.blue : '#c8d0dc'; g.lineWidth = 0.7 * SW.scale; g.stroke(); g.restore();
+      g.save(); g.globalAlpha = al; g.strokeStyle = this.inkish('#000000'); g.lineWidth = 1.6; g.beginPath(); g.moveTo(x0 + nx * gap * s, y0 + ny * gap * s); g.lineTo(x1 + nx * gap * s, y1 + ny * gap * s); g.stroke();
+      g.strokeStyle = s < 0 ? SW.white : SW.scale > 1 ? SW.blue : this.inkish('#c8d0dc'); g.lineWidth = 0.7 * SW.scale; g.stroke(); g.restore();
     }
   },
 
   // XI: the slow stroke that cuts a cause rather than a body
   sw_slowstroke(f) {
     const [X, Y] = this.fxPos(f), sweep = ease(f.age / 0.5);
-    this.crescent(X, Y, 24, f.a - 1.6, f.a - 1.6 + 3.2 * sweep, 3.5, Math.max(0, 1 - Math.max(0, f.age - 0.5) / 0.3), '#ffd0da', SW.red);
+    this.crescent(X, Y, 24, f.a - 1.6, f.a - 1.6 + 3.2 * sweep, 3.5, Math.max(0, 1 - Math.max(0, f.age - 0.5) / 0.3), this.inkish('#ffd0da'), SW.red);
   },
   // the lines of cause, each from the arena's edge to the one who must bear its effect, drawn taut and trembling
   sw_karma(f) {
@@ -556,12 +561,12 @@ Object.assign(Renderer.prototype, {
         const X0 = sx(ax), Y0 = sy(ay), ext = Math.min(1, k * 1.4 - i * 0.06), ex = X0 + (X1 - X0) * ext, ey = Y0 + (Y1 - Y0) * ext;
         const L = Math.hypot(ex - X0, ey - Y0) || 1, nx = -(ey - Y0) / L, ny = (ex - X0) / L, tr = Math.sin(t * 40 + i * 3) * 0.5;
         c.globalAlpha = 0.25; c.strokeStyle = SW.red; c.lineWidth = 2.5; c.beginPath(); c.moveTo(X0, Y0); c.lineTo(ex, ey); c.stroke();
-        c.globalAlpha = 0.9; c.strokeStyle = i === 0 ? '#ffd0da' : SW.red; c.lineWidth = 0.7; c.beginPath(); c.moveTo(X0, Y0); c.quadraticCurveTo((X0 + ex) / 2 + nx * tr, (Y0 + ey) / 2 + ny * tr, ex, ey); c.stroke();
+        c.globalAlpha = 0.9; c.strokeStyle = i === 0 ? this.inkish('#ffd0da') : SW.red; c.lineWidth = 0.7; c.beginPath(); c.moveTo(X0, Y0); c.quadraticCurveTo((X0 + ex) / 2 + nx * tr, (Y0 + ey) / 2 + ny * tr, ex, ey); c.stroke();
         c.globalAlpha = 0.9; c.fillStyle = SW.red; c.fillRect(Math.round(X0) - 1, Math.round(Y0) - 1, 2, 2); // where it is fastened to the world
       }
     });
-    this.glow(X1, Y1, 8, 'rgba(255,60,90,1)', 0.35 * k + 0.1 * Math.sin(t * 6));
-    const next = f.anchors[0]; if (next) this.flare(sx(next[0]), sy(next[1]), 2.5, '#ffd0da', 0.5 + 0.5 * Math.sin(t * 12)); // the next to give way
+    this.glow(X1, Y1, 8, this.inkish('rgba(255,60,90,1)'), 0.35 * k + 0.1 * Math.sin(t * 6));
+    const next = f.anchors[0]; if (next) this.flare(sx(next[0]), sy(next[1]), 2.5, this.inkish('#ffd0da'), 0.5 + 0.5 * Math.sin(t * 12)); // the next to give way
   },
   // a line snapping: its two halves whip back, the wound opens, and 果 is written over it
   sw_snap(f) {
@@ -573,15 +578,15 @@ Object.assign(Renderer.prototype, {
     const open = Math.sin(Math.PI * Math.min(1, f.age / 0.4)), ca = f.cut;
     if (f.age < 0.4) this.lit(c => { c.lineCap = 'round'; c.globalAlpha = 0.95; c.strokeStyle = SW.red; c.lineWidth = 1 + open * 2.5; c.beginPath(); c.moveTo(X1 - 7 * Math.cos(ca + 0.8), Y1 + 6 * Math.sin(ca + 0.8)); c.lineTo(X1 + 7 * Math.cos(ca + 0.8), Y1 - 6 * Math.sin(ca + 0.8)); c.stroke();
       c.strokeStyle = SW.white; c.lineWidth = 0.5 + open; c.stroke(); });
-    const g = this.g; g.save(); g.globalAlpha = Math.min(1, (1 - u) * 2); g.font = `12px ${CJK_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = SW.red; g.shadowBlur = 6; g.fillStyle = '#ffe0e6'; g.fillText('果', X1, Y1 - 12 - u * 8); g.restore();
+    const g = this.g; g.save(); g.globalAlpha = Math.min(1, (1 - u) * 2); g.font = `12px ${CJK_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = SW.red; g.shadowBlur = 6; g.fillStyle = this.inkish('#ffe0e6'); g.fillText('果', X1, Y1 - 12 - u * 8); g.restore();
   },
 
   // XII: time itself slows: the world goes cold and blue, and still air streams past
   sw_slowmo(f, layer) {
     if (layer !== 'a') return;
     const g = this.g, k = Math.min(1, f.age / 0.2, (f.life - f.age) / 0.3), t = this.tick || 0;
-    g.save(); g.globalAlpha = 0.28 * k; g.fillStyle = '#0a1a3a'; g.fillRect(0, 13, W, H - 13);
-    const vg = g.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 150); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,40,90,0.65)'); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
+    g.save(); g.globalAlpha = 0.28 * k; g.fillStyle = this.inkish('#0a1a3a'); g.fillRect(0, 13, W, H - 13);
+    const vg = g.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 150); vg.addColorStop(0, this.inkish('rgba(0,0,0,0)')); vg.addColorStop(1, this.inkish('rgba(20,40,90,0.65)')); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
     this.lit(c => { c.strokeStyle = SW.pale; c.lineWidth = 0.6; for (let i = 0; i < 14; i++) { const y = 18 + ((i * 37) % (H - 24)), x = ((i * 53 + t * 40) % (W + 40)) - 20; c.globalAlpha = 0.18 * k; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 14 + (i % 3) * 6, y); c.stroke(); } });
   },
   // ...and the moon he leaves: a vast half-moon of sword light lying across the stage, burning while it lingers
@@ -590,7 +595,7 @@ Object.assign(Renderer.prototype, {
     const a0 = f.a - Math.PI / 2, a1 = a0 + Math.PI * sweep, pulse = 0.75 + 0.25 * Math.sin(t * 9);
     const ring = (r0, r1) => { g.beginPath(); for (let i = 0; i <= 30; i++) { const a = a0 + (a1 - a0) * i / 30; g.lineTo(X + Math.cos(a) * r1, Y + Math.sin(a) * r1 * SQ); } for (let i = 30; i >= 0; i--) { const a = a0 + (a1 - a0) * i / 30; g.lineTo(X + Math.cos(a) * r0, Y + Math.sin(a) * r0 * SQ); } g.closePath(); };
     if (layer === 'g') {
-      g.save(); ring(f.r0, f.r1); g.globalAlpha = 0.35 * fade * pulse; g.fillStyle = SW.scale > 1 ? SW.blue : '#7fbfff'; g.fill(); g.restore();
+      g.save(); ring(f.r0, f.r1); g.globalAlpha = 0.35 * fade * pulse; g.fillStyle = SW.scale > 1 ? SW.blue : this.inkish('#7fbfff'); g.fill(); g.restore();
       this.lit(c => { ring(f.r0, f.r1); c.globalAlpha = 0.5 * fade; c.strokeStyle = SW.white; c.lineWidth = 1; c.stroke();
         c.globalAlpha = 0.25 * fade; c.strokeStyle = SW.blue; c.lineWidth = 4; c.stroke(); });
       if (Math.random() < 0.8 * fade) { const a = a0 + Math.random() * (a1 - a0), rr = f.r0 + Math.random() * (f.r1 - f.r0); this.parts.push({ kind: 'px', x: X + Math.cos(a) * rr, y: Y + Math.sin(a) * rr * SQ, vx: 0, vy: -12, life: 0.6, max: 0.6, color: Math.random() < 0.5 ? SW.white : SW.blue }); }
@@ -615,14 +620,14 @@ Object.assign(Renderer.prototype, {
   sw_stillness(f, layer) { // XIII: everything stops; the world dims, and light rises out of it
     if (layer !== 'a') return;
     const u = f.age / f.life, k = Math.min(1, f.age / 0.25) * (u > 0.85 ? (1 - u) / 0.15 : 1), g = this.g;
-    g.save(); g.globalAlpha = 0.55 * k; g.fillStyle = '#060a14'; g.fillRect(0, 13, W, H - 13);
-    const vg = g.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 150); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.8)'); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
+    g.save(); g.globalAlpha = 0.55 * k; g.fillStyle = this.inkish('#060a14'); g.fillRect(0, 13, W, H - 13);
+    const vg = g.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 150); vg.addColorStop(0, this.inkish('rgba(0,0,0,0)')); vg.addColorStop(1, this.inkish('rgba(0,0,0,0.8)')); g.globalAlpha = k; g.fillStyle = vg; g.fillRect(0, 13, W, H - 13); g.restore();
     this.lit(c => { for (const [x, y, sp, ph] of f.motes) { const yy = y - f.age * sp, tw = 0.5 + 0.5 * Math.sin(f.age * 4 + ph); if (yy < 14) continue; c.globalAlpha = k * tw * 0.8; c.fillStyle = ph > 3 ? SW.pale : SW.blue; c.fillRect(Math.round(x), Math.round(yy), 1, 1); } });
   },
   sw_finger(f) { // one finger raised: a point of light, the whole sky above it drawn to it
     const [X, Y] = this.fxPos(f), a = f.age, grow = ease(a / 0.5), fade = a > f.life - 0.3 ? (f.life - a) / 0.3 : 1, fx = X + 3, fy = Y - 12;
     this.lightLine(fx, 13, fx, fy, 0.3 + grow * 0.4, SW.pale, 0.35 * fade);
-    this.glow(fx, fy, 3 + grow * 6, 'rgba(255,255,255,1)', 0.9 * fade);
+    this.glow(fx, fy, 3 + grow * 6, this.inkish('rgba(255,255,255,1)'), 0.9 * fade);
     this.lit(g => { g.globalAlpha = fade; g.strokeStyle = SW.white; g.lineWidth = 0.6; g.beginPath(); g.moveTo(fx - 4 - grow * 18, fy); g.lineTo(fx + 4 + grow * 18, fy); g.moveTo(fx, fy - 3 - grow * 9); g.lineTo(fx, fy + 3 + grow * 9); g.stroke(); });
   },
   sw_heavencut(f) { // ...and the line: blinding for an instant, then gone
@@ -639,9 +644,9 @@ Object.assign(Renderer.prototype, {
     const T = this.swordTitle; if (!T) return;
     T.t += dt; if (T.t > T.life) { this.swordTitle = null; return; }
     if (T.t < 0) return; // waiting for the ULTIMATE banner to clear
-    const forbidden = T.n === 13, g = this.g, a = Math.min(1, T.t / 0.15, (T.life - T.t) / 0.45), n = T.n - 1, c = T.bound ? SW_BOUND.blue : forbidden ? SW.red : T.adv ? SW.gold : SW.blue, cx = W / 2, wl = 92 * ease(T.t / 0.4);
+    const forbidden = T.n === 13, g = this.g, a = Math.min(1, T.t / 0.15, (T.life - T.t) / 0.45), n = T.n - 1, c = T.ink ? '#d8d0e8' : T.bound ? SW_BOUND.blue : forbidden ? SW.red : T.adv ? SW.gold : SW.blue, cx = W / 2, wl = 92 * ease(T.t / 0.4);
     g.save(); g.globalAlpha = a * 0.7;
-    const gr = g.createLinearGradient(cx - wl, 0, cx + wl, 0); gr.addColorStop(0, 'rgba(159,216,255,0)'); gr.addColorStop(0.5, T.bound ? 'rgba(255,74,90,0.95)' : forbidden ? 'rgba(255,90,122,0.9)' : T.adv ? 'rgba(255,216,138,0.9)' : 'rgba(159,216,255,0.9)'); gr.addColorStop(1, 'rgba(159,216,255,0)');
+    const gr = g.createLinearGradient(cx - wl, 0, cx + wl, 0); gr.addColorStop(0, 'rgba(159,216,255,0)'); gr.addColorStop(0.5, T.ink ? 'rgba(10,6,16,0.95)' : T.bound ? 'rgba(255,74,90,0.95)' : forbidden ? 'rgba(255,90,122,0.9)' : T.adv ? 'rgba(255,216,138,0.9)' : 'rgba(159,216,255,0.9)'); gr.addColorStop(1, 'rgba(159,216,255,0)');
     g.fillStyle = gr; g.fillRect(cx - wl, 38, wl * 2, 1); g.globalAlpha = a * 0.3; g.fillRect(cx - wl * 0.7, 40, wl * 1.4, 1);
     g.globalAlpha = a; g.font = `14px ${CJK_FONT}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.shadowColor = c; g.shadowBlur = 6; g.fillStyle = '#ffffff';
     g.fillText(SWORD_CN[n] || '', cx, 36);
@@ -655,13 +660,14 @@ Object.assign(Renderer.prototype, {
 
   // ---------- the man himself ----------
   // behind him: in his second form, the swords that circle him (the far half of the ring)
-  drawImmortalBack(sim, e, X, y0, F, t) {
+  drawImmortalBack(sim, e, X, y0, F, t) { return this.bounded(this.palOf(e), () => this.drawImmortalBackBase(sim, e, X, y0, F, t)); },
+  drawImmortalBackBase(sim, e, X, y0, F, t) {
     if (!e.unity || e.swordForm) return;
     for (let i = 0; i < 6; i++) { const a = t * 1.6 + i * Math.PI / 3, s = Math.sin(a); if (s >= 0) continue; this.miniSword(X + Math.cos(a) * 13, y0 + 11 + s * 3, -Math.PI / 2, 5, 0.5, 0.2); }
     this.lit(g => { g.globalAlpha = 0.22 + 0.08 * Math.sin(t * 3); g.strokeStyle = SW.gold; g.lineWidth = 0.6; g.beginPath(); g.ellipse(X - F * 2, y0 + 2, 4.5, 4.5, 0, 0, Math.PI * 2); g.stroke(); }); // a faint halo behind his head
   },
   // over him: the flying sword under his feet, ribbons in his hair, the near swords of the ring, his Sword Intent
-  drawImmortalFront(sim, e, X, y0, base, lift, F, t) { return this.bounded(e.deathBound, () => this.drawImmortalFrontBase(sim, e, X, y0, base, lift, F, t)); },
+  drawImmortalFront(sim, e, X, y0, base, lift, F, t) { return this.bounded(this.palOf(e), () => this.drawImmortalFrontBase(sim, e, X, y0, base, lift, F, t)); },
   drawImmortalFrontBase(sim, e, X, y0, base, lift, F, t) {
     const g = this.g, r = Math.random, moving = Math.hypot(e.mvx || 0, e.mvy || 0) > 0.2 && e.state !== 'ult';
     if (!e.swordForm) {
@@ -669,15 +675,15 @@ Object.assign(Renderer.prototype, {
       this.lit(c => { c.globalAlpha = 0.3 + 0.1 * Math.sin(t * 6); c.fillStyle = SW.blue; c.beginPath(); c.ellipse(X, by + 1, 11, 1.6, 0, 0, Math.PI * 2); c.fill(); });
       this.pline(X - 7 * F, by, X + 9 * F, by, SW.steel); this.pline(X - 7 * F, by + 1, X + 8 * F, by + 1, SW.shade); this.pix(X + 10 * F, by, SW.white); // the blade
       this.pix(X + 2 * F, by, SW.white);
-      g.fillStyle = '#ffd84a'; g.fillRect(X - 8 * F - (F < 0 ? 0 : 0), by - 1, 1, 3); // the guard
-      this.pline(X - 9 * F, by, X - 11 * F, by, '#2f4f8a'); this.pix(X - 12 * F, by, '#c9a65a'); // hilt and pommel
-      const tw = Math.sin(t * 9) * (moving ? 1.5 : 0.8); this.pix(X - 13 * F, by + 1, '#c23b22'); this.pix(X - 14 * F, by + 1 + Math.round(tw * 0.5), '#c23b22'); this.pix(X - 15 * F, by + 2 + Math.round(tw), '#8f2416'); // its tassel
+      g.fillStyle = SW.guard; g.fillRect(X - 8 * F - (F < 0 ? 0 : 0), by - 1, 1, 3); // the guard
+      this.pline(X - 9 * F, by, X - 11 * F, by, SW.hilt); this.pix(X - 12 * F, by, SW.pommel); // hilt and pommel
+      const tw = Math.sin(t * 9) * (moving ? 1.5 : 0.8); this.pix(X - 13 * F, by + 1, SW.tassel); this.pix(X - 14 * F, by + 1 + Math.round(tw * 0.5), SW.tassel); this.pix(X - 15 * F, by + 2 + Math.round(tw), SW.tassel2); // its tassel
       if (moving) { // riding the wind: streaks peel off the sword
         if (r() < 0.8) this.parts.push({ kind: 'line', x0: X - 10 * F, y0: by + (r() - .5) * 3, x1: X - (18 + r() * 10) * F, y1: by + (r() - .5) * 3, life: 0.14, max: 0.14, color: r() < 0.5 ? SW.pale : SW.blue });
         if (r() < 0.5) this.parts.push({ kind: 'px', x: X + (r() - .5) * 8, y: y0 + 4 + r() * 10, vx: -F * (40 + r() * 40), vy: 0, life: 0.2, max: 0.2, color: SW.pale });
       } else if (r() < 0.3) this.parts.push({ kind: 'px', x: X - 9 * F, y: by, vx: -F * 12, vy: 2, life: 0.4, max: 0.4, color: SW.blue });
       // two ribbons tied in his hair, lifting on the wind
-      for (const [k, col] of [[0, '#9fc8e8'], [1, '#3f7fd0']]) {
+      for (const [k, col] of [[0, SW.rib1], [1, SW.rib2]]) {
         let x = X - F * 1, y = y0 + 1 + k;
         for (let i = 0; i < 6; i++) { x -= F * (1 + (moving ? 0.5 : 0)); y += 0.5 + Math.sin(t * (moving ? 14 : 6) + i * 0.8 + k * 1.7) * 0.6; this.pix(x, y, col); }
       }
@@ -686,11 +692,11 @@ Object.assign(Renderer.prototype, {
     const raising = e.state === 'wind' && e.atk && e.atk.kind === 'cleaves', up = e.handRaised ? 1 : raising ? Math.min(1, 1 - e.st / e.atk.wind) : 0;
     if (up > 0) { // X: he slowly raises one hand, and the air around him begins to warp
       const hx = X + F * (3 + up * 1), hy = y0 + 8 - up * 9;
-      this.pline(X + F * 2, y0 + 8, hx, hy, '#e2b48a'); this.pix(hx, hy - 1, '#ffffff');
-      this.lit(c => { for (let i = 0; i < 3; i++) { const rr = 6 + i * 5 + ((t * 14 + i * 4) % 5); c.globalAlpha = 0.12 * up * (1 - i * 0.25); c.strokeStyle = '#e8f4ff'; c.lineWidth = 1; c.beginPath(); c.ellipse(X + Math.sin(t * 9 + i) * 0.8, y0 + 8, rr, rr * 0.7, 0, 0, Math.PI * 2); c.stroke(); } });
-      if (Math.random() < 0.3 * up) this.parts.push({ kind: 'line', x0: X + (Math.random() - .5) * 24, y0: y0 + (Math.random() - .5) * 16, x1: X + (Math.random() - .5) * 24, y1: y0 + (Math.random() - .5) * 16, life: 0.08, max: 0.08, color: '#c8d0dc' });
+      this.pline(X + F * 2, y0 + 8, hx, hy, this.inkish('#e2b48a')); this.pix(hx, hy - 1, this.inkish('#ffffff'));
+      this.lit(c => { for (let i = 0; i < 3; i++) { const rr = 6 + i * 5 + ((t * 14 + i * 4) % 5); c.globalAlpha = 0.12 * up * (1 - i * 0.25); c.strokeStyle = this.inkish('#e8f4ff'); c.lineWidth = 1; c.beginPath(); c.ellipse(X + Math.sin(t * 9 + i) * 0.8, y0 + 8, rr, rr * 0.7, 0, 0, Math.PI * 2); c.stroke(); } });
+      if (Math.random() < 0.3 * up) this.parts.push({ kind: 'line', x0: X + (Math.random() - .5) * 24, y0: y0 + (Math.random() - .5) * 16, x1: X + (Math.random() - .5) * 24, y1: y0 + (Math.random() - .5) * 16, life: 0.08, max: 0.08, color: this.inkish('#c8d0dc') });
     }
-    if (e.deathBound) { // bound to the manual: his body is spent, cracked with red light, held up only by what is left to draw
+    if (e.deathBound && !e.corrupt) { // bound to the manual: his body is spent, cracked with red light, held up only by what is left to draw
       this.lit(c => { c.globalAlpha = 0.5 + 0.3 * Math.sin(t * 14); c.strokeStyle = SW.red; c.lineWidth = 0.7; for (let i = 0; i < 4; i++) { const a = i * 1.7 + 0.4; c.beginPath(); c.moveTo(X, y0 + 8); c.lineTo(X + Math.cos(a) * 4, y0 + 8 + Math.sin(a) * 4); c.lineTo(X + Math.cos(a + 0.4) * 7, y0 + 8 + Math.sin(a + 0.4) * 6); c.stroke(); } });
       if (Math.random() < 0.5) this.parts.push({ kind: 'px', x: X + (Math.random() - .5) * 8, y: y0 + 4 + Math.random() * 10, vx: 0, vy: -16, life: 0.6, max: 0.6, color: Math.random() < 0.5 ? SW.red : SW.white });
     }
@@ -699,7 +705,7 @@ Object.assign(Renderer.prototype, {
   },
 
   // XII: man and sword as one: a comet of sword light
-  drawSwordForm(sim, e) { return this.bounded(e.deathBound, () => this.drawSwordFormBase(sim, e)); },
+  drawSwordForm(sim, e) { return this.bounded(this.palOf(e), () => this.drawSwordFormBase(sim, e)); },
   drawSwordFormBase(sim, e) {
     const X = sx(e.x), Y = sy(e.y) - 8, dx = e.fx || 1, dy = (e.fy || 0) * SQ, a = Math.atan2(dy, dx), t = sim.t;
     this.glow(X, Y, 10 * SW.scale, SW.blue, 0.45);

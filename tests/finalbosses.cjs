@@ -65,7 +65,9 @@ const run = (s, sec, hold) => { for (let i = 0; i < sec * 60; i++) { if (hold) {
   for (let i = 0; i < 30 && !(e.ult && e.ult.name === 'Fourteenth Sword: Cut'); i++) { e.state = 'idle'; s.step(null); }
   assert.equal(e.ult.name, 'Fourteenth Sword: Cut');
   // stand off the line; he sheathes and falls
-  for (let i = 0; i < 60 * 6.5 && !e.dead; i++) { const S = (s.spectacles || []).find(q => q.kind === 'pagecut'); if (S && S.t > 2.0) { s.p.x = S.ax - Math.sin(S.ang) * 40; s.p.y = S.ay + Math.cos(S.ang) * 40; } s.p.kvx = s.p.kvy = 0; s.step(null); }
+  let dashed = false;
+  for (let i = 0; i < 60 * 6.5 && !e.dead; i++) { const S = (s.spectacles || []).find(q => q.kind === 'pagecut'); if (S && S.from && Math.hypot(e.x - S.from.x, e.y - S.from.y) > 5) dashed = true; if (S && S.t > 2.0) { s.p.x = S.ax - Math.sin(S.ang) * 40; s.p.y = S.ay + Math.cos(S.ang) * 40; } s.p.kvx = s.p.kvy = 0; s.step(null); }
+  assert.ok(dashed, 'the cut carries him through, past you along the line');
   assert.ok(e.dead || e.hp <= 0, 'he sheathes, and falls');
   assert.ok(s.pageScars && s.pageScars.length === 1, 'and the page keeps its scar');
 }

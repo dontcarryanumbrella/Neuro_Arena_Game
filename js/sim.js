@@ -6789,6 +6789,11 @@ Object.assign(Sim.prototype, {
           }
           (this.pageScars = this.pageScars || []).push({ x: S.ax, y: S.ay, a: S.ang });
           e.lastCutHit = !!S.hitHero;
+          { // and he is already past you, along the line, his back to you
+            const side = ((e.x - S.ax) * ux + (e.y - S.ay) * uy) > 0 ? -1 : 1; let tx = S.ax + ux * side * 36, ty = S.ay + uy * side * 36; const rr = Math.hypot(tx, ty);
+            if (rr > R - 12) { tx *= (R - 12) / rr; ty *= (R - 12) / rr; }
+            S.from = { x: e.x, y: e.y }; S.side = side; e.x = tx; e.y = ty; e.kvx = e.kvy = 0; e.fx = side * (ux >= 0 ? 1 : -1) || 1;
+          }
           this.emit('pagecut', S.ax, S.ay, { a: S.ang });
         }
       }

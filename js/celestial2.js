@@ -272,7 +272,7 @@ const baseSpect = RP.drawSpectacles;
 RP.drawSpectacles = function (sim, layer) {
   baseSpect.call(this, sim, layer);
   const g = this.g, t = sim.t;
-  if (layer === 'back' && sim.pageScars) for (const s of sim.pageScars) { const ux = Math.cos(s.a), uy = Math.sin(s.a); line(g, sx(s.x - ux * 140), sy(s.y - uy * 140), sx(s.x + ux * 140), sy(s.y + uy * 140), '#f4f0e6', 1, 0.55); } // where the Fourteenth cut the page
+  if (layer === 'back' && sim.pageScars) for (const s of sim.pageScars) this.drawPageScar ? this.drawPageScar(s) : line(g, sx(s.x - Math.cos(s.a) * 140), sy(s.y - Math.sin(s.a) * 140), sx(s.x + Math.cos(s.a) * 140), sy(s.y + Math.sin(s.a) * 140), '#f4f0e6', 1, 0.55); // where the Fourteenth cut the page
   for (const S of sim.spectacles || []) {
     const k = Math.min(1, S.t / 0.4, (S.dur - S.t) / 0.4), e = S.owner;
     if (layer === 'back') {

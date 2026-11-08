@@ -4642,7 +4642,7 @@ class Renderer {
       if (type === 'spider') this.drawSpiderLegs(e, X, base, lift, t, F);
       if (def.sprite === 'kitsune') this.drawTails(at, t, F, e.state === 'wind');
       if (e.heads) this.drawHeads(e, at, t, F, 'necks');
-      if (def.manual && !e.corrupt) this.drawImmortalBack(sim, e, X, y0, F, t);
+      if (def.manual) this.drawImmortalBack(sim, e, X, y0, F, t);
       return;
     }
     if (e.heads) this.drawHeads(e, at, t, F, 'heads');
@@ -4657,7 +4657,7 @@ class Renderer {
       } else if (r() < 0.25) this.parts.push({ kind: 'px', x: X + (r() - .5) * 12, y: Math.round(sy(e.y)), vx: (r() - .5) * 8, vy: -2, life: 0.5, max: 0.5, color: r() < 0.5 ? '#ffffff' : '#ffe9a8' });
     }
     if (def.scholar) this.drawScholar(sim, e, at, X, y0, w, h, F, t);
-    if (def.manual && !e.corrupt) this.drawImmortalFront(sim, e, X, y0, base, lift, F, t); // his flying sword, his ribbons, his Sword Intent
+    if (def.manual) this.drawImmortalFront(sim, e, X, y0, base, lift, F, t); // his flying sword, his ribbons, his Sword Intent
     if (e.spinGuardT > 0) { // the staff spun into a golden wheel in front of him
       const cy = y0 + Math.round(h * 0.45), L = e.giant ? 20 : 11;
       for (let k = 0; k < 3; k++) { // a blur of the last few turns
