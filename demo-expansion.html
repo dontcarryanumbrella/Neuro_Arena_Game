@@ -48,7 +48,7 @@
   <div id="info"></div>
 </main>
 <script src="js/sfx.js"></script><script src="js/agent.js"></script><script src="js/sim.js"></script><script src="js/campaign.js"></script><script src="js/lore.js"></script>
-<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script><script src="js/celestial.js"></script><script src="js/celestial2.js"></script><script src="js/celestial3.js"></script>
+<script src="js/render.js"></script><script src="js/arenas.js"></script><script src="js/swordfx.js"></script><script src="js/finale-arenas.js"></script><script src="js/celestial.js"></script><script src="js/celestial2.js"></script><script src="js/celestial3.js"></script><script src="js/latepass.js"></script>
 <script>
 // One live arena per expansion addition, drawn by the game's own renderer in the world it belongs to.
 const $d = id => document.getElementById(id);
@@ -88,6 +88,16 @@ const GROUPS = [
     { label: 'Sword Immortal · Sword Without a Head', world: 'summit', foes: ['swordsaint'], boss: true, setup: corruptIt, desc: 'Summit only, after the Thirteenth Sword. Corrupted swords in ink, each answered by an ink afterimage; Black Sea Tide dulls blows struck from his feet.' },
     { label: 'Sword Immortal · the Fourteenth Sword', world: 'summit', foes: ['swordsaint'], boss: true, setup: (s, e) => { corruptIt(s, e); e.fourteenthQueued = true; }, desc: 'At 10%: Cut. The world becomes a page and folds flat; a pencil line follows you; one bare blade cuts the page. Step off the line.' },
   ]],
+  ['Late-game pass (step 9)', 'bottom', [
+    { label: 'Time Administrator · the Present', world: 'bottom', foes: ['timeadmin'], boss: true, desc: '500 health. A clock under him. New: Hour Hand (the hands sweep the stage), Past/Present/Future (where you were, are, will be), Borrowed Time (your skills back to full cooldown).' },
+    { label: 'Time Administrator · You, From the Future', world: 'bottom', foes: ['timeadmin'], boss: true, stages: 1, desc: 'Heals 35% on arrival; the clock runs fast; the minute hand joins the hour hand.' },
+    { label: 'Time Administrator · You, From the Past', world: 'bottom', foes: ['timeadmin'], boss: true, stages: 2, desc: 'Returns at 70%; the clock runs backwards; Past/Present/Future in his kit.' },
+    { label: 'Yun Xi · the Last Bet', world: 'bottom', foes: ['unknown'], boss: true, setup: (s, e) => { s.p.maxHp = s.p.hp = 1e6; e.hp = 0; s.resolveFalls(); }, desc: '1,000 health, damage no longer held back. At 0 she heals 25% and stakes it all on a die: five telegraphed rolls (Ace, Pair, Trips, Four Corners, Five-Spot, Jackpot), then spent, then again.' },
+  ]],
+  ['Thousand Skins (step 10)', 'isles', [
+    { label: 'Thousand Skins · Four Symbols, Five Phases', world: 'isles', foes: ['oni'], next: s => { s.p.beastT = 0.01; s.p.beastCd = 0; }, setup: (s, e) => { s.applyTalents(s.p, ['shapeshift'], 'unformed'); Object.assign(s.p, { skinPicks: FOUR_SYMBOLS.slice(), fourSymbols: true, symSeen: [], beastCd: 0.1 }); s.p.maxHp = s.p.hp = 1e6; }, desc: 'The secret set: Azure Dragon, Vermilion Bird, Qilin, White Tiger, Black Tortoise in generating order. Each change breathes its element; the other four stand guard; all five completes the Five Phases. Next stage: change skin.' },
+    { label: 'Thousand Skins · any five', world: 'isles', foes: ['oni'], next: s => { s.p.beastT = 0.01; s.p.beastCd = 0; }, setup: (s, e) => { s.applyTalents(s.p, ['shapeshift'], 'unformed'); Object.assign(s.p, { skinPicks: ['oni', 'tiger', 'phoenix', 'bandit', 'qilin'], fourSymbols: false, beastCd: 0.1 }); s.p.maxHp = s.p.hp = 1e6; }, desc: 'Five felled foes chosen: each skin wears the foe, takes a role bonus, and throws its arts on its own. Next stage: change skin.' },
+  ]],
   ['Eastern Isles (Tier IV)', 'isles', [
     { ...demoFoe('tamamo', 'isles', 'Life 1 of nine. Next stage takes a life: each brings a tail and a new art.'), boss: true, label: 'Nine-Tailed Fox · first life' },
     { ...demoFoe('tamamo', 'isles', 'Life 4: the Dance of a Hundred Foxes is now possible.'), boss: true, label: 'Nine-Tailed Fox · fourth life', lives: 3 },
@@ -107,6 +117,7 @@ for (const [name, world, items] of GROUPS) {
 }
 
 function nextStage(e) {
+  if (demoCur && demoCur.next) return demoCur.next(demoSim, e);
   if (!e || e.dead) return;
   e.invulnT = 0; e.state = 'idle'; e.ult = null;
   if (e.def.foxLives) { if ((e.tails || 1) < e.def.foxLives) demoSim.foxRise(e); return; }

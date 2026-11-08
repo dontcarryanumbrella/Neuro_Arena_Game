@@ -474,3 +474,12 @@ details.note p, .right p { color: #d8ccb6; }
 .recipe .recipe-finale { background: #fff4d6; }
 .identity-stage { padding: 6px 0; border-bottom: 1px solid #4a3a2a; }
 #thirdChoice { max-width: 100%; display: block; margin-top: 6px; }
+/* Thousand Skins: the five forms it may take */
+.skin-picker { margin: 8px 0 6px; padding: 6px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fbfaf7; }
+.skin-picker .sp-head { font-size: 13px; margin-bottom: 4px; }
+.skin-picker .sp-sym { color: #2f6a48; margin: 0 0 6px; }
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 4px; max-height: 220px; overflow-y: auto; }
+.sp-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 2px; border: 1px solid #ddd; border-radius: 6px; background: #fff; font-size: 10px; line-height: 1.1; cursor: pointer; color: #555; }
+.sp-cell canvas { width: 32px; height: 32px; image-rendering: pixelated; background: #1a2238; border-radius: 4px; }
+.sp-cell.on { border-color: var(--c, #c9a66b); box-shadow: 0 0 0 2px var(--c, #c9a66b) inset; color: #111; font-weight: 700; }
+.tal-slot.symbols { background: linear-gradient(90deg, #eafaf0, #fff6ea, #fffbe8, #f4f8ff, #eef3ff); }

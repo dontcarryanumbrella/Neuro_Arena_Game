@@ -66,10 +66,10 @@ const run = (s, sec, hold) => { for (let i = 0; i < sec * 60; i++) { if (hold) {
   assert.equal(e.ult.name, 'Fourteenth Sword: Cut');
   // stand off the line; he sheathes and falls
   let dashed = false;
-  for (let i = 0; i < 60 * 6.5 && !e.dead; i++) { const S = (s.spectacles || []).find(q => q.kind === 'pagecut'); if (S && S.from && Math.hypot(e.x - S.from.x, e.y - S.from.y) > 5) dashed = true; if (S && S.t > 2.0) { s.p.x = S.ax - Math.sin(S.ang) * 40; s.p.y = S.ay + Math.cos(S.ang) * 40; } s.p.kvx = s.p.kvy = 0; s.step(null); }
+  for (let i = 0; i < 60 * 8.5 && !e.dead; i++) { const S = (s.spectacles || []).find(q => q.kind === 'pagecut'); if (S && S.from && Math.hypot(e.x - S.from.x, e.y - S.from.y) > 5) dashed = true; if (S && S.locked && !S.dodged) { S.dodged = S.cur; } if (S && S.locked && S.cur) { const k = S.cur; if (!k.spot) { const sd = Math.hypot(k.ax - Math.sin(k.ang) * 30, k.ay + Math.cos(k.ang) * 30) < R - 14 ? 1 : -1; k.spot = [k.ax - Math.sin(k.ang) * 30 * sd, k.ay + Math.cos(k.ang) * 30 * sd]; } s.p.x = k.spot[0]; s.p.y = k.spot[1]; } s.p.kvx = s.p.kvy = 0; s.step(null); }
   assert.ok(dashed, 'the cut carries him through, past you along the line');
   assert.ok(e.dead || e.hp <= 0, 'he sheathes, and falls');
-  assert.ok(s.pageScars && s.pageScars.length === 1, 'and the page keeps its scar');
+  assert.ok(s.pageScars && s.pageScars.length === 7, 'and the page keeps its seven scars: ' + (s.pageScars || []).length);
 }
 // at the Peaks (no summit flag) the Thirteenth still ends him
 {

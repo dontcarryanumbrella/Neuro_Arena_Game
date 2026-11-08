@@ -4215,7 +4215,7 @@ class Renderer {
 
   drawHero(sim, p, frame) {
     const flip = p.fx < 0;
-    const beast = p.beastT > 0 && SHIFT_FORMS[p.beast];
+    const beast = p.beastT > 0 && (p.skinForm ? (SPRITES[p.skinForm.sprite] || SPRITE_CACHE[p.skinForm.sprite] ? { sprite: p.skinForm.sprite, color: p.skinForm.color, name: p.skinForm.name } : null) : SHIFT_FORMS[p.beast]); // Thousand Skins: the felled foe's own sprite
     let name = p.polyT > 0 ? 'rabbit' : beast ? beast.sprite : this.heroPose(p, frame);
     const skin = SKIN_BY_ID[p.skin];
     if (name !== 'rabbit' && !beast) name = skin && skin.gi ? skinSprite(name, p.skin) : sim.battle ? teamSprite(name, p.team) : name;

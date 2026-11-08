@@ -530,7 +530,7 @@ function dieRoll(k, u) {
 }
 
 // ---------- after the last fight: her last words, and the choice ----------
-function finaleBeats(echo, page) {
+function finaleBeats(echo, page, symbols) {
   return [
     { dur: 5.4, line: echo ? 'The one in her coat kneels. It is wearing your face.' : '“Then this time it’s you.”', sound: 'chime',
       draw(g, k, t, u) { // wide: the fight is over; she goes down onto one knee in the jar's light
@@ -569,14 +569,15 @@ function finaleBeats(echo, page) {
         });
         if (u > 0.6) cutOnce('creak', () => sfx.play('rock'));
       } },
-    { choices: [['Open the door', () => playCutscene(doorBeats(echo), afterDoor), true], ...(page ? [['Sheathe the sword', () => { endCutscene(); chooseStay(); }]] : []), ['Not yet', () => endCutscene()]],
-      line: page ? 'Above you, the lid is loose. In your hand, the Fourteenth Page.' : 'Above you, the lid is loose.',
+    { choices: [['Open the door', () => playCutscene(doorBeats(echo), afterDoor), true], ['Pick up the die', () => { endCutscene(); chooseDie(); }], ...(page ? [['Sheathe the sword', () => { endCutscene(); chooseSwordEmperor(); }]] : []), ...(page && symbols ? [['Close the circle', () => { endCutscene(); chooseSymbols(); }]] : []), ['Not yet', () => endCutscene()]],
+      line: page && symbols ? 'Above you, the lid is loose. In your hand, the Fourteenth Page. Around the rim, five shapes are waiting.' : page ? 'Above you, the lid is loose. In your hand, the Fourteenth Page.' : 'Above you, the lid is loose. At your feet, her die.',
       draw(g, k, t) { // the choice, held: the two of you under the loose lid
         jarScene(g, k, t, { gap: 0.15 + Math.sin(t * 0.8) * 0.02, raysA: 1 + Math.sin(t * 1.3) * 0.15 }, () => {
           k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)');
           jarHer(g, echo, { drop: Math.sin(t * 1.4) > 0.2 ? 2 : 1 }); cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { page });
         });
         cutLight(g, () => k.rect(110, 4, 36, 1, `rgba(255,250,224,${0.25 + 0.2 * Math.sin(t * 2)})`));
+        if (symbols) cutLight(g, () => { for (const [i, [, , c, x, y]] of SYMBOL_STARS.entries()) k.glow(x, y, 9, c, 0.18 + 0.1 * Math.sin(t * 1.7 + i)); }); // five faint shapes at the rim, waiting
       } },
   ];
 }
@@ -758,7 +759,7 @@ function doorBeats(echo) {
 }
 
 // Ending two, the Sheathed Sword: he stays; she rests; her name is crossed out; someone else begins.
-function stayBeats(cycle) {
+function stayBeats(cycle, title = 'THE DIE') {
   const swordDown = (k, v, x = HX0) => { const sx0 = x - 10, sy0 = 92 + v * 20; k.line(sx0 - 10 * v, sy0, sx0 + 12, sy0 - 12 * (1 - v), '#dfe9f5', 0.7); k.rect(sx0 + 10, sy0 - 12 * (1 - v) - 1, 2, 3, '#c9a65a'); };
   const coat = k => { k.rect(138, 104, 12, 4, '#17151b'); k.rect(139, 103, 10, 1, '#2a2630'); k.rect(138, 107, 12, 1, '#0c0b0e'); }; // her coat, folded on the clay beside you
   return [
@@ -811,7 +812,7 @@ function stayBeats(cycle) {
         if (n > 0) cutOnce('n' + n, () => sfx.play('snap'));
       } },
     { dur: 4.5, line: `New Game+ ${cycle}. What you learned has soaked into the clay.`,
-      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE SHEATHED SWORD', 128, 70); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, u * 2)})`; g.fillText(`CYCLE ${cycle + 1}`, 128, 88); g.textAlign = 'left'; } },
+      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText(title, 128, 70); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, u * 2)})`; g.fillText(`CYCLE ${cycle + 1}`, 128, 88); g.textAlign = 'left'; } },
   ];
 }
 
@@ -1043,5 +1044,169 @@ function pageBeats() {
         scene(g, k, t, { gone, page: [HX + 5, FY - 13] });
         cutLight(g, () => { for (let i = 0; i < 24; i++) { const v = ((t * 0.25 + i / 24) % 1) * span(u, 0.15, 1), x = TX + Math.sin(i * 1.9 + t) * 4 * (1 + v * 4), y = 100 - v * 90; k.px(x, y, `rgba(159,216,255,${(1 - v) * gone})`); } });
       } },
+  ];
+}
+
+// ---------- the four endings: who you become (plan section 13.3) ----------
+// Ending three, the Die: what "Sheathe the sword" used to be. You put the sword down and pick up her die; she leaves
+// you her coat; you are the next one.
+function dieBeats(cycle) {
+  const b = stayBeats(cycle, 'THE DIE');
+  b[0].line = 'You put the sword down, and pick up the die.';
+  b.splice(1, 0, { dur: 4.6, line: 'It is still warm from her hand.', noFadeIn: true,
+    draw(g, k, t, u) { // close on the clay: your hand comes down, closes on the die, and lifts it; its face will not settle
+      const reach = easeInOut(span(u, 0.05, 0.4)), lift = easeInOut(span(u, 0.45, 0.85));
+      jarScene(g, k, t, { z: 3, x0: 104, y0: 74, raysA: 0.8 }, () => {
+        jarHer(g, false, { drop: 2 });
+        const dx = DIE[0], dy = DIE[1] - lift * 10, face = u < 0.85 ? 1 + Math.floor(t * 14) % 4 : 1;
+        cutLight(g, () => k.glow(dx + 2.5, dy + 2.5, 6 + lift * 6, '#ffd88a', 0.25 + lift * 0.4));
+        cutDie(k, dx, dy, face);
+        const hx = dx + 14 - reach * 9, hy = dy - 16 + reach * 12; // your hand
+        k.poly([[hx + 4, hy - 12], [hx + 12, hy - 14], [hx + 9, hy + 2], [hx + 1, hy + 3]], '#e4e0d4');
+        k.poly([[hx - 1, hy], [hx + 8, hy - 1], [hx + 7, hy + 6], [hx - 2, hy + 5]], '#d8a47a'); k.line(hx - 2, hy + 2, hx + 4, hy + 2, 'rgba(140,90,60,0.6)', 0.4);
+      });
+      if (lift > 0.1) cutOnce('lift', () => sfx.play('pop'));
+      if (u > 0.85) cutOnce('settle', () => sfx.play('chime'));
+    } });
+  return b;
+}
+
+// Ending two, the Sheathed Sword: with the Fourteenth Page you sheathe the Fourteenth Sword. She rests (there is no
+// coat), and you go up to the highest peak, where the sword is never drawn again.
+function swordEmperorBeats(cycle) {
+  const SX = 150, SY = 104; // where you stand on the summit's ledge
+  return [
+    { dur: 6.2, line: 'You wrap the blade in the Fourteenth Page, and sheathe it.', noFadeIn: true,
+      draw(g, k, t, u) { // the page folds round the bare blade, the light running along it, and it slides home: one click
+        const wrap = easeInOut(span(u, 0.1, 0.5)), home = easeIn(span(u, 0.55, 0.72));
+        jarScene(g, k, t, { z: 2, x0: 70, y0: 54, raysA: 1 + home }, () => {
+          k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 1 }); cutDie(k, DIE[0], DIE[1], 1);
+          jarYou(g, k, t, { sword: false });
+          const bx = HX0 - 6, by = FLOOR - 9, len = 16 * (1 - home); // the blade, held out, then drawn back into its sheath
+          k.line(bx, by, bx - 18, by + 4, '#1a1214', 1.6); k.rect(bx - 1, by - 1, 2, 2, '#c9a65a'); // the sheath at your hip
+          if (len > 0.5) { k.line(bx, by - 1, bx + len, by - 4, '#dfe9f5', 0.8); k.line(bx, by - 1.5, bx + len * wrap, by - 4.5 * wrap, '#f4ecd8', 1.4); }
+          cutLight(g, () => { k.glow(bx + len * 0.5, by - 2.5, 6 + wrap * 6, '#ffe8b0', 0.2 + wrap * 0.4); if (home >= 1) k.glow(bx, by, 20 * (1 - span(u, 0.72, 1)), '#ffffff', 0.6); });
+        });
+        if (home >= 1) cutOnce('click', () => { sfx.play('ring'); sfx.play('gong'); });
+      } },
+    { dur: 6.4, line: 'Yun Xi smiles, and finally rests. There is no coat this time.', sound: 'chime',
+      draw(g, k, t, u) { // she stands, looks at you a moment, and goes up into the light, taking nothing and leaving nothing
+        const stand = span(u, 0.05, 0.25), go = easeIn(span(u, 0.4, 0.95));
+        jarScene(g, k, t, { z: 2, x0: 66, y0: 54, raysA: 0.8 + go * 1.2 }, () => {
+          jarHer(g, false, { drop: -Math.round(go * 10), crop: Math.round(3 - stand * 3), alpha: 1 - go, filter: `brightness(${1 + go * 0.8})` });
+          cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { sword: false });
+          k.line(HX0 - 6, FLOOR - 9, HX0 - 24, FLOOR - 5, '#1a1214', 1.6);
+          cutLight(g, () => { for (let i = 0; i < 26; i++) { const v = ((t * 0.3 + i / 26) % 1) * span(u, 0.35, 1), x = YX + Math.sin(i * 2.4 + t) * 5 * (1 + v * 3), y = 100 - v * 100; k.px(x, y, `rgba(232,196,120,${(1 - v) * span(u, 0.35, 0.6)})`); } });
+        });
+        cutWash(g, '#fff6e0', easeIn(span(u, 0.85, 1)) * 0.9);
+      } },
+    { dur: 8.5, line: 'At the highest peak, the sword is never drawn again.', sound: 'wind', noFadeIn: true,
+      draw(g, k, t, u) { // the Summit: you on the ledge, the sheathed sword at your side; the split in the sky slowly closes
+        k.rect(0, 0, W, H, '#000');
+        drawSummitArt(g); WORLD_SCENES.summit.ambient(paintKit(g), t, null);
+        const heal = easeInOut(span(u, 0.25, 0.95)); // the sky's wound knitting shut, from both ends to the middle
+        g.save(); g.beginPath(); g.rect(0, 0, W * heal * 0.5, 40); g.rect(W - W * heal * 0.5, 0, W * heal * 0.5, 40); g.clip();
+        for (let x = 0; x < W; x += 1) { const y = SKY_SCAR(x); k.rect(x, y - 3, 1, 6, k.vgrad(y - 3, y + 3, ['rgba(22,37,90,0)', '#203466', 'rgba(22,37,90,0)'])); }
+        g.restore();
+        for (let i = 0; i < 40; i++) { const x = ((i * 53 + t * (10 + i % 5 * 4)) % (W + 20)) - 10, y = ((i * 31 + t * (14 + i % 3 * 5)) % 150) - 6; k.px(x, y, i % 3 ? 'rgba(230,240,255,0.7)' : 'rgba(255,255,255,0.9)'); } // snow
+        k.oval(SX, SY, 9, 1.6, 'rgba(0,0,0,0.35)');
+        cutSprite(g, 'hero', SX, SY, { flip: true });
+        k.line(SX - 6, SY - 9, SX - 20, SY - 4, '#1a1214', 1.6); k.rect(SX - 7, SY - 10, 2, 2, '#c9a65a'); k.rect(SX - 12, SY - 8, 3, 4, '#f4ecd8'); k.rect(SX - 11, SY - 6, 1, 1, '#c23b22'); // the sheath, the page tied round it, its seal
+        cutLight(g, () => k.glow(SX - 10, SY - 6, 8, '#ffe0a0', 0.18 + 0.08 * Math.sin(t * 2)));
+        cutVignette(g, 0.5, '2,4,12', 50);
+      } },
+    { dur: 5.6, line: '“The Fourteenth is to sheathe it.”',
+      draw(g, k, t, u) { // close: the hilt and the tied page, snow settling on them one flake at a time
+        k.rect(0, 0, W, H, k.vgrad(0, H, ['#0a1024', '#16224a', '#0a1024']));
+        cutLight(g, () => k.glow(128, 70, 80, '#9fb8e8', 0.12));
+        k.poly([[40, 96], [216, 66], [218, 74], [42, 104]], '#1a1214'); k.poly([[40, 96], [216, 66], [217, 69], [41, 99]], '#3a2a2a'); // the sheath, lacquered
+        k.rect(198, 60, 6, 18, '#c9a65a'); k.rect(204, 63, 30, 8, '#2f4f8a'); for (let i = 0; i < 5; i++) k.rect(206 + i * 5, 63, 2, 8, '#c9a65a'); k.oval(236, 67, 4, 4, '#e8c34a'); // the guard and the hilt
+        k.poly([[120, 76], [150, 71], [154, 92], [124, 97]], '#f4ecd8'); k.poly([[120, 76], [150, 71], [151, 74], [121, 79]], '#d8ccb0'); k.rect(142, 84, 6, 6, '#c23b22'); k.rect(143, 85, 4, 4, '#e0483a'); // the page, tied, its seal
+        k.line(118, 82, 156, 75, '#c23b22', 0.8); k.line(120, 92, 156, 85, '#c23b22', 0.8); // the cord
+        for (let i = 0; i < 26; i++) { const v = Math.min(1, ((t * 0.35 + i * 0.137) % 1.4)), x = 30 + (i * 41) % 200, y = v * 110 - 10; if (y < 60 + (x - 40) * -0.17 + 36) k.px(x, y, 'rgba(240,246,255,0.85)'); else k.rect(x, 96 - (x - 40) * 0.17 - 1, 1, 1, '#eef4ff'); }
+        cutVignette(g, 0.6, '0,0,8', 40);
+      } },
+    { dur: 5, line: `New Game+ ${cycle}. You wait at the Peaks now, for the next one to climb.`,
+      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE SHEATHED SWORD', 128, 70); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, Math.max(0, u * 3 - 1))})`; g.fillText('THE SWORD EMPEROR', 128, 88); g.textAlign = 'left'; } },
+  ];
+}
+
+// Ending four, the Four Symbols (secret): the beasts you wore stand at the four directions and the centre; the Five
+// Phases give birth instead of consuming; the worlds come back; the lid becomes a sky; her name stays.
+const SYMBOL_STARS = [ // [name, character, element colour, x, y in the jar's frame]: east right, south below, west left, north at the lid, the Qilin over you
+  ['Azure Dragon', '青龙', '#5ad08a', 214, 64], ['Vermilion Bird', '朱雀', '#ff6a3a', 128, 128], ['Qilin', '麒麟', '#ffd84a', HX0, 70], ['White Tiger', '白虎', '#e8f0f8', 42, 64], ['Black Tortoise', '玄武', '#6a9aff', 128, 18],
+];
+function symbolsBeats() {
+  const glyph = (g, k, t, i, a, big = 1) => { // one of the five: a ring of its colour, its name in brush
+    const [, cn, c, x, y] = SYMBOL_STARS[i]; if (a <= 0) return;
+    cutLight(g, () => { k.glow(x, y, 16 * big, c, 0.35 * a); k.ring(x, y, 9 * big + Math.sin(t * 2 + i) * 0.6, rgba(c, 0.8 * a), 0.6, 9 * big); });
+    g.save(); g.globalAlpha = a; g.font = `${Math.round(9 * big)}px ${typeof CJK_FONT !== 'undefined' ? CJK_FONT : 'serif'}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fffaf0'; g.shadowColor = c; g.shadowBlur = 4; g.fillText(cn, x, y); g.restore();
+  };
+  const ORDER = [0, 1, 2, 3, 4]; // wood, fire, earth, metal, water: each gives birth to the next
+  const ELEM = [['#7ad87a', '#3a8a4a'], ['#ffb04a', '#ff4a1a'], ['#ffe08a', '#b8913c'], ['#ffffff', '#c8d4e0'], ['#8ac8ff', '#3a6ad0']];
+  return [
+    { dur: 6, line: 'Five shapes stand around the rim of the lid. Yun Xi looks up.', sound: 'riser',
+      draw(g, k, t, u) {
+        jarScene(g, k, t, { gap: 0.15, raysA: 1 }, () => { k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 0 }); cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { page: true }); });
+        for (let i = 0; i < 5; i++) glyph(g, k, t, i, span(u, 0.15 + i * 0.12, 0.35 + i * 0.12) * (0.5 + 0.2 * Math.sin(t * 3 + i)));
+        if (u > 0.3) cutOnce('sym', () => sfx.play('chime'));
+      } },
+    { dur: 8.4, line: 'Wood, fire, earth, metal, water. Each gives birth to the next.', sound: 'gong',
+      draw(g, k, t, u) { // the array lights in generating order: a line from each to the next, and each breathes its element over the burnt talismans
+        jarScene(g, k, t, { gap: 0.15, raysA: 1 + u }, () => { k.oval(YX, FLOOR, 9, 1.6, 'rgba(0,0,0,0.35)'); jarHer(g, false, { drop: 0 }); cutDie(k, DIE[0], DIE[1], 1); jarYou(g, k, t, { page: true }); });
+        ORDER.forEach((idx, n) => {
+          const on = span(u, n * 0.16, n * 0.16 + 0.12), nxt = SYMBOL_STARS[ORDER[(n + 1) % 5]], me = SYMBOL_STARS[idx];
+          glyph(g, k, t, idx, 0.6 + on * 0.4, 1 + on * 0.25);
+          if (on > 0) {
+            const [c0, c1] = ELEM[n], ex = me[3] + (nxt[3] - me[3]) * on, ey = me[4] + (nxt[4] - me[4]) * on;
+            cutLight(g, () => { k.line(me[3], me[4], ex, ey, rgba(c0, 0.8), 1.2); k.glow(ex, ey, 6, c0, 0.5); });
+            for (let i = 0; i < 18; i++) { const v = (t * (0.6 + (i % 4) * 0.2) + i / 18) % 1, a = (i / 18) * Math.PI * 2 + t * 0.4; k.px(me[3] + Math.cos(a) * v * 26, me[4] + Math.sin(a) * v * 18 - (n === 1 ? v * 10 : n === 4 ? -v * 8 : 0), rgba(i % 2 ? c0 : c1, (1 - v) * on)); }
+            cutOnce('el' + n, () => sfx.play(['learn', 'ultboom', 'thud', 'ring', 'pop'][n]));
+          }
+        });
+        cutWash(g, '#fffaf0', easeIn(span(u, 0.88, 1)) * 0.85);
+      } },
+    { dur: 8.6, line: 'One by one, the worlds come back: alive, not sealed.', sound: 'chime', noFadeIn: true,
+      draw(g, k, t, u) { // windows open on the worlds, each moving again
+        k.rect(0, 0, W, H, k.vgrad(0, H, ['#1a1208', '#2a1e10', '#120a04']));
+        const ids = Object.keys(WORLD_SCENES).filter(id => id !== 'bottom' && id !== 'summit').slice(0, 8);
+        ids.forEach((id, i) => {
+          const a = easeOut(span(u, i * 0.09, i * 0.09 + 0.18)); if (a <= 0) return;
+          const col = i % 4, row = Math.floor(i / 4), w = 54, h = 34, x = 14 + col * 60, y = 26 + row * 44, s = 0.8 + a * 0.2;
+          g.save(); g.globalAlpha = a; g.translate(x + w / 2, y + h / 2); g.scale(s, s); g.translate(-w / 2, -h / 2);
+          k.rect(-2, -2, w + 4, h + 4, '#c9a65a'); g.beginPath(); g.rect(0, 0, w, h); g.clip();
+          g.drawImage(cutBg(id), 0, 0, W, H, -((t * 6 + i * 30) % 40), -10, W * 0.42, H * 0.42);
+          if (WORLD_SCENES[id].ambient) { g.save(); g.translate(-((t * 6 + i * 30) % 40), -10); g.scale(0.42, 0.42); try { WORLD_SCENES[id].ambient(paintKit(g), t, null); } catch (e) { } g.restore(); }
+          g.restore();
+          cutLight(g, () => k.glow(x + w / 2, y + h / 2, 24, '#fff0c0', 0.1 * a));
+          if (a >= 1) cutOnce('w' + i, () => sfx.play('pop'));
+        });
+        cutVignette(g, 0.55, '0,0,0', 40);
+      } },
+    { dur: 8, line: 'The lid is neither lifted nor sheathed. It becomes a sky.', sound: 'wind',
+      draw(g, k, t, u) { // the camera looks up; the lid thins to a mist of stars and spreads, and the rim of the jar becomes a horizon
+        const look = easeInOut(span(u, 0, 0.45)), sky = easeInOut(span(u, 0.3, 1));
+        jarScene(g, k, t, { z: 2, x0: 64, y0: 54 - look * 96, gap: 0.15 * (1 - sky), raysA: 1 + sky * 2 }, () => { jarYou(g, k, t, { page: true }); });
+        g.save(); g.globalAlpha = sky; // the sky, opening out from where the lid was
+        const R = 20 + sky * 220, gr = g.createRadialGradient(128, look > 0.9 ? 40 : 0, 4, 128, look > 0.9 ? 40 : 0, R);
+        gr.addColorStop(0, '#2a4a8a'); gr.addColorStop(0.6, '#142858'); gr.addColorStop(1, 'rgba(10,20,50,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+        for (let i = 0; i < 120; i++) { const x = (i * 97) % W, y = (i * 53) % H, d = Math.hypot(x - 128, y - 40); if (d < R * 0.9) k.px(x, y, rgba(i % 5 ? '#e8f0ff' : '#ffe8c0', 0.4 + 0.5 * Math.abs(Math.sin(t * 1.3 + i)))); }
+        for (let i = 0; i < 5; i++) { const [, , c] = SYMBOL_STARS[i], a = i / 5 * Math.PI * 2 - Math.PI / 2, x = 128 + Math.cos(a) * 60 * sky, y = 50 + Math.sin(a) * 30 * sky; cutLight(g, () => k.glow(x, y, 6, c, 0.6)); k.px(x, y, '#ffffff'); } // the five, set in it as constellations
+        k.rect(0, 120 - sky * 10, W, 1, rgba('#c9a65a', 0.5 * sky)); // the rim, now a horizon
+        g.restore();
+        if (sky > 0.5) cutOnce('sky', () => sfx.play('gong'));
+      } },
+    { dur: 6.4, line: 'On the wall of tallies, one name is not crossed out.',
+      draw(g, k, t, u) {
+        tallyWall(g, k, 40, { hand: '#b89a74' });
+        k.rect(84, 52, 88, 40, 'rgba(40,24,14,0.85)');
+        cutLight(g, () => k.glow(128, 72, 50 + Math.sin(t) * 4, '#ffcf8a', 0.18 + span(u, 0.3, 0.8) * 0.2));
+        g.fillStyle = '#e8c478'; g.font = `28px ${typeof CJK_FONT !== 'undefined' ? CJK_FONT : 'serif'}`; g.textAlign = 'center'; g.fillText('云汐', 128, 82); g.textAlign = 'left';
+        const v = easeOut(span(u, 0.4, 0.9)); // a green shoot comes up through the clay under it
+        k.line(128, 112, 128, 112 - v * 14, '#5ab05a', 0.8); if (v > 0.5) { k.oval(125, 112 - v * 12, 2.4 * v, 1.2, '#7ad87a'); k.oval(131, 112 - v * 10, 2.4 * v, 1.2, '#7ad87a'); }
+        cutVignette(g, 0.6, '0,0,0', 40);
+      } },
+    { dur: 5.5, line: 'THE FOUR SYMBOLS · Nobody keeps the jar now. New Game+ stays open.',
+      draw(g, k, t, u) { k.rect(0, 0, W, H, '#000'); for (let i = 0; i < 5; i++) glyph(g, k, t, i, Math.min(1, u * 2) * 0.5, 0.8); g.fillStyle = `rgba(232,195,74,${Math.min(1, u * 3)})`; g.font = '12px "Press Start 2P", monospace'; g.textAlign = 'center'; g.fillText('THE FOUR SYMBOLS', 128, 74); g.font = '8px "Press Start 2P", monospace'; g.fillStyle = `rgba(236,228,210,${Math.min(1, Math.max(0, u * 3 - 1))})`; g.fillText('FREED', 128, 90); g.textAlign = 'left'; } },
   ];
 }

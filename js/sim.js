@@ -1988,8 +1988,8 @@ ENEMY_TYPES.swordsaint.phase3 = { at: -1, manual: true, dur: 3.6, speedMul: 1.3,
 ENEMY_TYPES.swordsaint.form3 = 'Sword Without a Head';
 ENEMY_TYPES.swordsaint.stage3Ult = { ...ENEMY_TYPES.swordsaint.ult2, name: 'Thirteenth Sword, Drowned: Heaven and Earth Sink', charge: 1.2,
   steps: [[0, 'spectacle', { kind: 'inksea', dur: 3.0 }], ...ENEMY_TYPES.swordsaint.ult2.steps.filter(s => s[1] !== 'forbidden')] };
-const FOURTEENTH = { name: 'Fourteenth Sword: Cut', unbreakable: true, untouchable: true, charge: 1.6, dur: 4.6, cd: 99, dark: 'rgba(0,0,0,0.2)',
-  steps: [[0, 'spectacle', { kind: 'pagecut', dur: 4.4, dmg: 62 }], [4.3, 'celestial', { move: 'sheathe' }]] };
+const FOURTEENTH = { name: 'Fourteenth Sword: Cut', unbreakable: true, untouchable: true, charge: 1.6, dur: 6.6, cd: 99, dark: 'rgba(0,0,0,0.2)',
+  steps: [[0, 'spectacle', { kind: 'pagecut', dur: 6.4, dmg: 62 }], [6.1, 'celestial', { move: 'sheathe' }]] }; // one stroke, six more, then the sheath
 
 // every ultimate's beats run in time order (the runner walks them in sequence, so one out of place holds back the rest)
 for (const d of Object.values(ENEMY_TYPES)) for (const k of ['ult', 'ult2', 'ult3']) if (d[k]) d[k].steps.sort((a, b) => a[0] - b[0]);
@@ -2317,7 +2317,8 @@ class Sim {
   T(f, k) {
     if (!f) return 0;
     let v = f.tal ? f.tal[k] || 0 : 0;
-    if (f.beastT > 0 && BEAST_MODS[f.beast]) v += (BEAST_MODS[f.beast][k] || 0) + (f.skinTalent ? BEAST_ALL[k] || 0 : 0); // in a beast's skin (the talent's skins are stronger)
+    if (f.beastT > 0 && f.skinForm) v += (f.skinForm.mods[k] || 0) + (BEAST_ALL[k] || 0); // in the skin of something you felled
+    else if (f.beastT > 0 && BEAST_MODS[f.beast]) v += (BEAST_MODS[f.beast][k] || 0) + (f.skinTalent ? BEAST_ALL[k] || 0 : 0); // in a beast's skin (the talent's skins are stronger)
     if (f.awakeT > 0 && f.awaken) { const m = f.awaken.mods[k] || 0; v += m === 1 ? 1 : m * f.awakenPower; } // awakened: stronger with every awakening this fight
     if (f.forgot && f.forgot.length) for (const fg of f.forgot) if (fg.until > this.t) v -= (TALENT_BY_ID[fg.id] && TALENT_BY_ID[fg.id].mods[k]) || 0; // the Broth of Forgetting
     return v;
@@ -2590,7 +2591,7 @@ class Sim {
     if (stage >= 2) { // talents that reshape the special
       if (mods.includes('timestop')) this.stopTime(h, 1.2);
       if (mods.includes('clones')) { this.shadowClone(h, true); this.shadowClone(h, true); }
-      if (mods.includes('beast')) { const k = Object.keys(BEAST_MODS)[Math.floor(this.rand() * 5)]; h.skinTalent = false; h.beast = k; h.beastT = h.ultDur + 2.5; this.emit('shiftform', h.x, h.y, { name: SHIFT_FORMS[k].name, color: SHIFT_FORMS[k].color }); }
+      if (mods.includes('beast')) { const k = Object.keys(BEAST_MODS)[Math.floor(this.rand() * 5)]; h.skinTalent = false; h.skinForm = null; h.beast = k; h.beastT = h.ultDur + 2.5; this.emit('shiftform', h.x, h.y, { name: SHIFT_FORMS[k].name, color: SHIFT_FORMS[k].color }); }
       if (mods.includes('kaioken')) { h.hp = Math.max(1, h.hp - h.maxHp * 0.05); this.emit('kaioken', h.x, h.y); }
     }
     h.ultGauge = 0; h.guard = false; h.ultDmg = 0; h.nextMult = 1; h.stored = 0;
@@ -2833,18 +2834,13 @@ class Sim {
         f.specials = PAST_SPECIALS.map(s => f.finalKeeper ? { ...s, dmg: s.dmg ? Math.round(s.dmg * 1.2) : s.dmg, cd: s.cd * 0.8 } : { ...s });
         if (f.finalKeeper) f.specials.push({ id: 'bossrift', kind: 'summon', projection: true, cap: 4, wind: 0.9, recover: 0.55, cd: 11, maxRange: 999 });
         f.cds = { ult: 4, bossrift: 2.5 }; f.hist = [];
-        f.maxHp = Math.round(f.maxHp * (f.finalKeeper ? 0.7 : 0.5)); f.hp = f.maxHp; f.posture = 0; f.state = 'recover'; f.st = 0.8;
+        f.maxHp = Math.round(f.maxHp * 0.7); f.hp = f.maxHp; // the Past arrives at 70% f.posture = 0; f.state = 'recover'; f.st = 0.8;
         f.dmgMul = 1.35; f.speedMul = 1.1; f.cdMul = 1; f.past = true; f.phase = 2;
         this.emit('pastself', f.x, f.y, { name: 'YOU, FROM THE PAST', color: '#ffd8a0', lore: 'BEFORE ANY OF IT HAPPENED' });
         continue;
       }
       // ???'s last gamble: at 0 health, two seconds of casting something new every tenth of a second
-      if (!fell && f.def && f.def.lastGamble && !f.gambleUsed) {
-        f.gambleUsed = true; f.lastStand = true; f.hp = 1;
-        f.state = 'gamble'; f.gambleT = 2; f.gambleNext = 0; f.runners = []; f.guard = false; f.plan = null; f.frozenT = 0; f.dashT = 0;
-        this.emit('lastgamble', f.x, f.y);
-        continue;
-      }
+      if (!fell && f.def && f.def.lastGamble && !f.gambleUsed) { this.startLastBet(f); continue; } // Yun Xi stakes everything on a die
       // Undeath: the Vampire Lord rises once at 10%, frenzied and drinking twice as deep
       if (!fell && f.def && f.def.bloodRevive && !f.bloodRevived) {
         f.bloodRevived = true; f.hp = f.maxHp * 0.1; f.posture = 0; f.state = 'recover'; f.st = 0.4; f.frenzyT = 6;
@@ -3485,7 +3481,7 @@ class Sim {
     if (t.pearlOpenFrom && this.t >= t.pearlOpenFrom && this.t < t.pearlOpenFrom + 3) mult *= 1.5;                     // ...but the pearl dims after it spends itself
     if (t.def && t.def.resistProj && proj) mult *= t.def.resistProj;
     if (t.past) mult *= 0.5; // the past self is hard to change
-    if (t.def && t.def.mystery && !t.lastStand) mult *= 1 - 0.9 * Math.max(0, 1 - t.hp / t.maxHp); // ???: the closer to the end, the less gets through (up to 90%)
+    if (t.def && t.def.mystery && !t.lastStand && !t.betSpent) mult *= 1 - 0.8 * Math.max(0, 1 - t.hp / t.maxHp); // ???: the closer to the end, the less gets through (up to 80%; nothing while she is spent)
     if (by && by.def && by.def.dmgScale) mult *= by.phase === 2 && by.def.dmgScale2 ? by.def.dmgScale2 : by.def.dmgScale; // ???'s attacks are toned down (less so in her second form)
     if (t.unity) mult *= 0.6;                         // man and sword as one
     let body = this.bodyMult(t, atk);                 // shells, stone, armor, arrays
@@ -3761,7 +3757,7 @@ class Sim {
   // stages, with its own kit. Never changes the shared enemy definition.
   makeFinalKeeper(e) {
     e.finalKeeper = true;
-    e.maxHp = e.hp = Math.round(e.maxHp * 800 / 340);
+    e.maxHp = e.hp = Math.round(e.maxHp * 800 / (ENEMY_TYPES.timeadmin.hp || 340));
     e.tuneDmg = (e.tuneDmg || 1) * 1.15;
     e.def = KEEPER_DEF; e.specials = KEEPER_DEF.specials.map(sp => ({ ...sp })); e.cds = { ult: 6 };
     for (const sp of e.specials) e.cds[sp.id] = 1 + this.rand() * 2;
@@ -5701,14 +5697,14 @@ class Sim {
 
   heroTalents(h) {
     if (h.berserkT > 0) h.berserkT -= DT;
-    if (h.beastT > 0 && (h.beastT -= DT) <= 0) { h.beast = null; this.emit('shiftform', h.x, h.y, { name: 'BACK TO HUMAN', color: '#c9a66b', back: true }); }
+    if (h.beastT > 0 && (h.beastT -= DT) <= 0) { h.beast = null; h.skinForm = null; this.emit('shiftform', h.x, h.y, { name: 'BACK TO HUMAN', color: '#c9a66b', back: true }); }
+    if (h.skinForm) this.updateSkin(h);
     if (!h.tal) return;
     const T = k => this.T(h, k), fighting = !!this.nearestEnemy(h);
     if (T('shapeshift') && fighting && !(h.beastT > 0) && (h.beastCd = (h.beastCd ?? 1.5) - DT) <= 0) {
-      const kinds = Object.keys(BEAST_MODS).filter(b => b !== h.lastBeast), k = h.hp < h.maxHp * 0.35 && h.lastBeast !== 'bear' ? 'bear' : kinds[Math.floor(this.rand() * kinds.length)]; // hurt badly, it reaches for the bear's hide
-      h.beast = k; h.lastBeast = k; h.beastT = 9; h.beastCd = 11; h.skinTalent = true;
+      h.beastT = 9; h.beastCd = 11; h.skinTalent = true;
       h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.1); // every new skin closes wounds
-      this.emit('shiftform', h.x, h.y, { name: SHIFT_FORMS[k].name, color: SHIFT_FORMS[k].color });
+      this.shiftSkin(h); // one of your five (or one of the old five beasts)
     }
     if (h.beastT > 0 && this.T(h, 'hpRegen') && h.hp < h.maxHp) h.hp = Math.min(h.maxHp, h.hp + this.T(h, 'hpRegen') * DT);
     if (T('healing') && h.hp < h.maxHp) h.hp = Math.min(h.maxHp, h.hp + 1.5 * DT);
@@ -6778,24 +6774,35 @@ Object.assign(Sim.prototype, {
       if (S.kind === 'jarturn') for (const v of foes) { // the jar turns, and everything in it turns with it
         const c = Math.cos(S.w * DT), q = Math.sin(S.w * DT), x = v.x; v.x = x * c - v.y * q; v.y = x * q + v.y * c;
       }
-      if (S.kind === 'pagecut') { // the Fourteenth Sword: the pencil line follows you, locks, and one stroke cuts the page
-        if (S.t < 2.0 && tgt) { S.ax = tgt.x; S.ay = tgt.y; }
-        if (!S.cut && S.t >= 2.3) {
-          S.cut = true; const ux = Math.cos(S.ang), uy = Math.sin(S.ang);
-          for (const v of this.fighters()) {
-            if (v.team === e.team || v.dead) continue;
-            const d = Math.abs((v.x - S.ax) * -uy + (v.y - S.ay) * ux); // airborne or not: a dimension is gone
-            if (d < 9 + v.r) { this.receiveHit(v, null, { id: 'fourteenth', dmg: S.dmg || 62, kb: 0, hitPosture: 60, unblockable: true, trueDmg: true, src: e }, 0, 0, true); if (v === this.p) S.hitHero = true; }
-          }
-          (this.pageScars = this.pageScars || []).push({ x: S.ax, y: S.ay, a: S.ang });
-          e.lastCutHit = !!S.hitHero;
-          { // and he is already past you, along the line, his back to you
-            const side = ((e.x - S.ax) * ux + (e.y - S.ay) * uy) > 0 ? -1 : 1; let tx = S.ax + ux * side * 36, ty = S.ay + uy * side * 36; const rr = Math.hypot(tx, ty);
-            if (rr > R - 12) { tx *= (R - 12) / rr; ty *= (R - 12) / rr; }
-            S.from = { x: e.x, y: e.y }; S.side = side; e.x = tx; e.y = ty; e.kvx = e.kvy = 0; e.fx = side * (ux >= 0 ? 1 : -1) || 1;
-          }
-          this.emit('pagecut', S.ax, S.ay, { a: S.ang });
+      if (S.kind === 'pagecut') { // the Fourteenth Sword: the pencil line follows you, locks, and one stroke cuts the page; then six more, too fast to see
+        if (!S.plan) {
+          const big = S.dmg || 62; S.flurryHits = 0;
+          S.plan = [{ t: 2.3, lock: 2.0, show: 0.8, dmg: big, big: true, ang: S.ang }];
+          [1.15, -0.95, 0.42, -1.4, 0.86, -0.24].forEach((da, i) => { const t = 3.0 + i * 0.38; S.plan.push({ t, lock: t - 0.2, show: t - 0.34, dmg: Math.round(big * 0.3), ang: S.ang + da, i: i + 1 }); });
         }
+        const c = S.plan.find(q => !q.done);
+        if (c) {
+          if (S.t >= c.show && tgt && S.t < c.lock) { c.ax = tgt.x; c.ay = tgt.y; } // the line follows you until it locks
+          if (c.ax == null && tgt) { c.ax = tgt.x; c.ay = tgt.y; }
+          S.cur = c; S.ax = c.ax; S.ay = c.ay; S.ang = c.ang; S.locked = S.t >= c.lock;
+          if (S.t >= c.t) {
+            c.done = true; S.cut = true; const ux = Math.cos(c.ang), uy = Math.sin(c.ang);
+            for (const v of this.fighters()) {
+              if (v.team === e.team || v.dead) continue;
+              const d = Math.abs((v.x - c.ax) * -uy + (v.y - c.ay) * ux); // airborne or not: a dimension is gone
+              if (d < (c.big ? 9 : 7) + v.r) { this.receiveHit(v, null, { id: 'fourteenth', dmg: c.dmg, kb: 0, hitPosture: c.big ? 60 : 20, unblockable: true, trueDmg: true, src: e }, 0, 0, true); if (v === this.p) { if (c.big) S.hitHero = true; else S.flurryHits++; c.hit = true; } }
+            }
+            (this.pageScars = this.pageScars || []).push({ x: c.ax, y: c.ay, a: c.ang });
+            e.lastCutHit = !!S.hitHero || S.flurryHits >= 3; // the first stroke, or three of the six, and he must draw it again
+            { // and he is already past you, along the line, his back to you
+              const side = c.big ? (((e.x - c.ax) * ux + (e.y - c.ay) * uy) > 0 ? -1 : 1) : (c.i % 2 ? -1 : 1); let tx = c.ax + ux * side * 36, ty = c.ay + uy * side * 36; const rr = Math.hypot(tx, ty);
+              if (rr > R - 12) { tx *= (R - 12) / rr; ty *= (R - 12) / rr; }
+              c.from = { x: e.x, y: e.y }; c.side = side; c.to = { x: tx, y: ty }; e.x = tx; e.y = ty; e.kvx = e.kvy = 0; e.fx = side * (ux >= 0 ? 1 : -1) || 1;
+              if (c.big) { S.from = c.from; S.side = side; }
+            }
+            this.emit('pagecut', c.ax, c.ay, { a: c.ang, i: c.i || 0 });
+          }
+        } else { S.cur = null; S.locked = false; }
       }
     }
     BASE_UPDATE_SPECTACLES.call(this);
@@ -6889,5 +6896,203 @@ Object.assign(Sim.prototype, {
         return;
     }
     return BASE_CELESTIAL_MOVE.call(this, e, o, tgt);
+  },
+});
+
+// =====================================================================================================================
+// The late-game pass (plan section 16): the Time Administrator buffed, the Last Keeper calling up your saved selves,
+// and Yun Xi made the real thing: 1,000 health, her damage no longer held back, and a third stage, the Last Bet.
+// =====================================================================================================================
+// ---- the Time Administrator: more of him, each body healed as it arrives, and three new ways to spend time ----
+Object.assign(ENEMY_TYPES.timeadmin, { hp: 500, phaseGate: true,
+  passive: ['Phase, Rewind, Three Bodies', 'Some attacks pass straight through it; it turns its own clock back 4s. Each of its three bodies (the Present, the Future, the Past) arrives healed, and none can be skipped past.'],
+  active: ['Time Stop, Hour Hand, Past Present Future, Borrowed Time', 'Freezes everyone else; sweeps the stage with the hands of a clock; marks where you were, are and will be; and pushes your skills back to a full cooldown.'] });
+ENEMY_TYPES.timeadmin.specials = [...ENEMY_TYPES.timeadmin.specials,
+  { id: 'threelives', kind: 'celestial', move: 'threelives', minRange: 0, maxRange: 999, wind: 0.5, recover: 0.4, dmg: 18, cd: 6.5 },  // Past, Present and Future
+  { id: 'hourhand', kind: 'celestial', move: 'hourhand', minRange: 0, maxRange: 999, wind: 0.6, recover: 0.5, dmg: 15, cd: 8.5 },    // Hour Hand
+  { id: 'borrowed', kind: 'celestial', move: 'borrowed', minRange: 0, maxRange: 170, wind: 0.35, recover: 0.3, cd: 12 },             // Borrowed Time
+];
+ENEMY_TYPES.timeadmin.phase2 = { ...ENEMY_TYPES.timeadmin.phase2, heal: 0.35, add: [...ENEMY_TYPES.timeadmin.phase2.add, { id: 'minutehand', kind: 'celestial', move: 'hourhand', minute: true, minRange: 0, maxRange: 999, wind: 0.45, recover: 0.4, dmg: 12, cd: 6 }] };
+PAST_SPECIALS.push({ id: 'threelives', kind: 'celestial', move: 'threelives', minRange: 0, maxRange: 999, wind: 0.45, recover: 0.35, dmg: 20, cd: 6 });
+// ---- Yun Xi: the real thing ----
+Object.assign(ENEMY_TYPES.unknown, { hp: 1000, dmgScale: 0.9, dmgScale2: 1.1, form3: 'The Last Bet',
+  passive: ['Shadow Step, Unstoppable, Against the Odds', 'The lower her health, the less damage gets through (up to 80%) and the faster she casts. Untouchable while rolling and dodges on instinct. Half of all stuns, roots, scares and interrupts simply fail. Never runs out of energy.'],
+  active: ['Multi-cast, The Last Bet', 'Every second: any foe skill, rolled 1-6 times at once. At 0 health she heals 25% and stakes everything on a visible die: five rolls, each face a different spell, telegraphed; then she is spent for a few seconds, and bets again.'] });
+// the six faces of her last die: only good rolls (each one a different, readable spell)
+const BET_FACES = ['THE ACE', 'A PAIR', 'TRIPS', 'FOUR CORNERS', 'THE FIVE-SPOT', 'JACKPOT'];
+const BASE_CM_LATE = Sim.prototype.celestialMove;
+Object.assign(Sim.prototype, {
+  // Yun Xi at 0 health: not dead. The Last Bet.
+  startLastBet(f) {
+    f.gambleUsed = true; f.stage = 3; f.phase = 2; f.hp = Math.max(1, f.maxHp * 0.25);
+    f.bet = { st: 'wait', t: 1.8, rolls: 0, face: 0, round: 0 }; f.state = 'recover'; f.st = 1.4; f.invulnT = Math.max(f.invulnT || 0, 1.8);
+    f.guard = false; f.plan = null; f.dashT = 0; this.hazards = this.hazards.filter(h => h.src !== f);
+    this.emit('lastbet', f.x, f.y, { name: 'THE LAST BET', color: '#ffd84a' });
+  },
+  updateLastBet(e) {
+    const B = e.bet, tgt = this.targetOf(e) || this.p; if (!B || !tgt) return;
+    e.cds.multicast = Math.max(e.cds.multicast || 0, 0.5); e.cds.ult = Math.max(e.cds.ult || 0, 5); // while the die is in the air she casts nothing else
+    B.t -= DT;
+    if (B.st === 'spent') { e.state = 'stun'; e.st = Math.max(e.st, 0.2); e.betSpent = true; if (B.t <= 0) { e.betSpent = false; e.state = 'recover'; e.st = 0.4; B.st = 'wait'; B.t = 1.2; B.rolls = 0; B.round++; this.emit('betagain', e.x, e.y); } return; }
+    if (B.st === 'wait' && B.t <= 0) { B.st = 'roll'; B.t = 0.9; this.emit('betroll', e.x, e.y); return; }
+    if (B.st === 'roll' && B.t <= 0) {
+      let f = 1 + Math.floor(this.rand() * 6); if (f === B.face) f = 1 + (f % 6); // never the same face twice running
+      B.face = f; B.st = 'cast'; B.t = 0.35; this.emit('betface', e.x, e.y, { face: f, name: BET_FACES[f - 1] }); return;
+    }
+    if (B.st === 'cast' && B.t <= 0) {
+      this.castBetFace(e, B.face, tgt); B.rolls++;
+      if (B.rolls >= 5) { B.st = 'spent'; B.t = 3.4; this.emit('betspent', e.x, e.y); }
+      else { B.st = 'wait'; B.t = 1.15; }
+    }
+  },
+  castBetFace(e, face, tgt) {
+    const D = 22 + (e.bet.round || 0) * 3, tx = tgt.x, ty = tgt.y, vx = (tgt.mvx || 0) * 40, vy = (tgt.mvy || 0) * 40;
+    const sig = (x, y, delay, r = 13, dmg = D) => this.celestialSig(e, x, y, { variant: 'betdie', r, delay, dmg, kb: 90 });
+    const beam = (x, y, a, delay, w = 10, len = 280, dmg = D) => this.celestialBeam(e, x, y, a, { variant: 'betbeam', len, w, delay, dmg, kb: 100 });
+    const through = (a, delay, w, dmg) => beam(tx - Math.cos(a) * 140, ty - Math.sin(a) * 140, a, delay, w, 280, dmg);
+    switch (face) {
+      case 1: { const a = Math.atan2(ty - e.y, tx - e.x); beam(e.x, e.y, a, 0.85, 18, 320, Math.round(D * 1.6)); beam(e.x, e.y, a - 0.32, 1.05, 6); beam(e.x, e.y, a + 0.32, 1.05, 6); break; } // the Ace: one enormous line, flanked
+      case 2: { const a = this.rand() * Math.PI; through(a, 0.8, 10); through(a + Math.PI / 2, 0.8, 10); break; }                                     // a pair: an X through you
+      case 3: [0, 1, 2].forEach(i => sig(tx + vx * i * 0.5, ty + vy * i * 0.5, 0.6 + i * 0.35, 15)); break;                                          // trips: three dice, one after another, where you're going
+      case 4: { for (const [qx, qy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) sig(tx + qx * 22, ty + qy * 22, 0.7, 12); through(0, 1.25, 8); through(Math.PI / 2, 1.25, 8); break; } // four corners, then the cross
+      case 5: { const a0 = this.rand() * TAU_; for (let i = 0; i < 5; i++) { const p0 = a0 + i * TAU_ / 5, p1 = a0 + (i + 2) * TAU_ / 5, x0 = tx + Math.cos(p0) * 46, y0 = ty + Math.sin(p0) * 46, x1 = tx + Math.cos(p1) * 46, y1 = ty + Math.sin(p1) * 46; beam(x0, y0, Math.atan2(y1 - y0, x1 - x0), 0.95, 7, Math.hypot(x1 - x0, y1 - y0) + 6, Math.round(D * 0.8)); } sig(tx, ty, 1.35, 11); break; } // the five-spot: a star drawn round you
+      case 6: { for (let i = 0; i < 12; i++) { const a = this.rand() * TAU_, rr = this.rand() * (R - 12); sig(Math.cos(a) * rr, Math.sin(a) * rr, 0.7 + this.rand() * 0.8, 11, Math.round(D * 0.8)); } for (let i = 0; i < 6; i++) { const a = i / 6 * TAU_; sig(tx + Math.cos(a) * 26, ty + Math.sin(a) * 26, 1.1, 10, Math.round(D * 0.8)); } for (let i = 0; i < 18; i++) this.celestialShot(e, i / 18 * TAU_, 120, Math.round(D * 0.5), 'betcard', { life: 2.4 }); break; } // jackpot: it all comes down
+    }
+  },
+  celestialMove(e, o, tgt) {
+    switch (o.move) {
+      case 'threelives': { // Past, Present and Future: where you were, where you are, where you will be, in that order
+        const past = (tgt.trail && tgt.trail[0]) || { x: tgt.x, y: tgt.y }, fx = tgt.x + (tgt.mvx || 0) * 48, fy = tgt.y + (tgt.mvy || 0) * 48, d = o.dmg || 18;
+        this.celestialSig(e, past.x, past.y, { variant: 'tl_past', r: 14, delay: 0.55, dmg: d, kb: 80 });
+        this.celestialSig(e, tgt.x, tgt.y, { variant: 'tl_present', r: 13, delay: 0.95, dmg: d, kb: 80 });
+        this.celestialSig(e, fx, fy, { variant: 'tl_future', r: 14, delay: 1.35, dmg: d, kb: 80 });
+        this.emit('threelives', e.x, e.y); return;
+      }
+      case 'hourhand': { // a hand of the clock, sweeping from him round the stage; the minute hand is thinner, faster, and goes the other way
+        const n = o.minute ? 20 : 12, dir = o.minute ? -1 : 1, a0 = Math.atan2(tgt.y - e.y, tgt.x - e.x) - dir * 0.9, step = o.minute ? 0.34 : 0.52;
+        for (let i = 0; i < n; i++) this.celestialBeam(e, e.x, e.y, a0 + dir * i * step, { variant: o.minute ? 'minutehand' : 'hourhand', len: 260, w: o.minute ? 5 : 9, delay: 0.55 + i * (o.minute ? 0.05 : 0.09), dmg: o.dmg || 15, kb: 70 });
+        this.emit('hourhand', e.x, e.y, { minute: !!o.minute }); return;
+      }
+      case 'borrowed': { // Borrowed Time: he takes back the time your skills had already spent cooling
+        for (const v of this.hostiles(e)) { if (!v.abCd || !v.abilities) continue; v.abilities.forEach((ab, i) => { if (ab) v.abCd[i] = Math.max(v.abCd[i] || 0, ab.cd); }); if (v.ultGauge) v.ultGauge = Math.max(0, v.ultGauge - 25); this.emit('borrowed', v.x, v.y); }
+        return;
+      }
+      case 'formerselves': { // the Last Keeper calls up your saved selves (the brains kept in the clay), two at a time
+        const cards = (this.opts.selves || []).filter(c => c && c.agent);
+        if (!cards.length || typeof PPOAgent === 'undefined') break;
+        const live = this.heroes.filter(h => h.formerSelf && !h.dead);
+        for (let i = 0; i < Math.min(o.count || 2, 2 - live.length); i++) {
+          const k = (this.selfIdx = ((this.selfIdx || 0) + 1)) % cards.length, card = cards[k], a = this.rand() * TAU_, rr = Math.min(R - 14, 40);
+          const h = this.addHero(Math.cos(a) * rr, Math.sin(a) * rr, e.team, 'agent', card);
+          (this.selfBrains = this.selfBrains || {})[k] = this.selfBrains[k] || PPOAgent.fromJSON(card.agent);
+          h.brain = this.selfBrains[k]; h.formerSelf = true; h.discarded = true; h.selfLife = 14; h.maxHp = h.hp = Math.round(h.maxHp * 0.6); h.lastHitBy = null;
+          h.selfName = card.world ? 'You, at ' + card.world : 'An earlier you';
+          this.emit('formerself', h.x, h.y, { name: h.selfName });
+        }
+        return;
+      }
+    }
+    return BASE_CM_LATE.call(this, e, o, tgt);
+  },
+  // per step: the saved selves think with their own brains and fade when their time is up; Yun Xi's die
+  updateLate() {
+    for (const h of this.heroes) if (h.formerSelf && !h.dead) {
+      if ((this.frameN || 0) % 4 === 0 && h.brain) { const a = h.brain.act(this.sense(h), false); h.action = toSimAction(a.move, a.act); }
+      if ((h.selfLife -= DT) <= 0) { h.dead = true; h.hp = 0; this.emit('selffade', h.x, h.y); }
+    }
+    for (const e of this.enemies) if (e.bet && !e.dead) this.updateLastBet(e);
+  },
+});
+const TAU_ = Math.PI * 2;
+const BASE_UPDATE_SPECTACLES_LATE = Sim.prototype.updateSpectacles;
+Sim.prototype.updateSpectacles = function () { this.updateLate(); return BASE_UPDATE_SPECTACLES_LATE.call(this); };
+
+// =====================================================================================================================
+// Thousand Skins, collected (plan section 13): the talent becomes a stronger form of any beast or monster you have
+// felled, from the five you choose. Each skin is built from the foe itself: its body, its look, a role bonus, and its
+// own arts (at 1.3x) cast on their own while you wear it. And the secret: wear the Azure Dragon, the Vermilion Bird,
+// the Qilin, the White Tiger and the Black Tortoise together, and it becomes Four Symbols, Five Phases.
+// =====================================================================================================================
+const SKIN_SAFE = new Set(['pounce', 'shoot', 'slam', 'sigil', 'cone', 'melee', 'lob', 'flurry', 'vortex']); // arts a fighter can throw the way it throws its own
+const ROLE_SKIN = {
+  bruiser: { heavyDmg: 0.4, dmgTaken: -0.1 }, duelist: { strikeDmg: 0.35, parryWin: 0.4 }, guardian: { dmgTaken: -0.25, unflinching: 1 },
+  trickster: { speed: 0.1, shadowStep: 1 }, marksman: { allDmg: 0.2, rollCd: -0.3 }, caster: { allDmg: 0.2, abilityCd: -0.25 },
+  colossus: { dmgTaken: -0.2, heavyDmg: 0.35, unflinching: 1 }, beast: { strikeDmg: 0.3, lifesteal: 0.04 },
+};
+const FOUR_SYMBOLS = ['eastdragon', 'phoenix', 'qilin', 'tiger', 'tortoise']; // wood, fire, earth, metal, water: the order in which each gives birth to the next
+const SYMBOL_OF = {
+  eastdragon: { name: 'Azure Dragon', cn: '青龙', el: 'wood', color: '#5ad08a', dir: 'East' },
+  phoenix: { name: 'Vermilion Bird', cn: '朱雀', el: 'fire', color: '#ff5a2a', dir: 'South' },
+  qilin: { name: 'Qilin', cn: '麒麟', el: 'earth', color: '#e8c34a', dir: 'Centre' },
+  tiger: { name: 'White Tiger', cn: '白虎', el: 'metal', color: '#e8f0f8', dir: 'West' },
+  tortoise: { name: 'Black Tortoise', cn: '玄武', el: 'water', color: '#4a8aff', dir: 'North' },
+};
+const SYMBOL_BONUS = { allDmg: 0.1, dmgTaken: -0.05 };
+const skinEligible = t => { const d = ENEMY_TYPES[t]; return !!(d && !d.boss && !d.kingClone && !d.puppet && (d.specials || []).some(s => SKIN_SAFE.has(s.kind))); };
+const isFourSymbols = picks => !!picks && picks.length === 5 && FOUR_SYMBOLS.every(t => picks.includes(t));
+const SKIN_CACHE = {};
+function skinForm(type, divine) {
+  const key = type + (divine ? '+' : ''); if (SKIN_CACHE[key]) return SKIN_CACHE[key];
+  const d = ENEMY_TYPES[type], sym = divine && SYMBOL_OF[type];
+  const arts = (d.specials || []).filter(s => SKIN_SAFE.has(s.kind)).map(s => ({ ...s, id: 'skin_' + s.id, dmg: s.dmg ? Math.round(s.dmg * (divine ? 1.5 : 1.3)) : s.dmg, energy: 0, cd: 0, abilityId: null,
+    ...(s.land ? { land: { ...s.land, dmg: Math.round((s.land.dmg || 0) * 1.3) } } : {}) }));
+  return (SKIN_CACHE[key] = { type, name: sym ? sym.name : d.name, cn: sym ? sym.cn : null, color: sym ? sym.color : d.color || '#c9a66b', sprite: d.sprite || type, role: d.role,
+    mods: { ...(ROLE_SKIN[d.role] || { allDmg: 0.2 }), ...(sym ? Object.fromEntries(Object.entries(SYMBOL_BONUS).map(([k, v]) => [k, ((ROLE_SKIN[d.role] || {})[k] || 0) + v])) : {}) }, arts, el: sym ? sym.el : null, divine: !!sym });
+}
+const BASE_ADDHERO_SKINS = Sim.prototype.addHero;
+Object.assign(Sim.prototype, {
+  addHero(x, y, team, controller, card) {
+    const h = BASE_ADDHERO_SKINS.call(this, x, y, team, controller, card), id = (card || this.opts).identity || {};
+    h.skinPicks = (id.skinPicks || []).filter(skinEligible).slice(0, 5); h.fourSymbols = isFourSymbols(h.skinPicks); h.symSeen = [];
+    return h;
+  },
+  // the next skin: from your five (the Four Symbols in their fixed order), or the five old beasts if you chose none
+  shiftSkin(h) {
+    const picks = h.skinPicks || [];
+    if (!picks.length) {
+      const kinds = Object.keys(BEAST_MODS).filter(b => b !== h.lastBeast), k = h.hp < h.maxHp * 0.35 && h.lastBeast !== 'bear' ? 'bear' : kinds[Math.floor(this.rand() * kinds.length)]; // hurt badly, it reaches for the bear's hide
+      h.beast = k; h.lastBeast = k; h.skinForm = null;
+      this.emit('shiftform', h.x, h.y, { name: SHIFT_FORMS[k].name, color: SHIFT_FORMS[k].color });
+      return;
+    }
+    let type;
+    if (h.fourSymbols) { h.symIdx = ((h.symIdx ?? -1) + 1) % 5; type = FOUR_SYMBOLS[h.symIdx]; }
+    else { const pool = picks.filter(t => t !== h.lastBeast); type = (pool.length ? pool : picks)[Math.floor(this.rand() * (pool.length || picks.length))]; }
+    const F = skinForm(type, h.fourSymbols);
+    h.beast = 'skin'; h.lastBeast = type; h.skinForm = F; h.skinArtCd = 0.6; h.guardCd = 2.5;
+    this.emit('shiftform', h.x, h.y, { name: F.name.toUpperCase(), color: F.color, skin: type, cn: F.cn, el: F.el });
+    if (h.fourSymbols) this.symbolBurst(h, F);
+  },
+  // Four Symbols: every change of skin breathes its element; all five in one fight, and the Five Phases are complete
+  symbolBurst(h, F) {
+    const tgt = this.nearestEnemy(h) || { x: h.x + h.fx * 30, y: h.y + h.fy * 30 };
+    const extra = F.el === 'water' ? { wet: 5 } : F.el === 'wood' ? { root: 0.8 } : F.el === 'metal' ? { breaksGuard: true } : {};
+    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 + this.t; this.celestialSig(h, tgt.x + Math.cos(a) * 14, tgt.y + Math.sin(a) * 14, { variant: 'pearl_' + F.el, r: 12, dmg: 12, delay: 0.5 + i * 0.12, kb: 90, ...extra }); }
+    if (!h.symSeen.includes(F.el)) h.symSeen.push(F.el);
+    if (h.symSeen.length >= 5) {
+      h.symSeen = [];
+      for (const [i, v] of ['wood', 'fire', 'earth', 'metal', 'water'].entries()) this.ultStep(h, 'beam', { variant: 'wx_' + v, len: 220, width: 11, dmg: 16, kb: 120, delay: 0.5 + i * 0.12, aimed: true, turn: i * 1.2566 }, tgt);
+      for (let i = 0; i < 10; i++) { const v = ['wood', 'fire', 'earth', 'metal', 'water'][i % 5], a = i / 10 * Math.PI * 2; this.celestialSig(h, h.x + Math.cos(a) * 36, h.y + Math.sin(a) * 36, { variant: 'pearl_' + v, r: 13, dmg: 16, delay: 0.9 + i * 0.05, kb: 120 }); }
+      h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.15);
+      this.emit('fivephases', h.x, h.y);
+    }
+  },
+  // while a skin is worn: its arts come on their own; with the Four Symbols, a guardian at the compass points strikes too
+  updateSkin(h) {
+    if (!(h.beastT > 0) || !h.skinForm) { if (h.skinForm && !(h.beastT > 0)) h.skinForm = null; return; }
+    const F = h.skinForm, foe = this.nearestEnemy(h);
+    if (!foe) return;
+    const d = Math.hypot(foe.x - h.x, foe.y - h.y) || 1;
+    if ((h.skinArtCd -= DT) <= 0 && F.arts.length && (h.state === 'idle' || h.state === 'move') && !h.guard) {
+      const fits = F.arts.filter(a => d <= (a.maxRange || (a.range || 20) + 20) && d >= (a.minRange || 0) - 2), art = fits[Math.floor(this.rand() * fits.length)];
+      if (art) { h.fx = (foe.x - h.x) / d; h.fy = (foe.y - h.y) / d; this.startAttack(h, { ...art }); h.skinArtCd = F.divine ? 2.4 : 3.2; this.emit('skinart', h.x, h.y, { color: F.color }); }
+      else h.skinArtCd = 0.4;
+    }
+    if (h.fourSymbols && (h.guardCd -= DT) <= 0) { // one of the four standing at the compass points (never the one you wear) strikes the nearest foe
+      h.guardCd = 4.2;
+      const others = FOUR_SYMBOLS.filter(t => t !== F.type), g = SYMBOL_OF[others[Math.floor(this.rand() * others.length)]];
+      this.celestialSig(h, foe.x, foe.y, { variant: 'pearl_' + g.el, r: 12, dmg: 14, delay: 0.55, kb: 100 });
+      this.emit('guardianstrike', foe.x, foe.y, { el: g.el, color: g.color });
+    }
   },
 });

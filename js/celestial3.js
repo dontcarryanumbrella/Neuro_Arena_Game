@@ -403,7 +403,7 @@ RP.drawPageCut = function (sim, S) {
   const C = this.cut14; C.T = T; C.live = true; C.sim = sim;
   const Ln = cutLine(S), L = 320;
   // the pencil line: drawn on in a stroke, faint graphite doubled the way a hand draws it, ticks where it crosses you
-  if (T > 0.8 && T < 2.3) {
+  if (T > 0.8 && T < 2.3 && (!S.plan || !S.plan[0].done)) {
     const u = ease((T - 0.8) / 0.35), a = Math.min(1, (T - 0.8) * 3);
     for (let k = 0; k < 2; k++) {
       const j = k ? 0.7 : 0, x0 = Ln.x - Ln.ux * L, y0 = Ln.y - Ln.uy * L + j;
@@ -439,78 +439,88 @@ const INK_EDGE = (() => { let c = null; return () => { if (c) return c; c = mk(W
     const v = d - n * 0.3 - drip; if (v < 0.13) { g.fillStyle = v < 0.07 ? '#050408' : v < 0.1 ? '#120e18' : '#2a2430'; g.fillRect(x, y, 1, 1); }
   } return c; }; })();
 
+const SHEATHE = 6.1, NUMS = ['一', '二', '三', '四', '五', '六', '七'];
 RP.post14 = function () {
   const C = this.cut14; if (!C) return;
-  if (!C.live) { C.T += this.lastDt || 1 / 60; if (C.T > 5.2) { this.cut14 = null; return; } } // the spectacle is over; its tail plays out
+  if (!C.live) { C.T += this.lastDt || 1 / 60; if (C.T > SHEATHE + 1.1) { this.cut14 = null; return; } } // the spectacle is over; its tail plays out
   C.live = false;
-  const T = C.T, S = C.S, e = S.owner, K = this.S || 1, tg = K === 1 ? this.g : this.sg, Wp = W * K, Hp = H * K, top = 13 * K, dt = this.lastDt || 1 / 60;
-  const Ln = cutLine(S), r = Math.random;
+  const T = C.T, S = C.S, e = S.owner, K = this.S || 1, tg = K === 1 ? this.g : this.sg, Wp = W * K, Hp = H * K, top = 13 * K, dt = this.lastDt || 1 / 60, r = Math.random;
+  const plan = S.plan || [{ t: 2.3, big: true, ang: S.ang, ax: S.ax, ay: S.ay }];
+  const lineOf = c => cutLine(c.ax != null ? c : S), big = plan[0], Ln = lineOf(big);
   tg.save(); tg.setTransform(1, 0, 0, 1, 0, 0); tg.imageSmoothingEnabled = false;
   const buf = this.c14buf || (this.c14buf = document.createElement('canvas')); if (buf.width !== Wp || buf.height !== Hp) { buf.width = Wp; buf.height = Hp; }
   const bg = buf.getContext('2d'); const snap = () => { bg.setTransform(1, 0, 0, 1, 0, 0); bg.globalCompositeOperation = 'copy'; bg.drawImage(tg.canvas, 0, 0); bg.globalCompositeOperation = 'source-over'; };
   const fire = (k, fn) => { if (!C.fired[k]) { C.fired[k] = true; fn(); } };
-  // ---- 1. ink on paper ----
-  const gk = T < 0.7 ? ease(T / 0.7) : T < 3.0 ? 1 : 1 - ease((T - 3.0) / 0.8);
+  const spray = (L, n, reach, sp0, sp1, up = 0) => { for (let i = 0; i < n; i++) { const u = (r() - 0.5) * 2 * reach, s = r() < 0.5 ? -1 : 1, sp = sp0 + r() * r() * sp1, along = (r() - 0.5) * 60; C.parts.push({ x: L.x + L.ux * u, y: L.y + L.uy * u, vx: -L.uy * s * sp + L.ux * along, vy: L.ux * s * sp + L.uy * along - up, g: 150, life: 0.4 + r() * 1.0, max: 1.5, sz: r() < 0.08 ? 2 : 1, col: r() < 0.85 ? INKC : PAPER }); } };
+  // ---- 1. ink on paper (held through all seven strokes, and given back after the sheath) ----
+  const gk = T < 0.7 ? ease(T / 0.7) : T < SHEATHE ? 1 : 1 - ease((T - SHEATHE) / 0.8);
   if (gk > 0) {
     tg.globalCompositeOperation = 'saturation'; tg.globalAlpha = gk; tg.fillStyle = '#808080'; tg.fillRect(0, top, Wp, Hp - top);
     tg.globalCompositeOperation = 'multiply'; tg.globalAlpha = gk * 0.5; tg.fillStyle = '#efe0c0'; tg.fillRect(0, top, Wp, Hp - top);
     tg.globalAlpha = gk * 0.45; tg.drawImage(PAPER_GRAIN(), 0, 0, W, H, 0, 0, Wp, Hp);
     tg.globalCompositeOperation = 'source-over';
     const ek = gk * (0.75 + 0.25 * clamp((T - 1.0) / 1.2)); tg.globalAlpha = ek;
-    const grow = 1 + 0.06 * clamp((T - 0.8) / 1.5) - 0.04 * clamp((T - 2.3) / 0.2); // the ink closes in as he draws, and is thrown back by the cut
+    const grow = 1 + 0.06 * clamp((T - 0.8) / 1.5) - 0.04 * clamp((T - 2.3) / 0.2) + (T > 2.9 && T < SHEATHE ? 0.03 * Math.abs(Math.sin(T * 8)) : 0); // the ink closes in as he draws, is thrown back by the cut, and pulses with the six
     const sc = 2 - grow, dw = Wp * sc, dh = (Hp - top) * sc, qx = (Wp - dw) / 2, qy = top + (Hp - top - dh) / 2; tg.drawImage(INK_EDGE(), 0, 13, W, H - 13, qx, qy, dw, dh);
     tg.fillStyle = '#050408'; if (qx > 0) { tg.fillRect(0, top, qx + 1, Hp - top); tg.fillRect(Wp - qx - 1, top, qx + 1, Hp - top); tg.fillRect(0, top, Wp, qy - top + 1); tg.fillRect(0, qy + dh - 1, Wp, Hp - qy - dh + 1); } tg.globalAlpha = 1;
     fire('riser', () => this.snd('riser'));
   }
-  // ---- 2. the lock: the frame pushes in on you ----
+  // ---- 2. the first lock: the frame pushes in on you ----
   if (T >= 2.0 && T < 2.3) {
     fire('lock', () => { this.snd('chime'); });
     const z = 1 + 0.05 * ease((T - 2.0) / 0.12), fx = Ln.x * K, fy = Ln.y * K; snap();
     tg.drawImage(buf, 0, top, Wp, Hp - top, fx - fx * z, top + (fy - top) - (fy - top) * z, Wp * z, (Hp - top) * z);
   }
-  // ---- 3. CUT ----
-  const open = T < 2.3 ? 0 : T < 2.34 ? (T - 2.3) / 0.04 : T < 2.62 ? 1 : T < 2.95 ? 1 - ease((T - 2.62) / 0.33) : 0;
-  if (open > 0) {
-    fire('cut', () => {
-      this.snd('ultboom'); this.snd('slash'); this.shake = Math.max(this.shake, 20);
-      for (let i = 0; i < 260; i++) { // ink thrown off the whole length of the stroke, a few flecks of paper white in it
-        const u = (r() - 0.5) * 2 * 170, s = r() < 0.5 ? -1 : 1, sp = 30 + r() * r() * 220, along = (r() - 0.5) * 60;
-        C.parts.push({ x: Ln.x + Ln.ux * u, y: Ln.y + Ln.uy * u, vx: -Ln.uy * s * sp + Ln.ux * along, vy: Ln.ux * s * sp + Ln.uy * along, g: 140, life: 0.5 + r() * 1.1, max: 1.6, sz: r() < 0.08 ? 2 : 1, col: r() < 0.84 ? INKC : PAPER });
-      }
-      for (let i = 0; i < 16; i++) { const u = (r() - 0.5) * 2 * 140, s = r() < 0.5 ? -1 : 1, sp = 20 + r() * 70; C.parts.push({ x: Ln.x + Ln.ux * u, y: Ln.y + Ln.uy * u, vx: -Ln.uy * s * sp, vy: Ln.ux * s * sp - 20, g: 40, life: 1.2 + r(), max: 2.2, scrap: true, a: r() * TAU, va: (r() - 0.5) * 18, col: PAPER }); } // scraps of the page
-    });
+  // ---- 3. the cuts: each splits the page along its line (the first long and slow, the six after it a flicker each) ----
+  const splitPage = (L, open, gapPx, slidePx, smear, heat, jit) => {
     snap();
-    const gap = open * 4 * K, slide = open * 9 * K, jx = (r() - 0.5) * 10 * K * open, jy = (r() - 0.5) * 6 * K * open;
+    const gap = open * gapPx * K, slide = open * slidePx * K, jx = (r() - 0.5) * jit * K * open, jy = (r() - 0.5) * jit * 0.6 * K * open;
     tg.fillStyle = '#000000'; tg.fillRect(0, top, Wp, Hp - top);
-    const nx = -Ln.uy, ny = Ln.ux, cx = Ln.x * K, cy = Ln.y * K, far = Wp * 2;
-    const half = s => { tg.beginPath(); tg.moveTo(cx - Ln.ux * far, cy - Ln.uy * far); tg.lineTo(cx + Ln.ux * far, cy + Ln.uy * far); tg.lineTo(cx + Ln.ux * far + nx * far * s, cy + Ln.uy * far + ny * far * s); tg.lineTo(cx - Ln.ux * far + nx * far * s, cy - Ln.uy * far + ny * far * s); tg.closePath(); };
+    const nx = -L.uy, ny = L.ux, cx = L.x * K, cy = L.y * K, far = Wp * 2;
+    const half = s => { tg.beginPath(); tg.moveTo(cx - L.ux * far, cy - L.uy * far); tg.lineTo(cx + L.ux * far, cy + L.uy * far); tg.lineTo(cx + L.ux * far + nx * far * s, cy + L.uy * far + ny * far * s); tg.lineTo(cx - L.ux * far + nx * far * s, cy - L.uy * far + ny * far * s); tg.closePath(); };
     for (const s of [-1, 1]) {
       tg.save(); half(s); tg.clip();
-      const ox = Ln.ux * slide * s + nx * gap * s + jx, oy = Ln.uy * slide * s + ny * gap * s + jy;
-      if (T < 2.55) for (let j = 4; j >= 1; j--) { tg.globalAlpha = 0.16; tg.drawImage(buf, ox - Ln.ux * j * 3 * K * s, oy - Ln.uy * j * 3 * K * s); } // smeared along the stroke
+      const ox = L.ux * slide * s + nx * gap * s + jx, oy = L.uy * slide * s + ny * gap * s + jy;
+      if (smear) for (let j = 4; j >= 1; j--) { tg.globalAlpha = 0.16; tg.drawImage(buf, ox - L.ux * j * 3 * K * s, oy - L.uy * j * 3 * K * s); } // smeared along the stroke
       tg.globalAlpha = 1; tg.drawImage(buf, ox, oy); tg.restore();
+      tg.globalAlpha = 0.9; tg.strokeStyle = PAPER; tg.lineWidth = Math.max(1, K * 0.75); tg.beginPath(); tg.moveTo(cx - L.ux * far + ox, cy - L.uy * far + oy); tg.lineTo(cx + L.ux * far + ox, cy + L.uy * far + oy); tg.stroke(); tg.globalAlpha = 1; // the page's cut edges
     }
-    for (const s of [-1, 1]) { const ox = Ln.ux * slide * s + nx * gap * s + jx, oy = Ln.uy * slide * s + ny * gap * s + jy; tg.globalAlpha = 0.9; tg.strokeStyle = PAPER; tg.lineWidth = Math.max(1, K * 0.75); tg.beginPath(); tg.moveTo(cx - Ln.ux * far + ox, cy - Ln.uy * far + oy); tg.lineTo(cx + Ln.ux * far + ox, cy + Ln.uy * far + oy); tg.stroke(); tg.globalAlpha = 1; } // the page's cut edges
-    // inside the cut: white-hot at its heart for an instant, then only a black slit
-    const heat = clamp(1 - (T - 2.3) / 0.25);
-    if (heat > 0) { tg.save(); tg.globalCompositeOperation = 'lighter'; tg.globalAlpha = heat; tg.strokeStyle = '#ffffff'; tg.lineWidth = Math.max(1, gap * 0.7); tg.beginPath(); tg.moveTo(cx - Ln.ux * far + jx, cy - Ln.uy * far + jy); tg.lineTo(cx + Ln.ux * far + jx, cy + Ln.uy * far + jy); tg.stroke(); tg.restore(); }
-    // impact frames over everything: the negative, the black, the white
-    const f = T < 2.34 ? 0 : T < 2.39 ? 1 : T < 2.44 ? 2 : -1;
-    if (f >= 0) {
-      snap(); tg.save();
-      if (f === 0) { tg.fillStyle = '#ffffff'; tg.fillRect(0, 0, Wp, Hp); } // blinding
-      else if (f === 1) { tg.filter = 'grayscale(1) contrast(30) invert(1)'; tg.drawImage(buf, 0, 0); } // the negative: a black world, white shapes
-      else { tg.filter = 'grayscale(1) brightness(1.25) contrast(30)'; tg.drawImage(buf, 0, 0); } // and the print: white paper, black shapes
-      tg.restore();
-      if (tg.filter === undefined) { tg.globalCompositeOperation = 'difference'; tg.fillStyle = '#fff'; tg.fillRect(0, top, Wp, Hp - top); tg.globalCompositeOperation = 'source-over'; }
-      // the stroke itself, and the focus lines thrown out from where it crossed you
-      tg.save(); tg.strokeStyle = f === 1 ? '#fff' : '#000'; tg.lineWidth = (f === 0 ? 2 : f === 1 ? 5 : 3) * K; tg.beginPath(); tg.moveTo(cx - Ln.ux * far, cy - Ln.uy * far); tg.lineTo(cx + Ln.ux * far, cy + Ln.uy * far); tg.stroke();
-      tg.fillStyle = f === 1 ? '#fff' : '#000';
-      for (let i = 0; i < 46; i++) { const a = r() * TAU, r0 = (18 + r() * 30) * K, r1 = r0 + (60 + r() * 140) * K, w = (0.5 + r() * 1.6) * K; tg.beginPath(); tg.moveTo(cx + Math.cos(a) * r1 - Math.sin(a) * w, cy + Math.sin(a) * r1 + Math.cos(a) * w); tg.lineTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); tg.lineTo(cx + Math.cos(a) * r1 + Math.sin(a) * w, cy + Math.sin(a) * r1 - Math.cos(a) * w); tg.fill(); }
-      tg.restore();
+    if (heat > 0) { tg.save(); tg.globalCompositeOperation = 'lighter'; tg.globalAlpha = heat; tg.strokeStyle = '#ffffff'; tg.lineWidth = Math.max(1, gap * 0.7); tg.beginPath(); tg.moveTo(cx - L.ux * far + jx, cy - L.uy * far + jy); tg.lineTo(cx + L.ux * far + jx, cy + L.uy * far + jy); tg.stroke(); tg.restore(); }
+  };
+  const impact = (L, f, rays) => { // over everything: blinding white, the negative, the print
+    const cx = L.x * K, cy = L.y * K, far = Wp * 2;
+    snap(); tg.save();
+    if (f === 0) { tg.fillStyle = '#ffffff'; tg.fillRect(0, 0, Wp, Hp); }
+    else if (f === 1) { tg.filter = 'grayscale(1) contrast(30) invert(1)'; tg.drawImage(buf, 0, 0); }
+    else { tg.filter = 'grayscale(1) brightness(1.25) contrast(30)'; tg.drawImage(buf, 0, 0); }
+    tg.restore();
+    if (tg.filter === undefined && f) { tg.globalCompositeOperation = 'difference'; tg.fillStyle = '#fff'; tg.fillRect(0, top, Wp, Hp - top); tg.globalCompositeOperation = 'source-over'; }
+    tg.save(); tg.strokeStyle = f === 1 ? '#fff' : '#000'; tg.lineWidth = (f === 0 ? 2 : f === 1 ? 5 : 3) * K; tg.beginPath(); tg.moveTo(cx - L.ux * far, cy - L.uy * far); tg.lineTo(cx + L.ux * far, cy + L.uy * far); tg.stroke();
+    tg.fillStyle = f === 1 ? '#fff' : '#000';
+    for (let i = 0; i < rays; i++) { const a = r() * TAU, r0 = (18 + r() * 30) * K, r1 = r0 + (60 + r() * 140) * K, w = (0.5 + r() * 1.6) * K; tg.beginPath(); tg.moveTo(cx + Math.cos(a) * r1 - Math.sin(a) * w, cy + Math.sin(a) * r1 + Math.cos(a) * w); tg.lineTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); tg.lineTo(cx + Math.cos(a) * r1 + Math.sin(a) * w, cy + Math.sin(a) * r1 - Math.cos(a) * w); tg.fill(); }
+    tg.restore();
+  };
+  for (const c of plan) {
+    const L = lineOf(c), lt = T - c.t;
+    if (c.big) {
+      const open = lt < 0 ? 0 : lt < 0.04 ? lt / 0.04 : lt < 0.32 ? 1 : lt < 0.65 ? 1 - ease((lt - 0.32) / 0.33) : 0;
+      if (open > 0) {
+        fire('cut0', () => { this.snd('ultboom'); this.snd('slash'); this.shake = Math.max(this.shake, 20); spray(L, 260, 170, 30, 220);
+          for (let i = 0; i < 16; i++) { const u = (r() - 0.5) * 2 * 140, s = r() < 0.5 ? -1 : 1, sp = 20 + r() * 70; C.parts.push({ x: L.x + L.ux * u, y: L.y + L.uy * u, vx: -L.uy * s * sp, vy: L.ux * s * sp - 20, g: 40, life: 1.2 + r(), max: 2.2, scrap: true, a: r() * TAU, va: (r() - 0.5) * 18, col: PAPER }); } });
+        splitPage(L, open, 4, 9, lt < 0.25, clamp(1 - lt / 0.25), 10);
+        const f = lt < 0.04 ? 0 : lt < 0.09 ? 1 : lt < 0.14 ? 2 : -1; if (f >= 0) impact(L, f, 46);
+      }
+    } else if (c.done || lt >= 0) {
+      const open = lt < 0 ? 0 : lt < 0.03 ? lt / 0.03 : lt < 0.1 ? 1 : lt < 0.3 ? 1 - ease((lt - 0.1) / 0.2) : 0;
+      if (open > 0) {
+        fire('cut' + c.i, () => { this.snd('slash'); if (c.i % 2) this.snd('heavyhit'); this.shake = Math.max(this.shake, 13); spray(L, 120, 170, 40, 200);
+          for (let i = 0; i < 5; i++) { const u = (r() - 0.5) * 2 * 120, s = r() < 0.5 ? -1 : 1, sp = 30 + r() * 60; C.parts.push({ x: L.x + L.ux * u, y: L.y + L.uy * u, vx: -L.uy * s * sp, vy: L.ux * s * sp - 20, g: 40, life: 0.9 + r(), max: 2, scrap: true, a: r() * TAU, va: (r() - 0.5) * 22, col: PAPER }); } });
+        splitPage(L, open, 2.5, 6, lt < 0.1, clamp(1 - lt / 0.12), 8);
+        const f = lt < 0.03 ? 0 : lt < 0.07 ? (c.i % 2 ? 1 : 2) : -1; if (f >= 0) impact(L, f, 22);
+      }
     }
   }
-  // ---- 4. the overlay, at the fight layer's own pixels: focus lines, the seal, the locked line, his stroke, the ink ----
+  // ---- 4. the overlay, at the fight layer's own pixels ----
   const og = this.c14layer();
   if (T > 1.0 && T < 2.3 && e) { // focus lines closing on him
     const k = clamp((T - 1.0) / 1.0), fx = sx(e.x), fy = sy(e.y) - 8, rin = 120 - 70 * k;
@@ -518,33 +528,35 @@ RP.post14 = function () {
     for (let i = 0; i < 40; i++) { const a = r() * TAU, r0 = rin + r() * 20, w = 0.6 + r() * 1.4 * k; og.globalAlpha = 0.35 + 0.5 * k; og.beginPath(); og.moveTo(fx + Math.cos(a) * 300 - Math.sin(a) * w * 3, fy + Math.sin(a) * 300 + Math.cos(a) * w * 3); og.lineTo(fx + Math.cos(a) * r0, fy + Math.sin(a) * r0 * 0.8); og.lineTo(fx + Math.cos(a) * 300 + Math.sin(a) * w * 3, fy + Math.sin(a) * 300 - Math.cos(a) * w * 3); og.fill(); }
     og.globalAlpha = 1;
   }
-  if (T > 0.9 && T < 2.3 && e && !e.dead) { // the Black Sea drawn in to him: ink running in on spiral paths, faster as he settles
+  if (T > 0.9 && T < 2.3 && e && !e.dead) { // the Black Sea drawn in to him
     const k = clamp((T - 0.9) / 1.0), X = sx(e.x), Y = sy(e.y) - 8;
     og.strokeStyle = INKC; og.lineCap = 'round';
     for (let i = 0; i < 9; i++) { const ph = (T * (0.8 + k * 1.6) + i / 9) % 1, a0 = i * 0.7 + T * 2, r0 = 46 * (1 - ph) + 4; og.globalAlpha = (1 - ph) * 0.8 * k + 0.1; og.lineWidth = 1 + (1 - ph) * 1.2; og.beginPath(); for (let j = 0; j <= 6; j++) { const rr = r0 + j * 3, a = a0 - j * 0.22; og.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr * 0.6); } og.stroke(); }
     og.globalAlpha = 1;
-    if (T > 1.7) { const q = Math.floor(T * 24) % 2; px(og, X + (e.fx < 0 ? -5 : 5), Y + 4, q ? '#ffffff' : '#a8a2b8'); } // light gathering on the guard
+    if (T > 1.7) { const q = Math.floor(T * 24) % 2; px(og, X + (e.fx < 0 ? -5 : 5), Y + 4, q ? '#ffffff' : '#a8a2b8'); }
   }
-  if (T >= 2.0 && T < 2.34) { // the line, locked: drawn over in red ink
-    const a = T < 2.06 ? (Math.floor(T * 60) % 2 ? 1 : 0.4) : 1;
-    line(og, Ln.x - Ln.ux * 320, Ln.y - Ln.uy * 320, Ln.x + Ln.ux * 320, Ln.y + Ln.uy * 320, SEAL, 1, a);
-    line(og, Ln.x - Ln.ux * 320, Ln.y - Ln.uy * 320 + 1, Ln.x + Ln.ux * 320, Ln.y + Ln.uy * 320 + 1, '#5a0408', 1, a * 0.6);
+  const redLine = (L, a, dash) => { og.save(); if (dash) og.setLineDash([4, 3]); line(og, L.x - L.ux * 320, L.y - L.uy * 320, L.x + L.ux * 320, L.y + L.uy * 320, SEAL, 1, a); if (!dash) line(og, L.x - L.ux * 320, L.y - L.uy * 320 + 1, L.x + L.ux * 320, L.y + L.uy * 320 + 1, '#5a0408', 1, a * 0.6); og.restore(); };
+  for (const c of plan) {
+    const L = lineOf(c), lt = T - c.t;
+    if (c.big) { if (T >= 2.0 && T < 2.34) redLine(L, T < 2.06 ? (Math.floor(T * 60) % 2 ? 1 : 0.4) : 1); }
+    else if (lt >= -0.34 && lt < 0.02) { // the next line: thrown down dashed, following you, then locked in red
+      const locked = lt >= -0.2; redLine(L, locked ? (Math.floor(T * 40) % 2 ? 1 : 0.55) : 0.65, !locked);
+      if (locked) { og.strokeStyle = SEAL; og.lineWidth = 1; og.beginPath(); og.ellipse(L.x, L.y + 4, 5 + (lt + 0.2) * 20, (5 + (lt + 0.2) * 20) * SQ, 0, 0, TAU); og.stroke(); } // the mark where it will cross you
+    }
+    // his stroke along each line, and the afterimages left on the way through
+    const from = c.t, u = clamp((T - from) / (c.big ? 0.5 : 0.32));
+    if (c.to && T >= from && u < 1) {
+      const side = c.side || 1, x1 = sx(c.to.x), y1 = sy(c.to.y) - 7, x0 = x1 - L.ux * side * 110, y0 = y1 - L.uy * side * 110, nx = -L.uy, ny = L.ux, wk = c.big ? 3.4 : 2.4;
+      og.globalAlpha = 1 - u; og.fillStyle = INKC; og.beginPath();
+      for (let i = 0; i <= 12; i++) { const s2 = i / 12, w = wk * Math.sin(Math.PI * Math.pow(s2, 0.7)) * (1 - u * 0.5) + 0.3; og.lineTo(x0 + (x1 - x0) * s2 + nx * w, y0 + (y1 - y0) * s2 + ny * w); }
+      for (let i = 12; i >= 0; i--) { const s2 = i / 12, w = wk * Math.sin(Math.PI * Math.pow(s2, 0.7)) * (1 - u * 0.5) + 0.3; og.lineTo(x0 + (x1 - x0) * s2 - nx * w, y0 + (y1 - y0) * s2 - ny * w); }
+      og.fill(); og.globalAlpha = (1 - u) * 0.9; line(og, x0, y0 - 1, x1, y1 - 1, '#f4f0ff', 0.5); og.globalAlpha = 1;
+      if (this.headlessArt) { const A = this.headlessArt, n = c.big ? 7 : 4; for (let i = 1; i <= n; i++) { const d = i * 13, qx = Math.round(x1 - L.ux * side * d), qy = Math.round(sy(c.to.y) - L.uy * side * d); og.globalAlpha = Math.max(0, (0.75 - i * 0.1) * (1 - u)); og.drawImage(side * L.ux < 0 ? A.f : A.c, qx - A.ax, qy - A.h - 6); } og.globalAlpha = 1; }
+      if (!c.big && T - from < 0.14) { const col = Math.floor(T * 60) % 2 ? '#ffffff' : INKC; for (let i = 0; i < 22; i++) { const o = (hash(i, c.i, 3) - 0.5) * 300, l0 = (hash(i, c.i, 4) - 0.5) * 400, ln = 30 + hash(i, c.i, 5) * 80, bx = W / 2 - L.uy * o + L.ux * l0, by = H / 2 + L.ux * o + L.uy * l0; line(og, bx, by, bx + L.ux * ln, by + L.uy * ln, col, 1, 0.7); } } // speed lines along the stroke
+    }
   }
-  if (T >= 2.3 && T < 3.0 && S.from && e) { // his stroke: a brush of ink along the line, from far behind you to where he stands
-    const u = clamp((T - 2.3) / 0.5), side = S.side || 1, x1 = sx(e.x), y1 = sy(e.y) - 7, x0 = x1 - Ln.ux * side * 110, y0 = y1 - Ln.uy * side * 110, nx = -Ln.uy, ny = Ln.ux;
-    og.globalAlpha = 1 - u; og.fillStyle = INKC; og.beginPath();
-    for (let i = 0; i <= 12; i++) { const s = i / 12, w = 3.4 * Math.sin(Math.PI * Math.pow(s, 0.7)) * (1 - u * 0.5) + 0.3; og.lineTo(x0 + (x1 - x0) * s + nx * w, y0 + (y1 - y0) * s + ny * w); }
-    for (let i = 12; i >= 0; i--) { const s = i / 12, w = 3.4 * Math.sin(Math.PI * Math.pow(s, 0.7)) * (1 - u * 0.5) + 0.3; og.lineTo(x0 + (x1 - x0) * s - nx * w, y0 + (y1 - y0) * s - ny * w); }
-    og.fill(); og.globalAlpha = (1 - u) * 0.9; line(og, x0, y0 - 1, x1, y1 - 1, '#f4f0ff', 0.5); og.globalAlpha = 1;
-    for (let i = 0; i < 5; i++) { const s = (i + 0.5) / 5; px(og, x0 + (x1 - x0) * s + (r() - 0.5) * 3, y0 + (y1 - y0) * s + 3 + r() * 4, INKC, 1 - u); } // the brush's dry flecks
-  }
-  if (T >= 2.3 && T < 2.75 && S.from && e && this.headlessArt) { // the afterimages he left on the way through: ink copies of him strung along the line
-    const A = this.headlessArt, u = (T - 2.3) / 0.45, side = S.side || 1, X = sx(e.x), Y = sy(e.y);
-    for (let i = 1; i <= 7; i++) { const d = i * 13, qx = Math.round(X - Ln.ux * side * d), qy = Math.round(Y - Ln.uy * side * d); og.globalAlpha = Math.max(0, (0.75 - i * 0.09) * (1 - u)); og.drawImage(e.fx < 0 ? A.f : A.c, qx - A.ax, qy - A.h - 6); }
-    og.globalAlpha = 1;
-  }
-  if (e && !e.dead && T >= 2.3 && T < 4.42) { // the blade, out: bare steel, the only thing with colour, ink running off it; then home
-    const F = e.fx < 0 ? -1 : 1, X = sx(e.x), Y = sy(e.y) - 7, sheath = T > 4.3 ? clamp((T - 4.3) / 0.1) : 0, len = 15 * (1 - sheath);
+  if (e && !e.dead && T >= 2.3 && T < SHEATHE + 0.12) { // the blade, out: bare steel, the only thing with colour, ink running off it; then home
+    const F = e.fx < 0 ? -1 : 1, X = sx(e.x), Y = sy(e.y) - 7, sheath = T > SHEATHE ? clamp((T - SHEATHE) / 0.1) : 0, len = 15 * (1 - sheath);
     if (len > 0.5) {
       const a = F > 0 ? 0.35 : Math.PI - 0.35, dx = Math.cos(a), dy = Math.sin(a), hx = X + F * 3, hy = Y + 1;
       line(og, hx, hy, hx + dx * len, hy + dy * len, '#8a9ab8', 2); line(og, hx, hy - 0.5, hx + dx * len, hy + dy * len - 0.5, '#f4f8ff', 1);
@@ -553,38 +565,39 @@ RP.post14 = function () {
       if (Math.floor(T * 7) % 6 === 0) { const q = clamp((T * 7 % 1)); px(og, hx + dx * len * q, hy + dy * len * q - 1, '#ffffff'); }
     }
   }
+  const seal = (x, y, sz, ch, a, sc = 1) => { if (a <= 0) return; og.save(); og.globalAlpha = a; og.translate(x, y); og.scale(sc, sc); const h = sz / 2; og.fillStyle = SEAL; og.fillRect(-h, -h, sz, sz); og.fillStyle = PAPER;
+    for (let i = 0; i < sz; i++) { if (hash(i, sz, 5) > 0.62) og.fillRect(-h + i, -h, 1, 1); if (hash(i, sz, 6) > 0.62) og.fillRect(-h + i, h - 1, 1, 1); if (hash(i, sz, 7) > 0.72) og.fillRect(-h, -h + i, 1, 1); }
+    og.font = `${Math.round(sz * 0.8)}px "KaiTi", "STKaiti", "SimSun", serif`; og.textAlign = 'center'; og.textBaseline = 'middle'; og.fillText(ch, 0, 0.5); og.restore(); };
   if (T >= 0.15 && T < 2.0) { // the name, written in one stroke of the brush, and sealed
     const k = clamp(Math.min((T - 0.15) / 0.18, (2.0 - T) / 0.25)), reveal = ease((T - 0.15) / 0.55), cx = W / 2;
     og.save(); og.globalAlpha = k; og.beginPath(); og.rect(cx - 50, 16, 100 * reveal + (hash(Math.floor(T * 30), 1, 2) - 0.5) * 2, 30); og.clip();
     og.font = `16px "KaiTi", "STKaiti", "Kaiti SC", "SimSun", "Noto Serif SC", serif`; og.textAlign = 'center'; og.textBaseline = 'alphabetic';
     og.fillStyle = PAPER; for (const [qx, qy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) og.fillText('第十四剑', cx - 6 + qx, 36 + qy);
     og.fillStyle = INKC; og.fillText('第十四剑', cx - 6, 36); og.restore();
-    if (T > 0.75) { // the seal, stamped: a red square, uneven at its edges, the character for 'cut' left blank in it
-      const sk = clamp((T - 0.75) / 0.06), s = 1 + (1 - sk) * 0.8, qx = cx + 34, qy = 28; og.save(); og.globalAlpha = k * sk; og.translate(qx, qy); og.scale(s, s);
-      og.fillStyle = SEAL; og.fillRect(-6, -6, 12, 12); og.fillStyle = PAPER; for (let i = 0; i < 12; i++) { if (hash(i, 2, 5) > 0.6) og.fillRect(-6 + i, -6, 1, 1); if (hash(i, 3, 5) > 0.6) og.fillRect(-6 + i, 5, 1, 1); if (hash(i, 4, 5) > 0.7) og.fillRect(-6, -6 + i, 1, 1); }
-      og.font = `10px "KaiTi", "STKaiti", "SimSun", serif`; og.textAlign = 'center'; og.fillText('斩', 0, 4); og.restore();
-      fire('seal', () => { this.snd('heavyhit'); this.shake = Math.max(this.shake, 3); });
-    }
+    if (T > 0.75) { const sk = clamp((T - 0.75) / 0.06); seal(cx + 34, 28, 12, '斩', k * sk, 1 + (1 - sk) * 0.8); fire('seal', () => { this.snd('heavyhit'); this.shake = Math.max(this.shake, 3); }); }
     if (T > 0.6) { const kk = this.g; this.g = og; og.globalAlpha = k * clamp((T - 0.6) / 0.3); this.text('XIV · NOT IN THE MANUAL', cx, 44, '#2a2430', 'center'); og.globalAlpha = 1; this.g = kk; }
   }
-  // the ink and the paper thrown off the cut
+  // the tally of strokes: a red seal stamped across the top for each, one to seven; at the sheath they become one
+  if (T >= 2.3 && T < SHEATHE + 0.9) {
+    const merge = clamp((T - SHEATHE) / 0.25);
+    plan.forEach((c, i) => { if (!(T >= c.t)) return; const st = clamp((T - c.t) / 0.07), x = W / 2 + (i - 3) * 15 * (1 - merge), sc = 1 + (1 - st) * 1.2; seal(x, 26, 11, NUMS[i] || '斩', (1 - merge) * st, sc); });
+    if (T >= SHEATHE) { const k = clamp((T - SHEATHE - 0.15) / 0.1), fade = clamp((SHEATHE + 0.9 - T) / 0.3); seal(W / 2, 30, 20, '斩', k * fade, 1 + (1 - k) * 1.5); }
+  }
+  // the ink and the paper thrown off the cuts
   for (const p of C.parts) {
     p.life -= dt; if (p.life <= 0) continue; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt * 0.8; p.vx *= 1 - dt * 1.5; const a = Math.min(1, p.life / 0.4);
     if (p.scrap) { p.a += p.va * dt; og.save(); og.globalAlpha = a; og.translate(p.x, p.y); og.rotate(p.a); og.fillStyle = '#8a8070'; og.fillRect(-1.5, -1, 3, 2); og.fillStyle = p.col; og.fillRect(-1, -0.5, 2, 1); og.restore(); }
-    else { og.globalAlpha = a; og.fillStyle = p.col; const sp = Math.hypot(p.vx, p.vy), n = Math.min(4, Math.floor(sp / 50)); for (let j = 0; j <= n; j++) og.fillRect(Math.round(p.x - p.vx / sp * j), Math.round(p.y - p.vy / sp * j * 0.8), p.sz, p.sz); }
+    else { og.globalAlpha = a; og.fillStyle = p.col; const sp = Math.hypot(p.vx, p.vy) || 1, n = Math.min(4, Math.floor(sp / 50)); for (let j = 0; j <= n; j++) og.fillRect(Math.round(p.x - p.vx / sp * j), Math.round(p.y - p.vy / sp * j * 0.8), p.sz, p.sz); }
   }
   og.globalAlpha = 1; C.parts = C.parts.filter(p => p.life > 0);
-  // the sheathe: a click of light at his hip, a ring of ink thrown out from him, the scar flaring once
-  if (T >= 4.3 && T < 5.2 && e) {
-    const u = clamp((T - 4.3) / 0.6), X = sx(e.x), Y = sy(e.y) - 6;
-    fire('sheathe', () => { // click: and only now does the cut catch up, ink bursting the length of the scar
-      this.shake = Math.max(this.shake, 12); this.snd('ultboom');
-      for (let i = 0; i < 180; i++) { const q = (r() - 0.5) * 2 * 170, s = r() < 0.5 ? -1 : 1, sp = 40 + r() * r() * 200; C.parts.push({ x: Ln.x + Ln.ux * q, y: Ln.y + Ln.uy * q, vx: -Ln.uy * s * sp, vy: Ln.ux * s * sp - 30, g: 160, life: 0.4 + r() * 0.9, max: 1.3, sz: r() < 0.08 ? 2 : 1, col: r() < 0.88 ? INKC : PAPER }); }
-    });
-    if (T < 4.34) { tg.fillStyle = 'rgba(255,255,255,0.55)'; tg.fillRect(0, top, Wp, Hp - top); }
-    og.globalAlpha = 1 - u; og.strokeStyle = INKC; og.lineWidth = 2.5 * (1 - u) + 0.5; og.beginPath(); og.ellipse(X, Y + 5, 6 + u * 60, (6 + u * 60) * SQ, 0, 0, TAU); og.stroke();
-    if (T < 4.36) { line(og, X - 14, Y, X + 14, Y, '#ffffff', 1, 1); line(og, X, Y - 6, X, Y + 6, '#ffffff', 1, 0.7); }
-    line(og, Ln.x - Ln.ux * 320, Ln.y - Ln.uy * 320, Ln.x + Ln.ux * 320, Ln.y + Ln.uy * 320, '#ffffff', 1, (1 - u) * 0.8);
+  // the sheath: a click of light at his hip, a ring of ink thrown out, and only now do all seven cuts catch up at once
+  if (T >= SHEATHE && T < SHEATHE + 1.0 && e) {
+    const u = clamp((T - SHEATHE) / 0.6), X = sx(e.x), Y = sy(e.y) - 6;
+    fire('sheathe', () => { this.shake = Math.max(this.shake, 22); this.snd('ultboom'); this.snd('gong'); for (const c of plan) if (c.ax != null) spray(lineOf(c), 70, 170, 40, 200, 30); });
+    if (T < SHEATHE + 0.04) { tg.fillStyle = '#ffffff'; tg.fillRect(0, top, Wp, Hp - top); } else if (T < SHEATHE + 0.1) { tg.fillStyle = 'rgba(255,255,255,0.5)'; tg.fillRect(0, top, Wp, Hp - top); }
+    og.globalAlpha = 1 - u; og.strokeStyle = INKC; og.lineWidth = 2.5 * (1 - u) + 0.5; og.beginPath(); og.ellipse(X, Y + 5, 6 + u * 80, (6 + u * 80) * SQ, 0, 0, TAU); og.stroke();
+    if (T < SHEATHE + 0.06) { line(og, X - 16, Y, X + 16, Y, '#ffffff', 1, 1); line(og, X, Y - 7, X, Y + 7, '#ffffff', 1, 0.7); }
+    for (const c of plan) if (c.ax != null) { const L = lineOf(c); line(og, L.x - L.ux * 320, L.y - L.uy * 320, L.x + L.ux * 320, L.y + L.uy * 320, '#ffffff', 1 + (1 - u), (1 - u) * 0.9); }
     og.globalAlpha = 1;
   }
   tg.globalAlpha = 1; tg.globalCompositeOperation = 'source-over'; tg.filter = 'none';

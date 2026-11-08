@@ -48,6 +48,18 @@ Build order steps 1 to 8 and the leftover pass are done and committed; steps 9 a
 | Fox | Painted as a lady in red with a fan and a crown of fox ears; the Heavenly Fox a vast white fox with nine flame-like tails, and her clones take that shape; The Heavenly Fox Swallows the Moon; fixed her Heavenly stat boost, which a comment had swallowed |
 | Third pass (2026-11-08, `js/celestial3.js`) | Tamamo at a cultivator's height, hand-placed, with a working fan; the Heavenly Fox painted pixel by pixel (moonlit fur, red markings, a bell at the throat) with nine bushy tails drawn each frame and foxfire circling it; the Ancestor redrawn small in both phases (the true shape a hooded, faceless spirit with a band of eyes); the Sword Without a Head at the Sword Immortal's own size and shape, all of his swords in ink; the Fourteenth Sword rebuilt as a cinematic (ink drain, seal, focus lines, the lock, impact frames, the page split with motion smear, ink thrown off the cut, his dash past you, the delayed burst when he sheathes) |
 
+### Steps 9 and 10 (2026-11-08): done
+| Part | What landed |
+|---|---|
+| Fourteenth Sword | After the first cut, six more from new directions (each a dashed line that follows you, locks red for 0.2s, cuts); a red seal stamped per stroke (一 to 七) that merge into one at the sheath, when all seven scars burst at once. He redraws it if the first stroke or three of the six hit. |
+| Time Administrator (16.1) | 500 HP, phase gate, each body healed on arrival (Future +35%, Past at 70%). Hour Hand (12 sweeping strokes; the Future adds a reversed minute hand), Past/Present/Future, Borrowed Time. A clock dial under him: fast in the Future, backwards in the Past. |
+| Last Keeper (16.2) | Former Selves now calls up your saved fighters (`c.snapshots`) with their own brains, two at a time, 14s each (shadow clones when none are saved). |
+| Yun Xi (16.3) | 1,000 HP, damage 0.9/1.1, reduction capped at 80%. The Last Bet replaces the Last Gamble: heal 25%, a visible die, five telegraphed rolls (Ace, Pair, Trips, Four Corners, Five-Spot, Jackpot; never the same face twice), then spent (takes full damage) and again. |
+| Endings (13.3) | Pick up the die (always) is ending three, The Die (the coat and echo flow). Sheathe the sword is ending two, the Sword Emperor: a new scene, and next cycle you wait at the Peaks as its teacher (your saved fighter, as a duel). Close the circle (page plus the Four Symbols set) is the secret Four Symbols ending; the lobby lid becomes an open sky after it. |
+| Thousand Skins (13) | Pick five of any non-boss foe you have felled (forest beasts to start). Each skin is the foe's sprite (dragons drawn whole), a role bonus, and its own arts at 1.3x cast on their own. No picks: the old five beasts. |
+| Four Symbols (13.1) | Azure Dragon, Vermilion Bird, Qilin, White Tiger, Black Tortoise: talent renamed and 4 slots; fixed wood-fire-earth-metal-water order; each change breathes its element; the other four orbit and strike; all five in one fight completes the Five Phases. |
+| Tests | `tests/latepass.cjs`, plus updated `newfoes.cjs` and `finalbosses.cjs`. |
+
 ### Still open
 - Sprites remain compact pixel grids, now shaded; a fuller repaint of individual bosses at larger sizes is still possible later.
 

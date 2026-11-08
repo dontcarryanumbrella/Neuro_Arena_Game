@@ -172,6 +172,7 @@ function applyProfile(saved) {
   const st = saved.talents || {};
   state.talents = {
     owned: Object.fromEntries(Object.keys(st.owned || {}).filter(id => TALENT_BY_ID[id]).map(id => [id, 1])),
+    skinPicks: (st.skinPicks || []).filter(t => ENEMY_TYPES[t] && skinEligible(t)).slice(0, 5),
     equipped: (st.equipped || []).filter(id => TALENT_BY_ID[id]).reduce((eq, id) => (fitsSlots(id, eq) ? eq.concat(id) : eq), []), pity: st.pity || 0, spins: st.spins || 0,
   };
   if (state.identity.special && state.identity.pair && state.identity.awaken) {
@@ -526,7 +527,7 @@ function buildSpecial(id, known) {
   return sp;
 }
 
-const identityOpts = () => ({ awaken: state.identity.awaken, special: state.identity.special });
+const identityOpts = () => ({ awaken: state.identity.awaken, special: state.identity.special, skinPicks: ((state.talents && state.talents.skinPicks) || []).filter(t => skinUnlocked(t)) });
 
 function renderIdentity() {
   const id = state.identity, top = TRAITS.reduce((b, k) => (id.traits[k] > id.traits[b] ? k : b), TRAITS[0]);
@@ -640,7 +641,7 @@ const lobby = new Lobby(renderer);
 function lobbyInfo() {
   const c = state.campaign, seals = ALL_SEALS.map(b => !!c.seals[b]);
   return { lives: state.livesTotal || 0, seals, sealsBroken: seals.filter(Boolean).length, met: metFoes(), skin: state.skins.equipped, race: state.race.equipped, level: state.level || 1, hint: 'CLICK A STATION',
-    crossed: hasFragment('o5'), yunxi: hasFragment('h1'), sea: !!c.seals.timeadmin, cycle: c.cycle };
+    crossed: hasFragment('o5'), yunxi: hasFragment('h1'), sea: !!c.seals.timeadmin, cycle: c.cycle, openSky: !!c.endingSymbolsSeen };
 }
 
 // walk to a station in the jar (or, away from the lobby, just open it)
@@ -658,7 +659,14 @@ function newViewSim() {
   ARENA_MARKS.peaksScar = !!state.campaign.seals.swordsaint; // once he has yielded, the Peaks' sky stays cut
   const seed = Math.floor(Math.random() * 1e9);
   const loadout = state.loadout, talents = state.talents.equipped, identity = identityOpts();
-  if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
+  const emperorRoom = v.mode === 'campaign' && curRoom() && state.campaign.swordEmperor && state.campaign.run.world === 'peaks' && curRoom().kind === 'boss' && curRoom().boss === 'swordsaint';
+  if (emperorRoom) { // the Sword Emperor: you, from the cycle you sheathed the sword, teaching at the Peaks
+    const snap = state.campaign.swordEmperor, card = { ...snap, name: 'The Sword Emperor', agent: snap.agent };
+    v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped, battle: { timeLimit: 240, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
+    const em = v.sim.heroes.find(h => h.team === 1);
+    em.brain = PPOAgent.fromJSON(snap.agent); em.swordEmperor = true; em.maxHp = em.hp = Math.round(em.maxHp * 2.2); em.dmgMul = 1.3;
+  }
+  else if (v.mode === 'campaign' && curRoom() && (curRoom().kind === 'iteration' || curRoom().kind === 'echo')) {
     const snap = roomSelf(curRoom());
     const card = { ...snap, name: curRoom().kind === 'echo' ? 'The one in the black coat' : selfLabel(curRoom()).replace(/^./, ch => ch.toUpperCase()), agent: snap.agent };
     v.sim = new Sim('battle', seed, { visual: true, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped, battle: { timeLimit: 180, slots: [{ kind: 'ai', team: 0 }, { kind: 'net', team: 1, card }] } });
@@ -673,7 +681,8 @@ function newViewSim() {
     const world = state.campaign.run.world;
     const foes = world === 'bottom' && room.boss === 'timeadmin' ? room.foes.map(f => ({ ...f, finalKeeper: true }))
       : world === 'summit' ? room.foes.map(f => ({ ...f, summit: true })) : room.foes; // at the Summit the Sword Immortal has a third stage
-    v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
+    const selves = world === 'bottom' && room.boss === 'timeadmin' ? state.campaign.snapshots.slice(-4) : undefined; // the Last Keeper calls up the selves kept in the clay
+    v.sim = new Sim('room', seed, { visual: true, waves: [foes], timeLimit: room.time, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped, selves });
   }
   else if (v.mode === 'spar') v.sim = new Sim('custom', seed, { visual: true, timeLimit: 60, roster: [v.sparType], atOnce: 1, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
   else v.sim = new Sim('custom', seed, { visual: true, healBetweenWaves: true, timeLimit: c.episode, roster: trainingRoster(), atOnce: c.atOnce, fighter: c.fighter, loadout, talents, race: state.race.equipped, identity, skin: state.skins.equipped });
@@ -843,6 +852,8 @@ function loadCampaign(saved, killCounts) {
   if (c.endingReady || c.endingSeen) for (const b of ALL_SEALS) c.seals[b] = 1;
   c.fourteenthPage = !!saved.fourteenthPage; c.swordUpgrade = !!saved.swordUpgrade;
   c.previousSelf = saved.previousSelf && validAgentJSON(saved.previousSelf.agent) ? { ...saved.previousSelf, agent: compactBrain(saved.previousSelf.agent) } : null;
+  c.swordEmperor = saved.swordEmperor && validAgentJSON(saved.swordEmperor.agent) ? { ...saved.swordEmperor, agent: compactBrain(saved.swordEmperor.agent) } : null; // ending two: you, teaching at the Peaks
+  c.endingSymbolsSeen = !!saved.endingSymbolsSeen;
   c.finalVictorySnapshot = saved.finalVictorySnapshot && validAgentJSON(saved.finalVictorySnapshot.agent) ? { ...saved.finalVictorySnapshot, agent: compactBrain(saved.finalVictorySnapshot.agent) } : null;
   c.cycleHistory = Array.isArray(saved.cycleHistory) ? saved.cycleHistory.filter(Number.isFinite).slice(-100) : [];
   c.cycle = saved.cycle || 0;
@@ -949,20 +960,44 @@ function enterSummit() {
   }
 }
 
-function chooseStay() {
-  const old = state.campaign;
-  if (!old.fourteenthPage || !old.endingReady) return;
-  // Older saves that already reached the ending have no recorded victory snapshot.
-  const echo = old.finalVictorySnapshot || fighterSnapshot();
+// the next cycle, carrying what the jar keeps between cycles
+function nextCycle(old, extra) {
   const next = freshCampaign();
   next.unlocks = { ...unlocks() }; next.deaths = old.deaths || 0;
-  next.cycle = old.cycle + 1; next.previousSelf = echo;
+  next.cycle = old.cycle + 1;
   next.finales = old.finales.slice(); next.finaleChoice = old.finaleChoice; next.swordUpgrade = old.swordUpgrade;
-  next.met = { ...old.met }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
+  next.met = { ...old.met }; next.kills = { ...old.kills }; next.cycleHistory = [...old.cycleHistory, state.livesTotal].slice(-100);
+  next.endingSymbolsSeen = !!old.endingSymbolsSeen;
+  Object.assign(next, extra);
   state.campaign = next; state.codexDirty = true;
   refreshLevel(false); saveStore(); setMode('lobby'); renderPortal();
-  playCutscene(stayBeats(next.cycle));
+  return next;
 }
+// Ending three, the Die: you pick up her die; she leaves you her coat; the next cycle's last fight is you, in it
+function chooseDie() {
+  const old = state.campaign;
+  if (!old.endingReady) return;
+  const echo = old.finalVictorySnapshot || fighterSnapshot(); // older saves that already reached the ending have no recorded victory snapshot
+  const next = nextCycle(old, { previousSelf: echo });
+  playCutscene(dieBeats(next.cycle));
+}
+const chooseStay = chooseDie; // (its older name)
+// Ending two, the Sheathed Sword: you become the Sword Emperor; next cycle you wait at the Peaks as its teacher
+function chooseSwordEmperor() {
+  const old = state.campaign;
+  if (!old.fourteenthPage || !old.endingReady) return;
+  const you = old.finalVictorySnapshot || fighterSnapshot();
+  const next = nextCycle(old, { swordEmperor: you, previousSelf: null });
+  playCutscene(swordEmperorBeats(next.cycle));
+}
+// Ending four (secret), the Four Symbols: nobody keeps the jar; the lobby keeps an open sky
+function chooseSymbols() {
+  const c = state.campaign;
+  if (!c.fourteenthPage || !c.endingReady || !symbolsActive()) return;
+  c.endingSymbolsSeen = true; c.endingSeen = true; saveStore();
+  playCutscene(symbolsBeats(), () => { state.view.paused = false; refreshPauseBtn(); if (state.view.mode === 'campaign') returnToJar(); toast('The lid is a sky now. New Game+ is still there, behind the door.'); });
+}
+const symbolsActive = () => state.talents.equipped.includes('shapeshift') && isFourSymbols(state.talents.skinPicks || []);
 
 // Ending illustrations are separate from the arena; they are shown only for the two choices.
 function showEndingArt(kind) {
@@ -988,7 +1023,7 @@ function showEndingArt(kind) {
 
 // At the door: straight after the last fight her last words come first; from the Portal, only the choice.
 function showDoorEnding(lastWords = false, echo = !!state.campaign.previousSelf) {
-  const beats = finaleBeats(echo, !!state.campaign.fourteenthPage);
+  const beats = finaleBeats(echo, !!state.campaign.fourteenthPage, symbolsActive());
   state.view.paused = true; refreshPauseBtn();
   playCutscene(lastWords ? beats : beats.slice(-1), () => { state.view.paused = false; refreshPauseBtn(); });
 }
@@ -1078,7 +1113,7 @@ function meetFoes(room) {
 function finishRoom(sim) {
   const c = state.campaign, r = c.run, room = curRoom(), v = state.view;
   if (!room) return;
-  const w = WORLD_BY_ID[r.world], rec = worldRec(w.id), cleared = ['iteration', 'echo'].includes(room.kind) ? sim.stats.result === 'clear' && sim.winner === 0 : sim.stats.result === 'clear';
+  const w = WORLD_BY_ID[r.world], rec = worldRec(w.id), cleared = ['iteration', 'echo'].includes(room.kind) || sim.battle ? sim.stats.result === 'clear' && sim.winner === 0 : sim.stats.result === 'clear';
   for (const t of Object.keys(sim.stats.killsByType || {})) if (isFoeType(t)) c.met[t] = 1; // the Lich's pieces too
   let jade = r.world === 'bottom' ? 0 : sim.stats.bounty;
   v.roomResult = { cleared, boss: room.boss || null, sealed: false, worldDone: false, world: w.name, worldId: w.id, last: r.idx === r.rooms.length - 1 };
@@ -1774,8 +1809,11 @@ window.addEventListener('beforeunload', saveStore);
 // ---------- jade and talents ----------
 const SPIN_COST = 100, TEN_COST = 900, PITY = 30, TRAIN_JADE = 0.1; // training is for the brain: it pays a tenth
 // ten talent slots; stronger talents take up to three of them
-const slotsUsed = (eq = state.talents.equipped) => eq.reduce((n, id) => n + (TALENT_BY_ID[id] ? TALENT_BY_ID[id].slots : 0), 0);
-const fitsSlots = (id, eq = state.talents.equipped) => slotsUsed(eq) + TALENT_BY_ID[id].slots <= TALENT_SLOTS;
+// Thousand Skins grows to four slots once it wears the Four Symbols
+const talSlots = id => id === 'shapeshift' && state.talents && isFourSymbols(state.talents.skinPicks || []) ? 4 : TALENT_BY_ID[id].slots;
+const talName = id => id === 'shapeshift' && state.talents && isFourSymbols(state.talents.skinPicks || []) ? 'Four Symbols, Five Phases' : TALENT_BY_ID[id].name;
+const slotsUsed = (eq = state.talents.equipped) => eq.reduce((n, id) => n + (TALENT_BY_ID[id] ? talSlots(id) : 0), 0);
+const fitsSlots = (id, eq = state.talents.equipped) => slotsUsed(eq) + talSlots(id) <= TALENT_SLOTS;
 const DUP_REFUND = [10, 15, 25, 40, 70, 150];
 let spinning = false, skipNow = false;
 const SKIP_KEY = 'neuro-arena-skip-spin';
@@ -1947,20 +1985,59 @@ function toggleTalent(id) {
   buildTalents(); saveStore();
 }
 
+// ---------- Thousand Skins: the five forms it may take ----------
+const SKIN_STARTERS = ['tiger', 'bear', 'serpent', 'roc', 'drake']; // the forest's beasts, worn from the start
+const skinUnlocked = t => skinEligible(t) && (SKIN_STARTERS.includes(t) || (state.campaign && state.campaign.kills && state.campaign.kills[t] > 0) || (state.killCounts && state.killCounts[t] > 0));
+function toggleSkinPick(t) {
+  const T = state.talents, P = T.skinPicks = T.skinPicks || [], at = P.indexOf(t), was = isFourSymbols(P);
+  if (at >= 0) P.splice(at, 1); else if (P.length < 5) P.push(t); else { toast('Five skins at most: take one out first'); return; }
+  const now = isFourSymbols(P);
+  if (now && !was) { // the secret: nothing hinted at it
+    sfx.play('gong'); setTimeout(() => sfx.play('chime'), 400);
+    toast('四象五行 · Four Symbols, Five Phases. Thousand Skins now takes 4 slots.');
+    if (T.equipped.includes('shapeshift') && slotsUsed() > TALENT_SLOTS) { T.equipped.splice(T.equipped.indexOf('shapeshift'), 1); toast('Four Symbols needs a fourth slot: it was taken off. Free a slot and equip it again.'); }
+  }
+  buildTalents(); saveStore();
+}
+function buildSkinPicker() {
+  const T = state.talents; let box = $('skinPicker');
+  if (!box) { box = document.createElement('div'); box.id = 'skinPicker'; box.className = 'skin-picker'; $('talSlots').after(box); }
+  if (!T.owned.shapeshift) { box.hidden = true; return; }
+  box.hidden = false;
+  const P = T.skinPicks || [], sym = isFourSymbols(P);
+  const pool = Object.keys(ENEMY_TYPES).filter(skinUnlocked).sort((a, b) => (P.includes(b) - P.includes(a)) || ENEMY_TYPES[a].name.localeCompare(ENEMY_TYPES[b].name));
+  box.innerHTML = `<div class="sp-head"><b>${sym ? 'Four Symbols, Five Phases' : 'Thousand Skins'}</b> <span class="mini">${P.length}/5 chosen · ${pool.length} forms known${P.length ? '' : ' · none chosen: the five old beasts'}</span></div>`
+    + (sym ? '<div class="sp-sym mini">Azure Dragon, Vermilion Bird, Qilin, White Tiger, Black Tortoise: worn in turn, wood to fire to earth to metal to water. Every change breathes its element; all five in one fight completes the Five Phases. The other four stand guard and strike.</div>' : '');
+  const grid = document.createElement('div'); grid.className = 'sp-grid'; box.appendChild(grid);
+  for (const t of pool) {
+    const d = ENEMY_TYPES[t], on = P.includes(t), el = document.createElement('button'), symb = sym && on ? SYMBOL_OF[t] : null;
+    el.className = 'sp-cell' + (on ? ' on' : ''); el.title = `${d.name}: ${(ROLE_ONE && ROLE_ONE[d.role]) || d.role || ''}`; el.style.setProperty('--c', symb ? symb.color : d.color || '#c9a66b');
+    el.innerHTML = `<canvas width="32" height="32"></canvas><span>${symb ? symb.name : d.name}</span>`;
+    el.onclick = () => toggleSkinPick(t);
+    grid.appendChild(el);
+    const g = el.querySelector('canvas').getContext('2d'), sp = (d.sprite || t);
+    if (!SPRITE_CACHE[sp] && SPRITES[sp]) bakeSprite(sp);
+    const s = SPRITE_CACHE[sp]; g.imageSmoothingEnabled = false;
+    if (s) { const k = Math.max(1, Math.floor(28 / Math.max(s.w, s.h))); g.drawImage(s.n, 16 - s.w * k / 2, 30 - s.h * k, s.w * k, s.h * k); }
+    else { g.fillStyle = d.color || '#c9a66b'; g.beginPath(); g.arc(16, 18, 9, 0, 6.283); g.fill(); g.fillStyle = '#fff'; g.font = '10px serif'; g.textAlign = 'center'; g.fillText(symb ? symb.cn[0] : d.name[0], 16, 22); }
+  }
+}
+
 function buildTalents() {
   const T = state.talents;
   const slots = $('talSlots');
   slots.innerHTML = '';
   // ten slots: each equipped talent spans as many as it takes
   for (const id of T.equipped) {
-    const t = TALENT_BY_ID[id], el = document.createElement('button');
-    el.className = 'tal-slot full'; el.style.gridColumn = `span ${t.slots}`; el.style.borderColor = TIERS[t.tier].color;
-    el.innerHTML = `<span class="ts-name">${t.name}</span><span class="mini">${t.slots} slot${t.slots > 1 ? 's' : ''} · remove</span>`;
+    const t = TALENT_BY_ID[id], el = document.createElement('button'), n = talSlots(id), sym = n !== t.slots;
+    el.className = 'tal-slot full' + (sym ? ' symbols' : ''); el.style.gridColumn = `span ${n}`; el.style.borderColor = sym ? '#5ad08a' : TIERS[t.tier].color;
+    el.innerHTML = `<span class="ts-name">${talName(id)}</span><span class="mini">${n} slot${n > 1 ? 's' : ''} · remove</span>`;
     el.onclick = () => toggleTalent(t.id);
     slots.appendChild(el);
   }
-  for (let i = slotsUsed(); i < TALENT_SLOTS; i++) { const el = document.createElement('div'); el.className = 'tal-slot'; el.innerHTML = '<span class="mini">·</span>'; slots.appendChild(el); }
+  for (let i = Math.min(TALENT_SLOTS, slotsUsed()); i < TALENT_SLOTS; i++) { const el = document.createElement('div'); el.className = 'tal-slot'; el.innerHTML = '<span class="mini">·</span>'; slots.appendChild(el); }
   $('talCap').textContent = `${slotsUsed()} / ${TALENT_SLOTS} slots`;
+  buildSkinPicker();
   const list = $('talentList');
   list.innerHTML = '';
   for (let tier = TIERS.length - 1; tier >= 0; tier--) {

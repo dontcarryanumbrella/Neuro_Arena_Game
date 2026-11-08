@@ -220,7 +220,7 @@ for (const type of [...BOSSES_NEW, 'timeadmin']) {
   assert.ok(f1 && max1 > 76);
   w.formT = 0.001; s2.passives(w); assert.ok(w.form && w.form !== f1);
 }
-// ???: the lower she gets, the less gets through and the faster she casts; her last gamble is unchanged
+// ???: the lower she gets, the less gets through and the faster she casts; at 0 she makes the Last Bet
 {
   const [s, q] = duel('unknown');
   const hit = frac => { q.hp = q.maxHp * frac; q.invulnT = 0; q.state = 'idle'; const h = q.hp; s.receiveHit(q, s.p, { id: 'heavy', dmg: 40, unblockable: true }, 1, 0); return h - q.hp; };
@@ -228,7 +228,11 @@ for (const type of [...BOSSES_NEW, 'timeadmin']) {
   assert.ok(low < full * 0.25, 'about 81% reduction at 10% health'); assert.ok(full > 0);
   q.hp = q.maxHp * 0.02; q.state = 'idle'; q.cds.multicast = 0; q.cds.ai = 9; for (let i = 0; i < 30 && q.state === 'idle'; i++) s.updateEnemy(q);
   assert.ok(q.cds.multicast <= 0.6, 'casts about every half second near death');
-  q.hp = 0; q.state = 'idle'; s.resolveFalls(); assert.equal(q.state, 'gamble'); assert.equal(q.gambleT, 2);
+  q.hp = 0; q.state = 'idle'; s.resolveFalls(); assert.ok(!q.dead && q.bet && q.stage === 3, 'the Last Bet, not death'); assert.ok(Math.abs(q.hp - q.maxHp * 0.25) < 1, 'heals 25%');
+  const faces = new Set(); s.p.maxHp = s.p.hp = 1e9;
+  for (let i = 0; i < 60 * 14; i++) { s.p.hp = s.p.maxHp; s.step(null); if (q.bet.face) faces.add(q.bet.face); if (q.bet.st === 'spent') break; }
+  assert.equal(q.bet.st, 'spent', 'five rolls, then spent'); assert.ok(faces.size >= 3, 'different faces: ' + [...faces]);
+  q.hp = q.maxHp * 0.1; const h0 = q.hp; q.invulnT = 0; s.dealDamage(q, 30, s.p, 0, 0, 0); assert.ok(h0 - q.hp > 25, 'spent: everything gets through');
 }
 // the fighter's special calls its beasts on every cycle, but never keeps more than four
 {

@@ -276,7 +276,7 @@ class Lobby {
     const flick = 0.75 + 0.15 * Math.sin(t * 7.3) + 0.1 * Math.sin(t * 13.1 + 1.7); // the fire breathes
     const lights = this.lights = []; // every flame adds a pool of light, laid over the room at the end
     g.drawImage(this.bg, 0, 0);
-    this.drawSeals(g, info.seals);
+    if (info.openSky) this.drawOpenSky(g, t); else this.drawSeals(g, info.seals); // after the Four Symbols, the lid is a sky
     this.drawOldMarks(g, info);
     this.drawTallies(g, info.lives);
     this.drawPortal(g, t, info.sea);
@@ -443,6 +443,21 @@ class Lobby {
       g.fillStyle = Math.floor(t * 6 + ph * 3) % 3 ? '#ffb060' : '#ffd090'; g.fillRect(x - 1 + sway, y + 2, 3, 4);
       g.fillStyle = '#b8913c'; g.fillRect(x - 3 + sway, y - 1, 7, 1); g.fillRect(x - 3 + sway, y + 8, 7, 1); g.fillRect(x + sway, y + 9, 1, 2);
     }
+  }
+
+  // The Four Symbols ending: where the lid was, an open night sky with its five constellations, and its light coming down
+  drawOpenSky(g, t) {
+    const { x: cx, y: cy, rx, ry } = LID;
+    for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
+      const d = Math.hypot(x / rx, y / ry); if (d > 1 || cy + y < 0) continue;
+      const v = (y + ry) / (2 * ry), n = (x * 7 + y * 13) & 15;
+      g.fillStyle = d > 0.9 ? '#6b4a2f' : v < 0.4 ? '#0c1838' : v < 0.75 ? (n < 2 ? '#1a2c5a' : '#142450') : '#1e3462';
+      g.fillRect(cx + x, cy + y, 1, 1);
+    }
+    for (let i = 0; i < 22; i++) { const x = cx - rx + 4 + (i * 37) % (rx * 2 - 8), y = cy - ry + 2 + (i * 11) % (ry * 2 - 3); if (Math.hypot((x - cx) / rx, (y - cy) / ry) > 0.85) continue; g.fillStyle = Math.sin(t * 2 + i) > 0.3 ? '#ffffff' : '#9ab0e0'; g.fillRect(x, y, 1, 1); }
+    const C = [['#5ad08a', 28], ['#ff6a3a', 10], ['#ffd84a', 0], ['#e8f0f8', -28], ['#6a9aff', -10]];
+    for (const [c, dx] of C) { const x = cx + dx, y = cy + (Math.abs(dx) > 20 ? 1 : dx === 0 ? -3 : 3); g.fillStyle = c; g.fillRect(x, y, 1, 1); g.globalAlpha = 0.4 + 0.3 * Math.sin(t * 1.5 + dx); g.fillRect(x - 1, y, 3, 1); g.fillRect(x, y - 1, 1, 3); g.globalAlpha = 1; }
+    if (this.lights) this.lights.push([cx, 30, 60, '170,200,255', 0.08], [cx, 70, 40, '200,220,255', 0.05]); // moonlight into the jar
   }
 
   // a paper talisman for every seal hangs round the lid; a broken one is a charred stub
