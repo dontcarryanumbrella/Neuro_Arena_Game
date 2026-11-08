@@ -81,7 +81,13 @@ RP.drawLastBet = function (sim, e, lift) {
   if (!spent && Math.random() < 0.3) this.parts.push({ kind: 'px', x: X + (Math.random() - 0.5) * 20, y: Y - 18 - Math.random() * 6, vx: (Math.random() - 0.5) * 20, vy: 20, g: 80, life: 0.7, max: 0.7, color: Math.random() < 0.5 ? '#ffd84a' : '#fff4c0' });
   // the die
   const hy = Y - 30;
-  if (B.st === 'roll') { // tumbling up out of her hand, faces flickering
+  if (B.st === 'allincharge' || B.st === 'allin') { // All In: the one die becomes six, whirling round her faster and faster, every face at once
+    const k = B.st === 'allin' ? 1 : 1 - B.t, sp = 2 + k * 10;
+    lit(g, c => { const gr = c.createRadialGradient(X, Y - 12, 2, X, Y - 12, 30 + k * 10); gr.addColorStop(0, 'rgba(255,216,74,0.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(X - 44, Y - 56, 88, 88); });
+    for (let i = 0; i < 6; i++) { const a = t * sp + i / 6 * TAU, r = 10 + k * 8, qx = X + Math.cos(a) * r * 1.3, qy = Y - 14 + Math.sin(a) * r * 0.6; drawDie(g, qx, qy, 3.5, t * 20 + i, i + 1, Math.sin(a) > 0 ? 1 : 0.6); }
+    if (B.st === 'allin' && Math.random() < 0.8) this.parts.push({ kind: 'px', x: X + (Math.random() - 0.5) * 40, y: Y - 30, vx: (Math.random() - 0.5) * 60, vy: 40 + Math.random() * 40, g: 120, life: 0.6, max: 0.6, color: Math.random() < 0.6 ? '#ffd84a' : '#ffffff' }); // a shower of gold
+    this.text('ALL IN', X, Y - 40, Math.floor(t * 12) % 2 ? '#ffd84a' : '#ffffff', 'center');
+  } else if (B.st === 'roll') { // tumbling up out of her hand, faces flickering
     const u = 1 - B.t / 0.9, ay = hy - Math.sin(u * Math.PI) * 10;
     for (let k = 1; k <= 3; k++) drawDie(g, X - k * 0.5, ay + k * 2, 4, t * 30 - k, 1 + Math.floor(t * 40 + k) % 6, 0.25 / k);
     drawDie(g, X, ay, 4.5, t * 30, 1 + Math.floor(t * 40) % 6);
@@ -218,5 +224,79 @@ RP.drawCelestialParts = function (dt) {
     }
   }
   this.lateFx = L.filter(f => f.age < f.life);
+};
+
+// ---------------------------------------------------------------------------------------------------------------
+// Paradox: a fat beam of every colour at once, held, turning after you. While it gathers, a prism of light at his hand
+// and a thin line finding you; then the beam: rainbow bands running down its length, a white core, a turning clock at its
+// mouth (its hands going backwards), shards of clock face thrown off its edges, the world tinted by it, the ground lit.
+// ---------------------------------------------------------------------------------------------------------------
+const hueCol = (h, l = 60, a = 1) => `hsla(${((h % 360) + 360) % 360},100%,${l}%,${a})`;
+const baseSpectLate = RP.drawSpectacles;
+RP.drawSpectacles = function (sim, layer) {
+  baseSpectLate.call(this, sim, layer);
+  for (const S of sim.spectacles || []) {
+    if (S.kind !== 'paradox' || !S.owner) continue;
+    const e = S.owner, g = this.g, T = S.t, t = sim.t, X = sx(e.x), Y = sy(e.y) - 8;
+    const ux = Math.cos(S.ang), uy = Math.sin(S.ang) * SQ, ul = Math.hypot(ux, uy), dx = ux / ul, dy = uy / ul, nx = -dy, ny = dx;
+    const L = (S.len || 320) * Math.hypot(Math.cos(S.ang), Math.sin(S.ang) * SQ), Wd = (S.w || 26) * (0.7 + 0.3 * Math.abs(Math.cos(S.ang)));
+    const fire = T >= 1.0 && T < 4.8, open = T < 1.0 ? 0 : T < 1.12 ? (T - 1.0) / 0.12 : T < 4.6 ? 1 : Math.max(0, (4.8 - T) / 0.2);
+    if (layer === 'back') { // the floor under it lit in its colours, and the stage gone dim
+      const dim = Math.min(1, T / 0.6) * (T > 4.8 ? Math.max(0, 1 - (T - 4.8) / 0.5) : 1);
+      g.globalAlpha = 0.35 * dim; g.fillStyle = '#0a0418'; g.fillRect(0, 13, W, H - 13); g.globalAlpha = 1;
+      if (open > 0) lit(g, c => { c.globalAlpha = 0.35 * open; const gr = c.createLinearGradient(X, Y + 8, X + dx * L, Y + 8 + dy * L); for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, hueCol(t * 240 + i * 60, 55, 0.6)); c.fillStyle = gr; c.beginPath(); c.moveTo(X + nx * Wd, Y + 8 + ny * Wd * 0.6); c.lineTo(X + dx * L + nx * Wd * 1.4, Y + 8 + dy * L + ny * Wd); c.lineTo(X + dx * L - nx * Wd * 1.4, Y + 8 + dy * L - ny * Wd); c.lineTo(X - nx * Wd, Y + 8 - ny * Wd * 0.6); c.fill(); });
+      continue;
+    }
+    if (layer !== 'top') continue;
+    // the clock at his hand, hands running backwards, growing as it gathers
+    const cr = 6 + Math.min(1, T / 1.0) * 8 + open * 2;
+    lit(g, c => {
+      c.globalAlpha = 0.9; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU - T * 3; c.fillStyle = hueCol(i * 30 + t * 300, 65); c.fillRect(Math.round(X + dx * 4 + Math.cos(a) * cr), Math.round(Y + dy * 4 + Math.sin(a) * cr * 0.8), 2, 2); }
+      c.strokeStyle = '#ffffff'; c.lineWidth = 1; c.beginPath(); c.moveTo(X + dx * 4, Y + dy * 4); c.lineTo(X + dx * 4 + Math.cos(-T * 9) * cr * 0.8, Y + dy * 4 + Math.sin(-T * 9) * cr * 0.6); c.moveTo(X + dx * 4, Y + dy * 4); c.lineTo(X + dx * 4 + Math.cos(-T * 1.5) * cr * 0.5, Y + dy * 4 + Math.sin(-T * 1.5) * cr * 0.4); c.stroke();
+    });
+    if (T < 1.0) { // gathering: light drawn in from everywhere, and a thin prismatic line finding you
+      for (let i = 0; i < 4; i++) if (Math.random() < 0.8) { const a = Math.random() * TAU, r0 = 30 + Math.random() * 40; this.parts.push({ kind: 'px', x: X + Math.cos(a) * r0, y: Y + Math.sin(a) * r0 * 0.7, vx: -Math.cos(a) * r0 * 2.5, vy: -Math.sin(a) * r0 * 1.8, life: 0.35, max: 0.35, color: hueCol(Math.random() * 360, 70) }); }
+      g.save(); g.setLineDash([3, 2]); g.lineDashOffset = -t * 40; line(g, X, Y, X + dx * L, Y + dy * L, hueCol(t * 500, 70), 1, 0.4 + T * 0.6); g.restore();
+      this.shake = Math.max(this.shake, T * 3);
+      continue;
+    }
+    if (open <= 0) continue;
+    // the beam: its halo, seven bands of colour flowing down it, a white core that shivers
+    const w = Wd * open * (1 + 0.06 * Math.sin(t * 40)), quad = (half, col, a = 1) => { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.moveTo(X + nx * half, Y + ny * half); g.lineTo(X + dx * L + nx * half, Y + dy * L + ny * half); g.lineTo(X + dx * L - nx * half, Y + dy * L - ny * half); g.lineTo(X - nx * half, Y - ny * half); g.fill(); g.globalAlpha = 1; };
+    lit(g, c => { const gl = c.createLinearGradient(X + nx * w, Y + ny * w, X - nx * w, Y - ny * w); gl.addColorStop(0, 'rgba(0,0,0,0)'); gl.addColorStop(0.5, hueCol(t * 200, 60, 0.5)); gl.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gl; c.beginPath(); c.moveTo(X + nx * w * 1.2, Y + ny * w * 1.2); c.lineTo(X + dx * L + nx * w * 1.2, Y + dy * L + ny * w * 1.2); c.lineTo(X + dx * L - nx * w * 1.2, Y + dy * L - ny * w * 1.2); c.lineTo(X - nx * w * 1.2, Y - ny * w * 1.2); c.fill(); });
+    const bands = 7;
+    for (let b = 0; b < bands; b++) { // across its width, red through violet, the order cycling down its length
+      const h0 = (b / bands - 0.5) * w, h1 = ((b + 1) / bands - 0.5) * w, mid = (h0 + h1) / 2;
+      g.save(); g.beginPath(); g.moveTo(X + nx * h0, Y + ny * h0); g.lineTo(X + dx * L + nx * h0, Y + dy * L + ny * h0); g.lineTo(X + dx * L + nx * h1, Y + dy * L + ny * h1); g.lineTo(X + nx * h1, Y + ny * h1); g.closePath(); g.clip();
+      const gr = g.createLinearGradient(X, Y, X + dx * 80, Y + dy * 80); for (let i = 0; i <= 8; i++) gr.addColorStop(i / 8, hueCol(b * 51 + i * 45 - t * 520, 58)); gr.addColorStop(1, hueCol(b * 51 + 360 - t * 520, 58));
+      g.fillStyle = hueCol(b * 51 - t * 260, 58); g.fillRect(0, 0, W, H);
+      for (let k = -1; k < L / 18 + 1; k++) { const s0 = ((k * 18 + t * 260) % (L + 18)), cx = X + dx * s0 + nx * mid, cy = Y + dy * s0 + ny * mid; g.fillStyle = hueCol(b * 51 + k * 40 - t * 400, 72, 0.7); g.beginPath(); g.ellipse(cx, cy, 6, Math.abs(h1 - h0) * 0.6 + 0.5, Math.atan2(dy, dx), 0, TAU); g.fill(); } // pulses running down it
+      g.restore();
+    }
+    quad(w * 0.13 + Math.random() * 0.8, '#ffffff', 0.95); // the core
+    lit(g, c => { c.globalAlpha = 0.6; c.strokeStyle = '#ffffff'; c.lineWidth = 1; for (const s of [-1, 1]) { c.beginPath(); for (let i = 0; i <= 24; i++) { const u = i / 24, j = Math.sin(u * 30 - t * 50 + s) * 1.5; c.lineTo(X + dx * L * u + nx * (s * w * 0.5 + j), Y + dy * L * u + ny * (s * w * 0.5 + j)); } c.stroke(); } }); // its edges, shivering
+    // shards of clock face thrown off it, and the numerals of the hour going backwards through it
+    if (Math.random() < 0.9) for (let i = 0; i < 3; i++) { const u = Math.random(), s = Math.random() < 0.5 ? -1 : 1, x0 = X + dx * L * u + nx * w * 0.5 * s, y0 = Y + dy * L * u + ny * w * 0.5 * s; this.parts.push({ kind: 'px', x: x0, y: y0, vx: nx * s * (30 + Math.random() * 60) + dx * 20, vy: ny * s * (30 + Math.random() * 60), life: 0.45, max: 0.45, color: Math.random() < 0.3 ? '#ffffff' : hueCol(Math.random() * 360, 70) }); }
+    for (let i = 0; i < 4; i++) { const u = ((i / 4) - (t * 0.6) % 0.25 + 1) % 1, qx = X + dx * L * u, qy = Y + dy * L * u - 2; g.globalAlpha = 0.85; this.text(['XII', 'IX', 'VI', 'III'][i], qx, qy, '#ffffff', 'center', 6); g.globalAlpha = 1; }
+    // where it ends: a burst of white
+    lit(g, c => { c.globalAlpha = 0.6; const gr = c.createRadialGradient(X + dx * L, Y + dy * L, 0, X + dx * L, Y + dy * L, w); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(X + dx * L - w, Y + dy * L - w, w * 2, w * 2); });
+    this.shake = Math.max(this.shake, 4 + open * 2);
+    if (!S.sounded) { S.sounded = true; this.snd('ultboom'); this.snd('laser'); this.flash('rgba(255,255,255,0.7)', 0.12); }
+    if (Math.floor(t * 8) % 2 === 0 && Math.random() < 0.15) this.snd('laser');
+  }
+};
+const baseEventPx = RP.celestialEvent;
+RP.celestialEvent = function (ev) {
+  const x = sx(ev.x), y = sy(ev.y) - 6;
+  if (ev.type === 'paradoxhit') { this.cburst(x, y, 4, 40, [hueCol(Math.random() * 360, 70), '#ffffff'], 0.3); return true; }
+  if (ev.type === 'allin') { // everything on the table: the screen goes gold, a wall of chips and cards, ALL IN in her colours
+    this.flash('rgba(255,216,74,0.6)', 0.2); this.shake = Math.max(this.shake, 14);
+    this.banner = { kicker: 'EVERY SKILL SHE EVER ROLLED', text: 'ALL IN', color: '#ffd84a', life: 2.2 };
+    for (let i = 0; i < 3; i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 4 + i * 6, r1: 70 + i * 20, life: 0.5 + i * 0.15, max: 0.5 + i * 0.15, color: i % 2 ? '#ffffff' : '#ffd84a' });
+    this.cburst(x, y - 8, 120, 200, ['#ffd84a', '#fff4c0', '#c8141e', '#ffffff', '#141414'], 1.4, 60);
+    this.snd('ultboom'); this.snd('gong'); return true;
+  }
+  if (ev.type === 'betcast') { for (let i = 0; i < ev.n; i++) this.parts.push({ kind: 'ring', x: ev.x, y: ev.y, r0: 3 + i * 3, r1: 20 + i * 6, life: 0.3 + i * 0.04, max: 0.3 + i * 0.04, color: '#ffd84a' }); return true; }
+  return baseEventPx.call(this, ev);
 };
 })();

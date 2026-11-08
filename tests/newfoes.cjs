@@ -230,8 +230,10 @@ for (const type of [...BOSSES_NEW, 'timeadmin']) {
   assert.ok(q.cds.multicast <= 0.6, 'casts about every half second near death');
   q.hp = 0; q.state = 'idle'; s.resolveFalls(); assert.ok(!q.dead && q.bet && q.stage === 3, 'the Last Bet, not death'); assert.ok(Math.abs(q.hp - q.maxHp * 0.25) < 1, 'heals 25%');
   const faces = new Set(); s.p.maxHp = s.p.hp = 1e9;
-  for (let i = 0; i < 60 * 14; i++) { s.p.hp = s.p.maxHp; s.step(null); if (q.bet.face) faces.add(q.bet.face); if (q.bet.st === 'spent') break; }
-  assert.equal(q.bet.st, 'spent', 'five rolls, then spent'); assert.ok(faces.size >= 3, 'different faces: ' + [...faces]);
+  let allIn = 0, spam = 0; s.fx = []; s.timeLimit = 9999;
+  for (let i = 0; i < 60 * 30; i++) { s.p.hp = s.p.maxHp; s.p.x = -60; s.p.y = 0; s.p.kvx = s.p.kvy = 0; s.step(null); if (q.bet.face) faces.add(q.bet.face); if (q.bet.st === 'allin') allIn++; spam += s.fx.filter(f => f.type === 'gamblecast').length; s.fx.length = 0; if (q.bet.st === 'spent' && allIn) break; }
+  assert.ok(allIn > 0 && spam >= 8, 'All In: a skill every tenth of a second (' + spam + ')');
+  assert.equal(q.bet.st, 'spent', 'five rolls, All In, then spent'); assert.ok(!q.dead); assert.ok(faces.size >= 3, 'different faces: ' + [...faces]);
   q.hp = q.maxHp * 0.1; const h0 = q.hp; q.invulnT = 0; s.dealDamage(q, 30, s.p, 0, 0, 0); assert.ok(h0 - q.hp > 25, 'spent: everything gets through');
 }
 // the fighter's special calls its beasts on every cycle, but never keeps more than four

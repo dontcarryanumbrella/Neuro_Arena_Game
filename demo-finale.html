@@ -344,7 +344,7 @@
 
 <script src="js/sfx.js?v=20261107a"></script>
 <script src="js/agent.js?v=20261107a"></script>
-<script src="js/sim.js?v=20261108b"></script>
+<script src="js/sim.js?v=20261108c"></script>
 <script src="js/campaign.js?v=20261107a"></script>
 <script src="js/lore.js?v=20261107a"></script>
 <script src="js/render.js?v=20261108b"></script>
@@ -354,7 +354,7 @@
 <script src="js/celestial.js?v=20261107b"></script>
 <script src="js/celestial2.js?v=20261108a"></script>
 <script src="js/celestial3.js?v=20261108b"></script>
-<script src="js/latepass.js?v=20261108b"></script>
+<script src="js/latepass.js?v=20261108c"></script>
 <script src="js/ending.js?v=20261108b"></script>
 <script src="js/lobby.js?v=20261108b"></script>
 <script src="js/progression.js?v=20261107a"></script>
@@ -362,7 +362,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="js/online-config.js?v=20261107a"></script>
 <script src="js/online.js?v=20261107a"></script>
-<div id="demoControls" style="position:fixed;z-index:55;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;min-width:70%;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><button id="demoJade">Demo jade</button><button id="demoRaces">Preview races</button><label>Map <select id="demoWorld"><option value="">Choose map</option><option value="frontier">Last Frontier</option><option value="temple">Red Dust Temple</option><option value="night">Night Country</option><option value="peaks">Myriad Sword Peaks</option><option value="abyss">Netherworld Abyss</option><option value="isles">Eastern Isles</option><option value="heavens">Nine Heavens</option><option value="timestream">Timestream</option><option value="cursed">Cursed Domain</option><option value="blacksea">Black Sea</option><option value="pallid">Pallid Kingdom</option><option value="bottom">Bottom of the Jar</option><option value="summit">Heaven's End</option></select></label><button id="demoPhase">Next form</button><button id="demoUlt">Play ultimate</button><button id="demoFinish">Finish fight</button><button id="demoEnding">Final scene</button><button id="demoPage">Fourteenth Page</button><button id="demoTeacher">Teacher</button><button id="demoYield">Teacher yields</button><button id="demoEchoScene">Past-self scene</button><span id="demoStatus">Immortal dummy · use controls to advance forms</span></div>
+<div id="demoControls" style="position:fixed;z-index:55;top:4px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;min-width:70%;border:1px solid #bc9b55"><b>DEMO</b><button id="demoArrival">Black Sea arrival</button><button id="demoKeeper">Time Administrator</button><button id="demoYun">Yun Xi</button><button id="demoSummit">Summit</button><button id="demoChoice">Ending choices</button><button id="demoEcho">NG+ echo</button><button id="demoJade">Demo jade</button><button id="demoRaces">Preview races</button><label>Map <select id="demoWorld"><option value="">Choose map</option><option value="frontier">Last Frontier</option><option value="temple">Red Dust Temple</option><option value="night">Night Country</option><option value="peaks">Myriad Sword Peaks</option><option value="abyss">Netherworld Abyss</option><option value="isles">Eastern Isles</option><option value="heavens">Nine Heavens</option><option value="timestream">Timestream</option><option value="cursed">Cursed Domain</option><option value="blacksea">Black Sea</option><option value="pallid">Pallid Kingdom</option><option value="bottom">Bottom of the Jar</option><option value="summit">Heaven's End</option></select></label><button id="demoPhase">Next form</button><button id="demoUlt">Play ultimate</button><button id="demoFinish">Finish fight</button><button id="demoEnding">Final scene</button><button id="demoPage">Fourteenth Page</button><button id="demoTeacher">Teacher</button><button id="demoYield">Teacher yields</button><button id="demoEchoScene">Past-self scene</button><button id="demoDie">Ending: The Die</button><button id="demoEmperor">Ending: Sheathed Sword</button><button id="demoSymbols">Ending: Four Symbols</button><span id="demoStatus">Immortal dummy · use controls to advance forms</span></div>
 <script>
 (() => {
    function hideDemoPanels() {
@@ -429,9 +429,16 @@
    function readyFinale(echo) {
      hideDemoPanels(); document.getElementById('memory').hidden = true;
      state.campaign.endingReady = true; state.campaign.fourteenthPage = true;
+     readyAllChoices();
      if (echo && !state.campaign.previousSelf) state.campaign.previousSelf = fighterSnapshot();
      showDoorEnding(true, echo);
    }
+   // the four choices at the door, all on offer: the page, and the Four Symbols worn
+   function readyAllChoices() { const T = state.talents; T.owned.shapeshift = 1; T.skinPicks = FOUR_SYMBOLS.slice(); if (!T.equipped.includes('shapeshift')) T.equipped.push('shapeshift'); }
+   const scene = (beats, label) => { hideDemoPanels(); document.getElementById('memory').hidden = true; state.view.paused = true; playCutscene(beats, () => { state.view.paused = false; }); status(label); };
+   document.getElementById('demoDie').onclick = () => scene(dieBeats((state.campaign.cycle || 0) + 1), 'Ending three: The Die');
+   document.getElementById('demoEmperor').onclick = () => scene(swordEmperorBeats((state.campaign.cycle || 0) + 1), 'Ending two: The Sheathed Sword');
+   document.getElementById('demoSymbols').onclick = () => scene(symbolsBeats(), 'Ending four (secret): The Four Symbols');
    document.getElementById('demoEnding').onclick = () => readyFinale(false);
    document.getElementById('demoEchoScene').onclick = () => readyFinale(true);
    document.getElementById('demoPage').onclick = () => { hideDemoPanels(); playCutscene(pageBeats()); };
@@ -447,7 +454,7 @@
    document.getElementById('demoRaces').onclick = () => { document.getElementById('memory').hidden = true; state.view.paused = false; state.race.owned = Object.fromEntries(RACES.map(r => [r.id, 1])); setMode('lobby'); openPanel('raceSection', true); };
    document.getElementById('demoJade').onclick = () => { state.jade += 1000; refreshJade(); saveStore(); };
    document.getElementById('demoEcho').onclick = () => { document.getElementById('memory').hidden = true; const c = state.campaign; c.previousSelf = c.previousSelf || JSON.parse(JSON.stringify({ lives: state.livesTotal, agent: state.agent.toJSON(), fighter: state.cfg.fighter, loadout: state.loadout, talents: state.talents.equipped, identity: identityOpts(), skin: state.skins.equipped })); c.run = { world:'bottom', idx:0, cleared:[], rooms:[{kind:'echo',foes:[],time:240}] }; startRoom(); };
-   document.getElementById('demoChoice').onclick = () => { document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); state.campaign.endingReady = true; state.campaign.fourteenthPage = true; setMode('lobby'); openPanel('portalPanel', true); renderPortal(); };
+   document.getElementById('demoChoice').onclick = () => { readyAllChoices(); document.getElementById('memory').hidden = true; state.campaign.run = null; state.campaign.seals = Object.fromEntries(ALL_SEALS.map(x => [x, 1])); state.campaign.endingReady = true; state.campaign.fourteenthPage = true; setMode('lobby'); openPanel('portalPanel', true); renderPortal(); };
    document.getElementById('demoEnding').click();
  })();
 </script>

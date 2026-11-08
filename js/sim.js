@@ -7096,3 +7096,85 @@ Object.assign(Sim.prototype, {
     }
   },
 });
+
+// ---- Paradox, made real: what's already happened can't be dodged forever. A fat beam of every colour at once, held,
+// turning after you, eating health the whole time it touches you ----
+Object.assign(PAST_ULT, { charge: 1.2, dur: 5.8, cd: 16, dark: 'rgba(20,10,40,0.7)',
+  steps: [[0, 'pastechoall', { dmg: 14 }], [0.2, 'spectacle', { kind: 'paradox', dur: 5.4, dps: 42, w: 26, len: 320 }], [5.2, 'radial', { count: 16, kind: 'clockhand', dmg: 12, speed: 150 }]] });
+const BASE_START_SPECTACLE_LATE = Sim.prototype.startSpectacle;
+Sim.prototype.startSpectacle = function (e, o, p) {
+  const S = BASE_START_SPECTACLE_LATE.call(this, e, o, p);
+  if (o.kind === 'paradox') { S.ang = Math.atan2(p.y - e.y, p.x - e.x); S.tick = 0; S.hits = 0; }
+  return S;
+};
+Object.assign(Sim.prototype, {
+  updateParadox(S) {
+    const e = S.owner, tgt = this.targetOf(e) || this.p; if (!e || e.dead || !tgt) return;
+    const want = Math.atan2(tgt.y - e.y, tgt.x - e.x); let d = want - S.ang; while (d > Math.PI) d -= TAU_; while (d < -Math.PI) d += TAU_;
+    const firing = S.t >= 1.0 && S.t < 4.8, turn = S.t < 1.0 ? 3.5 : 0.62; // it aims fast while it gathers, then can only turn slowly: run round it
+    S.ang += Math.max(-turn * DT, Math.min(turn * DT, d)); S.firing = firing;
+    e.fx = Math.cos(S.ang); e.fy = Math.sin(S.ang);
+    if (!firing || (S.tick -= DT) > 0) return;
+    S.tick = 0.1;
+    const ux = Math.cos(S.ang), uy = Math.sin(S.ang);
+    for (const v of this.hostiles(e)) {
+      const rx = v.x - e.x, ry = v.y - e.y, along = rx * ux + ry * uy, side = Math.abs(-rx * uy + ry * ux);
+      if (along < 0 || along > (S.len || 320) || side > (S.w || 26) / 2 + v.r) continue;
+      v.lastHitBy = e; this.dealDamage(v, (S.dps || 42) * 0.1, null, 0, 0, 0); v.hurtT = 0.12; v.flash = 0.06;
+      v.kvx += ux * 40; v.kvy += uy * 40; // and it pushes you back down its length
+      if (v === this.p) S.hits++;
+      if (Math.floor(S.t * 10) % 3 === 0) this.emit('paradoxhit', v.x, v.y);
+    }
+  },
+  // Yun Xi's ultimate in the Last Bet: All In. Every skill she ever rolled, every tenth of a second, and two great ones
+  startAllIn(e) {
+    const B = e.bet; B.st = 'allin';
+    const { ults } = this.gamblePool();
+    e.state = 'gamble'; e.gambleT = 3.2; e.gambleNext = 0; e.guard = false; e.plan = null; e.dashT = 0; e.frozenT = 0;
+    e.runners = []; for (let i = 0; i < 2 && ults.length; i++) e.runners.push({ u: ults[Math.floor(this.rand() * ults.length)], t: -0.4 * i, idx: 0 });
+    this.emit('allin', e.x, e.y);
+  },
+});
+// her rolls hit harder, and each face is also a count: that many of the great foes' skills at once (her Multi-cast)
+const BASE_CAST_BET = Sim.prototype.castBetFace;
+Sim.prototype.castBetFace = function (e, face, tgt) {
+  BASE_CAST_BET.call(this, e, face, tgt);
+  const { skills } = this.gamblePool(), keep = e.atk, st = e.state, stt = e.st;
+  for (let i = 0; i < face; i++) { const s = skills[Math.floor(this.rand() * skills.length)]; e.atk = { ...s, energy: 0, hits: 1 }; this.special(e); }
+  e.atk = keep; e.state = st; e.st = stt;
+  this.emit('betcast', e.x, e.y, { n: face });
+};
+const BASE_UPDATE_BET = Sim.prototype.updateLastBet;
+Sim.prototype.updateLastBet = function (e) {
+  const B = e.bet; if (!B) return;
+  if (B.st === 'allin') { // the gamble drives her now; if anything knocks her out of it, she picks it back up (or, past its end, is spent)
+    B.allinT = (B.allinT || 0) + DT;
+    if (e.state !== 'gamble' && !(e.frozenT > 0)) {
+      if (e.gambleT > 0 && B.allinT < 6) e.state = 'gamble';
+      else { e.runners = []; e.state = 'stun'; e.st = 3.4; B.st = 'spent'; B.t = 3.4; B.allinT = 0; e.betSpent = true; this.emit('betspent', e.x, e.y); }
+    } else if (B.allinT > 8) { e.runners = []; e.gambleT = -5; }
+    return;
+  }
+  if (B.st === 'allincharge') { B.t -= DT; e.state = 'recover'; e.st = Math.max(e.st, 0.1); if (B.t <= 0) this.startAllIn(e); return; }
+  const rolls = B.rolls;
+  BASE_UPDATE_BET.call(this, e);
+  if (B.st === 'roll' || B.st === 'cast') { e.cds.multicast = Math.max(e.cds.multicast || 0, 0.3); } // between rolls she fights as she always did
+  if (B.rolls >= 5 && rolls < 5 && B.st === 'spent') { // the fifth roll: not spent yet. All In.
+    B.st = 'allincharge'; B.t = 1.0; e.betSpent = false; e.state = 'recover'; e.st = 1.0;
+    this.emit('ultCharge', e.x, e.y, { name: 'All In', color: '#ffd84a', charge: 1.0, dur: 3.2, dark: 'rgba(20,12,0,0.6)', boss: e.def.form3 });
+  }
+};
+const BASE_UPDATE_GAMBLE = Sim.prototype.updateGamble;
+Sim.prototype.updateGamble = function (e) {
+  if (!e.bet) return BASE_UPDATE_GAMBLE.call(this, e);
+  const hp = e.hp; BASE_UPDATE_GAMBLE.call(this, e);
+  if (e.hp <= 0 && hp > 0 && e.gambleT <= 0) { // the gamble is spent, but she isn't dead: she is spent
+    e.hp = hp; e.state = 'stun'; e.st = 3.4; e.bet.st = 'spent'; e.bet.t = 3.4; e.bet.allinT = 0; e.betSpent = true; e.runners = [];
+    this.emit('betspent', e.x, e.y);
+  }
+};
+const BASE_UPDATE_LATE = Sim.prototype.updateLate;
+Sim.prototype.updateLate = function () {
+  BASE_UPDATE_LATE.call(this);
+  if (this.spectacles) for (const S of this.spectacles) if (S.kind === 'paradox') this.updateParadox(S);
+};

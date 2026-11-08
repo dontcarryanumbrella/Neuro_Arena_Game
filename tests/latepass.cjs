@@ -20,6 +20,15 @@ const idle = [0, 0, -1, -1, -1, -1, -1, -1, -1];
   e.state = 'idle'; e.ult = null; e.invulnT = 0; e.hp = 0; s.resolveFalls(); assert.ok(e.past, 'the Past');
   assert.ok(Math.abs(e.hp - Math.round(ENEMY_TYPES.timeadmin.hp * 0.7)) <= 2 || e.hp >= e.maxHp - 1, 'the Past at 70%');
 }
+// ---- Paradox: a held beam that turns after you ----
+{
+  const s = new Sim('room', 9, { waves: [[{ type: 'timeadmin' }]], timeLimit: 999 }); for (let i = 0; i < 40; i++) s.step(null);
+  const e = s.enemies[0]; s.p.maxHp = s.p.hp = 1e9; e.hp = 0; s.resolveFalls(); assert.ok(e.past);
+  e.state = 'idle'; e.cds.ult = 0; s.startUlt(e); assert.equal(e.ult.name, 'Paradox');
+  const hp0 = s.p.hp; let seen = false;
+  for (let i = 0; i < 60 * 6; i++) { s.p.x = e.x + 40; s.p.y = e.y; s.p.kvx = s.p.kvy = 0; s.step(idle); if ((s.spectacles || []).some(S => S.kind === 'paradox' && S.firing)) seen = true; }
+  assert.ok(seen, 'it fires'); assert.ok(hp0 - s.p.hp > 120, 'standing in it costs a lot: ' + Math.round(hp0 - s.p.hp));
+}
 // ---- the Last Keeper calls up your saved selves ----
 {
   const brain = new PPOAgent(); const card = { agent: brain.toJSON({ small: true, actorOnly: true }), fighter: null, loadout: [null, null], talents: [], world: 'forest', lives: 10 };
